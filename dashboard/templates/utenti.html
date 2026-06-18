@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Utenti — Dashboard Presenze{% endblock %}
+{% block content %}
+<h1>Gestione utenti</h1>
+<p class="subtitle">Ruoli: <strong>admin</strong> (tutto), <strong>hr</strong> (anagrafica + report), <strong>lettura</strong> (solo visualizzazione)</p>
+
+<form method="post" class="form-inline">
+    <input type="hidden" name="action" value="add">
+    <input type="text" name="nome" placeholder="Nome visualizzato" required>
+    <input type="text" name="username" placeholder="Username" required>
+    <input type="password" name="password" placeholder="Password" required>
+    <select name="ruolo" required>
+        {% for r in ruoli %}
+        <option value="{{ r }}">{{ r }}</option>
+        {% endfor %}
+    </select>
+    <button type="submit">Crea utente</button>
+</form>
+
+<table>
+    <thead>
+        <tr>
+            <th>Username</th>
+            <th>Nome</th>
+            <th>Ruolo</th>
+            <th>Stato</th>
+            <th>Creato</th>
+            <th>Azioni</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for u in utenti %}
+        <tr class="{{ 'inactive' if not u.attivo }}">
+            <td><code>{{ u.username }}</code></td>
+            <td>{{ u.nome }}</td>
+            <td><span class="badge badge-{{ u.ruolo }}">{{ u.ruolo }}</span></td>
+            <td>{{ 'Attivo' if u.attivo else 'Disattivo' }}</td>
+            <td>{{ u.creato_il }}</td>
+            <td class="actions">
+                {% if u.id != session.user_id %}
+                <form method="post" style="display:inline">
+                    <input type="hidden" name="action" value="toggle">
+                    <input type="hidden" name="id" value="{{ u.id }}">
+                    <button type="submit" class="btn-sm">{{ 'Disattiva' if u.attivo else 'Attiva' }}</button>
+                </form>
+                {% endif %}
+                <form method="post" style="display:inline" class="form-inline" onsubmit="return confirm('Reimpostare password?')">
+                    <input type="hidden" name="action" value="reset_password">
+                    <input type="hidden" name="id" value="{{ u.id }}">
+                    <input type="password" name="password" placeholder="Nuova pwd" required style="width:100px">
+                    <button type="submit" class="btn-sm">Reset</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

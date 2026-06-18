@@ -1,0 +1,25 @@
+# Terminale remoto — invia timbrature all'hub
+# Sostituisci 192.168.1.100 con IP del server hub
+
+[Unit]
+Description=Timbratrice NFC - Terminale remoto
+After=network.target pcscd.service
+Wants=pcscd.service
+
+[Service]
+User=pi
+WorkingDirectory=/home/pi/TimbraNFC
+Environment=MOCK_GPIO=0
+Environment=MOCK_NFC=0
+Environment=SEDE_ID=2
+Environment=DEVICE_ID=pi-magazzino
+Environment=SYNC_URL=http://192.168.1.100:8000
+Environment=API_KEY=chiave-condivisa-segreta
+Environment=SYNC_INTERVAL=300
+EnvironmentFile=-/home/pi/TimbraNFC/.env
+ExecStart=/usr/bin/python3 main.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

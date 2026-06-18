@@ -1,0 +1,15 @@
+[Unit]
+Description=Timbratrice NFC - UI Touchscreen Kiosk
+After=timbratrice.service
+Requires=timbratrice.service
+
+[Service]
+User=pi
+WorkingDirectory=/home/pi/TimbraNFC
+Environment=DISPLAY=:0
+ExecStart=/usr/bin/python3 ui_kiosk.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=graphical.target

@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Sync — Dashboard Presenze{% endblock %}
+{% block content %}
+<h1>Sincronizzazione</h1>
+
+<div class="cards">
+    <div class="card">
+        <div class="card-value">{{ 'HUB' if stato.is_hub else 'Terminale' }}</div>
+        <div class="card-label">Modalità</div>
+    </div>
+    <div class="card">
+        <div class="card-value">{{ stato.device_id }}</div>
+        <div class="card-label">Device ID</div>
+    </div>
+    <div class="card">
+        <div class="card-value">{{ stato.in_coda }}</div>
+        <div class="card-label">In coda</div>
+    </div>
+    <div class="card">
+        <div class="card-value">{{ stato.inviati }}</div>
+        <div class="card-label">Già inviati</div>
+    </div>
+</div>
+
+{% if stato.is_hub %}
+<p class="subtitle">Questo server è l'<strong>hub centralizzato</strong>. Le timbratrici remote inviano qui le timbrature. Gestisci anagrafica e report da questa dashboard.</p>
+{% elif stato.attivo %}
+<p class="subtitle">Sync attivo verso <code>{{ stato.sync_url }}</code></p>
+<form method="post">
+    <button type="submit">Sincronizza ora</button>
+</form>
+{% else %}
+<p class="subtitle">Sync non configurato. Imposta <code>SYNC_URL</code> sul terminale o <code>IS_HUB=1</code> sul server centrale.</p>
+{% endif %}
+
+<h2>Log sincronizzazione</h2>
+<table>
+    <thead>
+        <tr><th>Data/Ora</th><th>Direzione</th><th>Esito</th><th>Dettagli</th></tr>
+    </thead>
+    <tbody>
+        {% for l in stato.log %}
+        <tr>
+            <td>{{ l.timestamp }}</td>
+            <td>{{ l.direzione }}</td>
+            <td><span class="badge badge-{{ 'entrata' if l.esito == 'ok' else 'uscita' }}">{{ l.esito }}</span></td>
+            <td>{{ l.dettagli }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" class="empty">Nessun log</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
