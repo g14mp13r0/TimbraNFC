@@ -66,9 +66,15 @@ fi
 
 log "Display: $OUTPUT ($CURRENT_MODE) → target ${TARGET_W}x${TARGET_H}"
 
+# Estrai WxH da "320x480+0+0" o "320x480"
+CUR_W="${CURRENT_MODE%%+*}"
+CUR_W="${CUR_W%%x*}"
+CUR_H="${CURRENT_MODE#*x}"
+CUR_H="${CUR_H%%+*}"
+
 # Ruota schermo portrait → landscape (320x480 → 480x320)
 if [ "${TOUCH_NO_ROTATE:-0}" -ne 1 ]; then
-    if [ "$CURRENT_MODE" = "320x480" ] && [ "$TARGET_W" -gt "$TARGET_H" ]; then
+    if [ -n "$CUR_W" ] && [ -n "$CUR_H" ] && [ "$CUR_W" -lt "$CUR_H" ] && [ "$TARGET_W" -gt "$TARGET_H" ]; then
         case "$TOUCH_ROTATE" in
             left|L)
                 xrandr --output "$OUTPUT" --rotate left
