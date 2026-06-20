@@ -89,20 +89,49 @@ if [ -f "$APP_DIR/.env" ]; then
     chown "${APP_USER}:${APP_USER}" "$APP_DIR/.env"
 fi
 
+# Disabilita unit legacy con path /home/pi (se presenti)
+for legacy in timbratrice dashboard ui-kiosk hub; do
+    systemctl disable --now "${legacy}.service" 2>/dev/null || true
+done
+
 systemctl daemon-reload
+systemctl reset-failed timbranfc-server 2>/dev/null || true
 systemctl enable timbranfc-server
 systemctl restart timbranfc-server
-sleep 2
 
-if curl -sf http://127.0.0.1:8080/health >/dev/null; then
+echo "Attendo avvio server (max 45s)..."
+SERVER_OK=0
+for _ in $(seq 1 45); do
+    if curl -sf http://127.0.0.1:8080/health >/dev/null 2>&1; then
+        SERVER_OK=1
+        break
+    fi
+    if ! systemctl is-active --quiet timbranfc-server 2>/dev/null; then
+        sleep 1
+        continue
+    fi
+    sleep 1
+done
+
+if [ "$SERVER_OK" -eq 1 ]; then
+    HEALTH=$(curl -sf http://127.0.0.1:8080/health || true)
     echo "Server OK: http://$(hostname -I | awk '{print $1}'):8080"
+    echo "Health: $HEALTH"
 else
-    echo "Server non risponde — controlla: journalctl -u timbranfc-server -n 20"
-    journalctl -u timbranfc-server -n 15 --no-pager
+    echo "ERRORE: server non risponde su :8080"
+    echo "--- timbranfc-server.service ---"
+    grep -E '^(User|ExecStart|WorkingDirectory)=' /etc/systemd/system/timbranfc-server.service || true
+    systemctl status timbranfc-server --no-pager -l || true
+    journalctl -u timbranfc-server -n 25 --no-pager
     exit 1
 fi
 
 systemctl enable timbranfc-kiosk
-systemctl restart timbranfc-kiosk || echo "Kiosk: riavvia dopo login desktop o usa autostart"
+systemctl reset-failed timbranfc-kiosk 2>/dev/null || true
+if systemctl restart timbranfc-kiosk; then
+    echo "Kiosk systemd: avviato"
+else
+    echo "Kiosk systemd: fallito (normale senza sessione grafica — usa autostart al login)"
+fi
 
 echo "Fatto. Dashboard: http://$(hostname -I | awk '{print $1}'):8080"
