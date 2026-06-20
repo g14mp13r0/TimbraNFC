@@ -1,14 +1,13 @@
 #!/bin/bash
 # Avvia kiosk timbratrice (DISPLAY + server locale)
-set -euo pipefail
+set -uo pipefail
 
 APP_DIR="${APP_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
 APP_USER="${APP_USER:-$(whoami)}"
 LOG="${TIMBRANFC_KIOSK_LOG:-/tmp/timbranfc-kiosk.log}"
+LOCK="/tmp/timbranfc-kiosk.lock"
 
 exec >>"$LOG" 2>&1
-echo ""
-echo "=== $(date -Iseconds) launch_kiosk.sh (user=$APP_USER) ==="
 
 cd "$APP_DIR"
 [ -f "$APP_DIR/.env" ] && set -a && source "$APP_DIR/.env" && set +a
@@ -18,13 +17,15 @@ export TIMBRANFC_DATA="${TIMBRANFC_DATA:-$APP_DIR/data}"
 export SERVER_URL="${SERVER_URL:-http://127.0.0.1:8080}"
 export NFC_AUTO_TIMBRATURA="${NFC_AUTO_TIMBRATURA:-1}"
 
-# Evita doppio avvio
-if pgrep -f "$APP_DIR/standalone/run_kiosk.py" >/dev/null 2>&1; then
-    echo "Kiosk già in esecuzione — esco"
-    exit 0
+# Un solo kiosk (lock file)
+if [ -f "$LOCK" ]; then
+    _old_pid="$(cat "$LOCK" 2>/dev/null || true)"
+    if [ -n "$_old_pid" ] && kill -0 "$_old_pid" 2>/dev/null; then
+        echo "$(date -Iseconds) Kiosk già attivo (pid $_old_pid)"
+        exit 0
+    fi
 fi
 
-# Attendi socket X (autostart può partire prima del desktop)
 for i in $(seq 1 45); do
     if [ -S /tmp/.X11-unix/X0 ] || [ -S /tmp/.X11-unix/X1 ]; then
         break
@@ -35,52 +36,41 @@ done
 # shellcheck source=standalone/x-session-env.sh
 source "$APP_DIR/standalone/x-session-env.sh"
 
-echo "DISPLAY=$DISPLAY XAUTHORITY=${XAUTHORITY:-} WAYLAND_DISPLAY=${WAYLAND_DISPLAY:-}"
-
 if ! x_socket_ok; then
-    echo "ERRORE: socket X assente — serve desktop autologin attivo" >&2
-    echo "  sudo bash $APP_DIR/standalone/setup-remote-desktop.sh && sudo reboot" >&2
+    echo "$(date -Iseconds) ERRORE: socket X assente"
     exit 1
 fi
 
-if ! x_session_ok; then
-    echo "Avviso: xrandr non risponde (normale su Pi OS) — avvio kiosk comunque"
+if [ "${NFC_BACKEND:-nfcpy}" = "nfcpy" ]; then
+    systemctl stop pcscd pcscd.socket 2>/dev/null || true
 fi
-
-# Touch solo se serve selezione manuale IT/IP/FP/FT
-if [ "${NFC_AUTO_TIMBRATURA}" != "1" ] && [ -x "$APP_DIR/standalone/fix-touchscreen.sh" ]; then
-    bash "$APP_DIR/standalone/fix-touchscreen.sh" --quiet 2>/dev/null || true
-fi
-
-# Attendi server (max 60s) — run_kiosk ha un secondo tentativo
-for i in $(seq 1 30); do
-    if curl -sf "${SERVER_URL}/health" >/dev/null 2>&1; then
-        echo "Server OK: $SERVER_URL"
-        break
-    fi
-    [ "$i" -eq 30 ] && echo "Avviso: server non ancora pronto, run_kiosk riproverà"
-    sleep 2
-done
-
-echo "Avvio run_kiosk.py..."
 
 PY="$APP_DIR/.venv/bin/python"
 KIOSK="$APP_DIR/standalone/run_kiosk.py"
 
-# nfcpy e pcscd si escludono a vicenda sull'ACR122U
-if [ "${NFC_BACKEND:-auto}" = "nfcpy" ]; then
-    systemctl stop pcscd pcscd.socket 2>/dev/null || true
-fi
-
-_run() {
-    exec "$PY" "$KIOSK"
+_start_python() {
+    export DISPLAY XAUTHORITY WAYLAND_DISPLAY XDG_RUNTIME_DIR DBUS_SESSION_BUS_ADDRESS
+    echo "$(date -Iseconds) Avvio kiosk DISPLAY=$DISPLAY NFC_BACKEND=${NFC_BACKEND:-?}"
+    # Mai usare sg scard qui: perde DISPLAY e Tk si chiude subito
+    "$PY" "$KIOSK"
 }
 
-if getent group scard >/dev/null 2>&1 && id -nG "$APP_USER" 2>/dev/null | grep -qw scard; then
-    if ! id -nG 2>/dev/null | grep -qw scard; then
-        echo "Avvio kiosk con sg scard (permessi PC/SC)"
-        exec sg scard -c "exec \"$PY\" \"$KIOSK\""
-    fi
-fi
+while true; do
+    echo ""
+    echo "=== $(date -Iseconds) launch_kiosk.sh (user=$APP_USER) ==="
 
-_run
+    for i in $(seq 1 30); do
+        if curl -sf "${SERVER_URL}/health" >/dev/null 2>&1; then
+            echo "Server OK: $SERVER_URL"
+            break
+        fi
+        [ "$i" -eq 30 ] && echo "Avviso: server non pronto, avvio comunque"
+        sleep 2
+    done
+
+    _start_python
+    _rc=$?
+    echo "$(date -Iseconds) Kiosk terminato (exit $_rc) — riavvio tra 5s"
+    rm -f "$LOCK"
+    sleep 5
+done

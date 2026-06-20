@@ -116,6 +116,9 @@ done
 
 systemctl daemon-reload
 systemctl reset-failed timbranfc-server 2>/dev/null || true
+# Disabilita kiosk systemd (conflitto con autostart — causa flash entra/esce)
+systemctl disable --now timbranfc-kiosk 2>/dev/null || true
+
 systemctl enable timbranfc-server
 systemctl restart timbranfc-server
 

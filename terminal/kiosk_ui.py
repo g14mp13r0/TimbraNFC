@@ -18,7 +18,7 @@ log = logging.getLogger("kiosk_ui")
 W = config.DISPLAY_WIDTH
 H = config.DISPLAY_HEIGHT
 BTN_W, BTN_H = 140, 60
-CONFIRM_MS = 2500
+CONFIRM_MS = int(getattr(config, "KIOSK_CONFIRM_MS", None) or __import__("os").environ.get("KIOSK_CONFIRM_MS", "4000"))
 
 COLOR_BG = "#000000"
 COLOR_OK = "#0d7377"
@@ -36,6 +36,7 @@ class KioskUI:
         self.root.attributes("-fullscreen", True)
         self.root.configure(bg=COLOR_BG)
         self.root.bind("<Escape>", lambda e: None)
+        self.root.protocol("WM_DELETE_WINDOW", lambda: None)
 
         self._badge_corrente: str | None = None
         self._btn_refs: dict[str, tk.Button] = {}

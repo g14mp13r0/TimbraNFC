@@ -38,10 +38,18 @@ def _attendi_server(timeout: int = 90) -> bool:
 
 
 def main():
+    import os
+
     config.DATA_DIR.mkdir(parents=True, exist_ok=True)
     local_queue.init_db()
 
-    import os
+    lock = os.environ.get("TIMBRANFC_KIOSK_LOCK", "/tmp/timbranfc-kiosk.lock")
+    try:
+        with open(lock, "w") as f:
+            f.write(str(os.getpid()))
+    except OSError:
+        pass
+
     log.info("DISPLAY=%s XAUTHORITY=%s", os.environ.get("DISPLAY"), os.environ.get("XAUTHORITY"))
 
     log.info("Attendo server locale %s ...", config.SERVER_URL)
@@ -99,7 +107,11 @@ def main():
         config.DISPLAY_WIDTH,
         config.DISPLAY_HEIGHT,
     )
-    ui.run()
+    try:
+        ui.run()
+    except Exception:
+        log.exception("Kiosk UI terminata con errore")
+        raise
 
 
 if __name__ == "__main__":
