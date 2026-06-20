@@ -59,9 +59,8 @@ UNIT
 cat > /etc/systemd/system/timbranfc-kiosk.service <<UNIT
 [Unit]
 Description=TimbraNFC Kiosk
-After=timbranfc-server.service graphical.target pcscd.service pcscd.socket
+After=timbranfc-server.service graphical.target
 Requires=timbranfc-server.service
-Wants=pcscd.service pcscd.socket
 
 [Service]
 Type=simple
@@ -108,6 +107,14 @@ if [ -f "$APP_DIR/.env" ] && ! grep -q '^NFC_BACKEND=' "$APP_DIR/.env"; then
     echo "NFC_BACKEND=auto" >> "$APP_DIR/.env"
 fi
 systemctl enable --now pcscd pcscd.socket 2>/dev/null || true
+
+# nfcpy e pcscd si escludono: disabilita pcscd se backend nfcpy
+if [ -f "$APP_DIR/.env" ] && grep -q '^NFC_BACKEND=nfcpy' "$APP_DIR/.env"; then
+    systemctl stop pcscd.service pcscd.socket 2>/dev/null || true
+    systemctl disable pcscd.service pcscd.socket 2>/dev/null || true
+    systemctl mask pcscd.socket 2>/dev/null || true
+    echo "pcscd disabilitato (NFC_BACKEND=nfcpy)"
+fi
 
 # Disabilita unit legacy con path /home/pi (se presenti)
 for legacy in timbratrice dashboard ui-kiosk hub; do

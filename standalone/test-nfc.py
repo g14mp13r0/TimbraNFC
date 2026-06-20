@@ -16,28 +16,35 @@ def test_pcsc() -> int:
     except ImportError as e:
         print(f"FAIL:pyscard:{e}")
         return 1
-    try:
-        r = readers()
-    except Exception as e:
-        print(f"FAIL:pcsc_context:{e}")
-        return 1
-    if not r:
-        print("FAIL:no_reader")
-        return 1
-    try:
-        conn = r[0].createConnection()
-        conn.connect()
-        data, sw1, sw2 = conn.transmit([0xFF, 0xCA, 0x00, 0x00, 0x00])
-        conn.disconnect()
-        if sw1 == 0x90 and sw2 == 0x00 and data:
-            uid = "".join(f"{b:02X}" for b in data)
-            print(f"OK:uid:{uid}")
-        else:
-            print("OK:reader_ready")
-        return 0
-    except Exception as e:
-        print(f"FAIL:read:{e}")
-        return 1
+    import time
+
+    last_err = "no_reader"
+    for attempt in range(10):
+        try:
+            r = readers()
+        except Exception as e:
+            last_err = f"pcsc_context:{e}"
+            time.sleep(0.5)
+            continue
+        if not r:
+            time.sleep(0.5)
+            continue
+        try:
+            conn = r[0].createConnection()
+            conn.connect()
+            data, sw1, sw2 = conn.transmit([0xFF, 0xCA, 0x00, 0x00, 0x00])
+            conn.disconnect()
+            if sw1 == 0x90 and sw2 == 0x00 and data:
+                uid = "".join(f"{b:02X}" for b in data)
+                print(f"OK:uid:{uid}")
+            else:
+                print(f"OK:reader:{r[0]}")
+            return 0
+        except Exception as e:
+            last_err = f"read:{e}"
+            time.sleep(0.5)
+    print(f"FAIL:{last_err}")
+    return 1
 
 
 def test_nfcpy() -> int:

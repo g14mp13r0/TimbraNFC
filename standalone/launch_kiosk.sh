@@ -42,9 +42,11 @@ if ! x_socket_ok; then
 fi
 
 if [ "${NFC_BACKEND:-auto}" = "nfcpy" ]; then
-    systemctl stop pcscd pcscd.socket 2>/dev/null || true
+    systemctl stop pcscd.service pcscd.socket 2>/dev/null || true
+    systemctl mask pcscd.socket 2>/dev/null || true
 elif [ "${NFC_BACKEND:-auto}" = "pcsc" ]; then
-    systemctl start pcscd pcscd.socket 2>/dev/null || true
+    systemctl unmask pcscd.socket pcscd.service 2>/dev/null || true
+    systemctl start pcscd.socket pcscd.service 2>/dev/null || true
 fi
 
 PY="$APP_DIR/.venv/bin/python"

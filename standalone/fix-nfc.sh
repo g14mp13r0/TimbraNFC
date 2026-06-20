@@ -30,7 +30,7 @@ fi
 lsusb | grep -iE '072f|acr' || true
 
 export DEBIAN_FRONTEND=noninteractive
-apt-get install -y pcscd libpcsclite1 usbutils 2>/dev/null || true
+apt-get install -y pcscd libpcsclite1 libccid pcsc-tools usbutils 2>/dev/null || true
 
 if ! getent group scard >/dev/null 2>&1; then
     groupadd scard 2>/dev/null || true
@@ -88,14 +88,27 @@ _reset_usb() {
 }
 
 _stop_pcscd() {
-    systemctl stop pcscd pcscd.socket 2>/dev/null || true
-    sleep 1
+    systemctl stop pcscd.service 2>/dev/null || true
+    systemctl stop pcscd.socket 2>/dev/null || true
+    sleep 2
+}
+
+_disable_pcscd() {
+    _stop_pcscd
+    systemctl disable pcscd.service pcscd.socket 2>/dev/null || true
+    systemctl mask pcscd.socket 2>/dev/null || true
 }
 
 _start_pcscd() {
-    systemctl enable pcscd pcscd.socket 2>/dev/null || true
-    systemctl restart pcscd pcscd.socket 2>/dev/null || true
-    sleep 2
+    systemctl unmask pcscd.socket pcscd.service 2>/dev/null || true
+    systemctl enable pcscd.socket 2>/dev/null || true
+    systemctl restart pcscd.socket 2>/dev/null || true
+    sleep 1
+    systemctl restart pcscd.service 2>/dev/null || true
+    sleep 4
+    if command -v pcsc_scan >/dev/null 2>&1; then
+        timeout 3 pcsc_scan 2>&1 | head -15 || true
+    fi
 }
 
 _run_test_as() {
@@ -115,6 +128,7 @@ _try_nfcpy() {
     echo "--- Test nfcpy (pcscd OFF) ---"
     _stop_pcscd
     _reset_usb
+    _disable_pcscd
     local out attempt
     for attempt in 1 2 3; do
         out="$(_run_test_as user nfcpy)"
@@ -157,8 +171,7 @@ if [ "$NFC_MODE" = "nfcpy" ] || [ "$NFC_MODE" = "auto" ]; then
     if _try_nfcpy; then
         _set_backend "nfcpy"
         MODE="nfcpy"
-        _stop_pcscd
-        systemctl disable pcscd pcscd.socket 2>/dev/null || true
+        _disable_pcscd
     fi
 fi
 
