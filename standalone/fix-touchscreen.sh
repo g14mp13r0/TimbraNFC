@@ -40,6 +40,16 @@ fi
 
 log() { [ "${QUIET:-0}" -eq 1 ] || echo "$*"; }
 
+run_timeout() {
+    local secs="$1"
+    shift
+    if command -v timeout >/dev/null 2>&1; then
+        timeout "$secs" "$@"
+    else
+        "$@"
+    fi
+}
+
 touch_matrix_for_rotate() {
     case "${1:-left}" in
         left|L)  echo "0 -1 1 1 0 0 0 0 1" ;;
@@ -113,15 +123,20 @@ if [ "${TOUCH_NO_ROTATE:-0}" -ne 1 ]; then
                 ;;
         esac
 
-        # 1) Wayland compositor (labwc / Pi OS recente)
+        # 1) Wayland compositor (labwc / Pi OS recente) — timeout: può bloccarsi da SSH
         if [ -n "${WAYLAND_DISPLAY:-}" ] && command -v wlr-randr >/dev/null 2>&1; then
             _wlr_err=""
-            if _wlr_err="$(wlr-randr --output "$OUTPUT" --transform "${_wlr:-90}" 2>&1)"; then
+            if _wlr_err="$(run_timeout 5 wlr-randr --output "$OUTPUT" --transform "${_wlr:-90}" 2>&1)"; then
                 DEFAULT_MATRIX="$_mat"
                 ROTATED=1
                 log "Rotazione Wayland (wlr-randr): ${_wlr:-90}°"
             else
-                log "wlr-randr fallito: ${_wlr_err:-unknown}"
+                _wlr_rc=$?
+                if [ "$_wlr_rc" -eq 124 ]; then
+                    log "wlr-randr: timeout (compositor non risponde da SSH — touch applicato comunque)"
+                else
+                    log "wlr-randr fallito: ${_wlr_err:-exit $_wlr_rc}"
+                fi
             fi
         fi
 
@@ -161,22 +176,24 @@ elif [ "$TARGET_W" -gt "$TARGET_H" ]; then
     fi
 fi
 
-# Touch: xwayland-touch o ADS7846 (tutti i dispositivi touch trovati)
+# Touch: xwayland-touch (un solo xinput list — evita hang da N chiamate xinput)
 TOUCH_IDS=()
 TOUCH_NAMES=()
 while IFS= read -r line; do
-    id="${line%% *}"
-    name="${line#* }"
-    lower="$(echo "$name" | tr '[:upper:]' '[:lower:]')"
-    case "$lower" in
-        *touch*|*ads7846*|*xwayland-touch*)
-            TOUCH_IDS+=("$id")
-            TOUCH_NAMES+=("$name")
+    case "$line" in
+        *id=*)
+            case "$line" in
+                *[Tt]ouch*|*ads7846*|*ADS7846*|*xwayland-touch*)
+                    _id="$(printf '%s' "$line" | sed -n 's/.*id=\([0-9]*\).*/\1/p')"
+                    _name="$(printf '%s' "$line" | sed 's/.*↳ //; s/[[:space:]]*id=.*//; s/^[[:space:]]*//')"
+                    [ -n "$_id" ] || continue
+                    TOUCH_IDS+=("$_id")
+                    TOUCH_NAMES+=("$_name")
+                    ;;
+            esac
             ;;
     esac
-done < <(xinput list --id-only 2>/dev/null | while read -r id; do
-    echo "$id $(xinput list --name-only "$id" 2>/dev/null || true)"
-done)
+done < <(run_timeout 10 xinput list 2>/dev/null || true)
 
 if [ "${#TOUCH_IDS[@]}" -eq 0 ]; then
     echo "Nessun dispositivo touch trovato (cercato xwayland-touch / ADS7846)." >&2

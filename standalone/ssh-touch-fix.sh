@@ -20,7 +20,12 @@ if ! x_session_ok; then
     exit 1
 fi
 
-bash "$APP_DIR/standalone/fix-touchscreen.sh"
+echo "Applico fix touch (display + xwayland-touch)..."
+bash "$APP_DIR/standalone/fix-touchscreen.sh" || {
+    echo ""
+    echo "fix-touchscreen.sh terminato con errore (codice $?)"
+    exit 1
+}
 echo ""
 echo "OK. Se il kiosk non è visibile, riavvia autostart:"
 echo "  pkill -f run_kiosk.py || true"

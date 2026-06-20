@@ -8,6 +8,16 @@ APP_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 # shellcheck source=standalone/x-session-env.sh
 source "$APP_DIR/standalone/x-session-env.sh"
 
+run_timeout() {
+    local secs="$1"
+    shift
+    if command -v timeout >/dev/null 2>&1; then
+        timeout "$secs" "$@"
+    else
+        "$@"
+    fi
+}
+
 echo "=== Diagnostica touch TimbraNFC ==="
 echo ""
 
@@ -32,7 +42,8 @@ echo ""
 
 echo "--- Wayland (wlr-randr) ---"
 if [ -n "${WAYLAND_DISPLAY:-}" ] && command -v wlr-randr >/dev/null 2>&1; then
-    wlr-randr 2>/dev/null | awk '/^SPI-|^DSI-|^HDMI-|Transform:|current mode/' || wlr-randr 2>/dev/null | head -15
+    run_timeout 5 wlr-randr 2>/dev/null | awk '/^SPI-|^DSI-|^HDMI-|Transform:|current mode/' || \
+        run_timeout 5 wlr-randr 2>/dev/null | head -15 || echo "(wlr-randr timeout o non disponibile)"
 else
     echo "(wlr-randr non disponibile — installa: sudo apt install wlr-randr)"
 fi
