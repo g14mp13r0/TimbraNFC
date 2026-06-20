@@ -26,8 +26,6 @@ COLOR_ERR = "#c62828"
 COLOR_BTN = "#2d4059"
 COLOR_BTN_ACT = "#4fc3f7"
 COLOR_ACCENT = "#e85d04"
-TOP_BAR_H = 38
-BOTTOM_BAR_H = 50
 
 
 class KioskUI:
@@ -57,20 +55,21 @@ class KioskUI:
         try:
             from PIL import Image, ImageTk
 
-            img = Image.open(path).convert("RGB")
-            iw, ih = img.size
+            src = Image.open(path).convert("RGBA")
+            bbox = src.getbbox()
+            if bbox:
+                src = src.crop(bbox)
 
-            # Area centrale tra barra orario e messaggio badge — logo intero (contain)
-            zone_w = W
-            zone_h = H - TOP_BAR_H - BOTTOM_BAR_H
-            scale = min(zone_w / iw, zone_h / ih)
+            # Sfondo nero + logo centrato, adattato allo schermo (contain)
+            iw, ih = src.size
+            scale = min(W / iw, H / ih)
             nw, nh = max(1, int(iw * scale)), max(1, int(ih * scale))
-            img = img.resize((nw, nh), Image.Resampling.LANCZOS)
+            logo = src.resize((nw, nh), Image.Resampling.LANCZOS)
 
             canvas = Image.new("RGB", (W, H), COLOR_BG)
             paste_x = (W - nw) // 2
-            paste_y = TOP_BAR_H + (zone_h - nh) // 2
-            canvas.paste(img, (paste_x, paste_y))
+            paste_y = (H - nh) // 2
+            canvas.paste(logo, (paste_x, paste_y), logo.split()[3])
 
             self._bg_photo = ImageTk.PhotoImage(canvas)
             return self._bg_photo
@@ -82,43 +81,39 @@ class KioskUI:
         photo = self._carica_sfondo()
         if photo is None:
             return
-        tk.Label(self.root, image=photo, bd=0).place(x=0, y=0, relwidth=1, relheight=1)
+        tk.Label(self.root, image=photo, bd=0, bg=COLOR_BG).place(x=0, y=0, width=W, height=H)
 
     def _build_standby(self):
         self._clear()
         self._badge_corrente = None
         self._applica_sfondo()
 
-        top = tk.Frame(self.root, bg=COLOR_BG, height=TOP_BAR_H)
-        top.place(relx=0, rely=0, relwidth=1)
-        top.pack_propagate(False)
-
+        # Orario nel margine sinistro (logo centrato lascia bande nere ai lati)
         self.lbl_ora = tk.Label(
-            top, text="00:00", font=("Helvetica", 24, "bold"), fg="white", bg=COLOR_BG
+            self.root, text="00:00", font=("Helvetica", 22, "bold"), fg="white", bg=COLOR_BG
         )
-        self.lbl_ora.pack(side="left", padx=10, pady=4)
+        self.lbl_ora.place(x=10, y=8, anchor="nw")
 
-        self.lbl_data = tk.Label(top, text="", font=("Helvetica", 10), fg="#cccccc", bg=COLOR_BG)
-        self.lbl_data.pack(side="left", padx=2, pady=8)
-
-        bottom = tk.Frame(self.root, bg=COLOR_BG, height=BOTTOM_BAR_H)
-        bottom.place(relx=0, rely=1.0, anchor="sw", relwidth=1, height=BOTTOM_BAR_H)
+        self.lbl_data = tk.Label(
+            self.root, text="", font=("Helvetica", 10), fg="#bbbbbb", bg=COLOR_BG
+        )
+        self.lbl_data.place(x=10, y=36, anchor="nw")
 
         tk.Label(
-            bottom,
+            self.root,
             text="Avvicina il badge",
-            font=("Helvetica", 16, "bold"),
+            font=("Helvetica", 15, "bold"),
             fg=COLOR_ACCENT,
             bg=COLOR_BG,
-        ).pack(pady=(8, 0))
+        ).place(relx=0.5, rely=1.0, y=-28, anchor="s")
 
         tk.Label(
-            bottom,
+            self.root,
             text="Timbratura presenze",
             font=("Helvetica", 8),
-            fg="#888888",
+            fg="#777777",
             bg=COLOR_BG,
-        ).pack()
+        ).place(relx=0.5, rely=1.0, y=-8, anchor="s")
 
     def _build_azione(self, info: dict):
         self._clear()
