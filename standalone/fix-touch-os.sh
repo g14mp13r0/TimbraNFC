@@ -132,7 +132,19 @@ Terminal=false
 X-GNOME-Autostart-enabled=true
 X-GNOME-Autostart-Delay=4
 EOF
+
+USER_SYSTEMD="/home/${APP_USER}/.config/systemd/user"
+mkdir -p "$USER_SYSTEMD"
+sed "s|@APP_DIR@|${APP_DIR}|g" "$APP_DIR/standalone/systemd/timbranfc-touch.user.service" \
+    > "$USER_SYSTEMD/timbranfc-touch.service"
+
 chown -R "${APP_USER}:${APP_USER}" "/home/${APP_USER}/.config"
+
+_uid_app="$(id -u "$APP_USER")"
+sudo -u "$APP_USER" env \
+    XDG_RUNTIME_DIR="/run/user/${_uid_app}" \
+    DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/${_uid_app}/bus" \
+    systemctl --user enable timbranfc-touch.service 2>/dev/null || true
 
 udevadm control --reload-rules
 udevadm trigger --subsystem-match=input --action=change 2>/dev/null || true

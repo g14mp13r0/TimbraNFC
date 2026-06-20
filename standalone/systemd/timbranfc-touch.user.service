@@ -1,0 +1,12 @@
+[Unit]
+Description=TimbraNFC — calibrazione touch (sessione desktop)
+After=graphical-session.target
+
+[Service]
+Type=oneshot
+Environment=DISPLAY=:0
+ExecStart=@APP_DIR@/standalone/fix-touchscreen.sh --quiet
+RemainAfterExit=no
+
+[Install]
+WantedBy=graphical-session.target

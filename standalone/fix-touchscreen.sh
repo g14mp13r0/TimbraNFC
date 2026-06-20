@@ -177,28 +177,38 @@ elif [ "$TARGET_W" -gt "$TARGET_H" ]; then
     fi
 fi
 
-# Touch: xwayland-touch (un solo xinput list — evita hang da N chiamate xinput)
+# Touch: xwayland-touch — parse robusto output xinput
+discover_touch_devices() {
+    TOUCH_IDS=()
+    TOUCH_NAMES=()
+    local raw=""
+    raw="$(x_cmd 15 xinput list 2>&1)" || true
+    [ -z "$raw" ] && return 1
+
+    while IFS= read -r line; do
+        echo "$line" | grep -qiE 'touch|ads7846|xwayland-touch' || continue
+        _id="$(printf '%s' "$line" | sed -n 's/.*id=\([0-9]*\).*/\1/p')"
+        _name="$(printf '%s' "$line" | sed -E 's/^[[:space:]]*.*[↳⎜][[:space:]]*//; s/[[:space:]]+id=.*//; s/^[[:space:]]+//')"
+        [ -z "$_id" ] && continue
+        TOUCH_IDS+=("$_id")
+        TOUCH_NAMES+=("${_name:-touch}")
+    done <<< "$raw"
+    [ "${#TOUCH_IDS[@]}" -gt 0 ]
+}
+
 TOUCH_IDS=()
 TOUCH_NAMES=()
-while IFS= read -r line; do
-    case "$line" in
-        *id=*)
-            case "$line" in
-                *[Tt]ouch*|*ads7846*|*ADS7846*|*xwayland-touch*)
-                    _id="$(printf '%s' "$line" | sed -n 's/.*id=\([0-9]*\).*/\1/p')"
-                    _name="$(printf '%s' "$line" | sed 's/.*↳ //; s/[[:space:]]*id=.*//; s/^[[:space:]]*//')"
-                    [ -n "$_id" ] || continue
-                    TOUCH_IDS+=("$_id")
-                    TOUCH_NAMES+=("$_name")
-                    ;;
-            esac
-            ;;
-    esac
-done <<< "$(run_timeout 10 xinput list 2>/dev/null)"
+if ! discover_touch_devices; then
+    import_graphical_session_env "${APP_USER:-$(whoami)}" || true
+    discover_touch_devices || true
+fi
 
 if [ "${#TOUCH_IDS[@]}" -eq 0 ]; then
-    echo "Nessun dispositivo touch trovato (cercato xwayland-touch / ADS7846)." >&2
-    echo "Fix OS: sudo bash $APP_DIR/standalone/fix-touch-os.sh && sudo reboot" >&2
+    echo "Nessun dispositivo touch in xinput (SSH senza sessione grafica completa)." >&2
+    echo "Da SSH prova:" >&2
+    echo "  bash $APP_DIR/standalone/ssh-touch-fix.sh" >&2
+    echo "Oppure sul Pi (terminale desktop) o dopo:" >&2
+    echo "  sudo bash $APP_DIR/standalone/fix-touch-os.sh && sudo reboot" >&2
     exit 1
 fi
 

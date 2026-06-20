@@ -11,6 +11,7 @@ source "$APP_DIR/standalone/x-session-env.sh"
 echo "DISPLAY=$DISPLAY"
 echo "XAUTHORITY=${XAUTHORITY:-<non trovato>}"
 echo "WAYLAND_DISPLAY=${WAYLAND_DISPLAY:-<non impostato>}"
+echo "DBUS_SESSION_BUS_ADDRESS=${DBUS_SESSION_BUS_ADDRESS:-<non impostato>}"
 
 echo -n "Verifica sessione X... "
 if x_session_ok; then
@@ -27,18 +28,24 @@ else
     exit 1
 fi
 
-echo "Applico fix touch (display + xwayland-touch)..."
-export X_CMD_TIMEOUT=8
-if bash "$APP_DIR/standalone/fix-touchscreen.sh"; then
-    :
+export X_CMD_TIMEOUT=15
+
+echo "Applico fix touch nella sessione desktop (systemd-run --user)..."
+if run_in_user_graphical_session "$APP_DIR/standalone/fix-touchscreen.sh"; then
+    echo ""
+    echo "OK."
 else
     _rc=$?
     echo ""
-    echo "fix-touchscreen.sh terminato con errore (codice $_rc)"
+    echo "fix-touchscreen terminato con errore (codice $_rc)"
+    echo ""
+    echo "Se persiste, installa servizio user e reboot:"
+    echo "  sudo bash $APP_DIR/standalone/fix-touch-os.sh"
+    echo "  sudo reboot"
     exit "$_rc"
 fi
 
 echo ""
-echo "OK. Se il kiosk non è visibile, riavvia autostart:"
+echo "Se il kiosk non risponde al touch, riavvia:"
 echo "  pkill -f run_kiosk.py || true"
 echo "  nohup $APP_DIR/standalone/launch_kiosk.sh >/tmp/timbranfc-kiosk.log 2>&1 &"

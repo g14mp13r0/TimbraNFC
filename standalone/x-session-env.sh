@@ -6,6 +6,38 @@ _xse_user="${APP_USER:-${SUDO_USER:-$(whoami)}}"
 _xse_uid="$(id -u "$_xse_user" 2>/dev/null || id -u)"
 export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/${_xse_uid}}"
 
+import_graphical_session_env() {
+    local user="${1:-$_xse_user}"
+    local uid pid="" name
+    uid="$(id -u "$user" 2>/dev/null)" || return 1
+
+    for name in labwc wayfire wlroots wlroots-session pcmanfm; do
+        pid="$(pgrep -u "$uid" -x "$name" 2>/dev/null | head -1 || true)"
+        [ -n "$pid" ] && break
+    done
+    if [ -z "$pid" ]; then
+        pid="$(pgrep -u "$uid" -f 'Xwayland :0' 2>/dev/null | head -1 || true)"
+    fi
+    [ -n "$pid" ] || return 1
+    [ -r "/proc/${pid}/environ" ] || return 1
+
+    local _ok=0
+    while IFS= read -r -d '' _line; do
+        case "$_line" in
+            DISPLAY=*|WAYLAND_DISPLAY=*|XAUTHORITY=*|DBUS_SESSION_BUS_ADDRESS=*|XDG_RUNTIME_DIR=*)
+                export "$_line"
+                _ok=1
+                ;;
+        esac
+    done < "/proc/${pid}/environ"
+    [ "$_ok" -eq 1 ]
+}
+
+# Importa env dal compositor desktop (xinput/xrandr da SSH altrimenti falliscono)
+import_graphical_session_env "$_xse_user" || true
+
+export DBUS_SESSION_BUS_ADDRESS="${DBUS_SESSION_BUS_ADDRESS:-unix:path=${XDG_RUNTIME_DIR}/bus}"
+
 if [ -z "${WAYLAND_DISPLAY:-}" ]; then
     for _wl in wayland-1 wayland-0; do
         if [ -S "${XDG_RUNTIME_DIR}/${_wl}" ]; then
@@ -33,7 +65,6 @@ if [ -z "${XAUTHORITY:-}" ] || [ ! -f "$XAUTHORITY" ]; then
             break
         fi
     done
-    # auth XWayland (labwc) — glob espanso in sottoshell per evitare hang
     if [ -z "${XAUTHORITY:-}" ] || [ ! -f "$XAUTHORITY" ]; then
         for _xa in /run/user/"${_xse_uid}"/.mutter-Xwaylandauth.*; do
             if [ -f "$_xa" ]; then
@@ -71,4 +102,34 @@ x_socket_ok() {
     local _d="${DISPLAY#*:}"
     _d="${_d:-0}"
     [ -S "/tmp/.X11-unix/X${_d}" ]
+}
+
+# Esegue uno script nella sessione grafica utente (xinput funziona lì)
+run_in_user_graphical_session() {
+    local script="$1"
+    shift || true
+
+    if [ ! -f "$script" ]; then
+        return 1
+    fi
+
+    import_graphical_session_env "$_xse_user" || true
+
+    if sudo -u "$_xse_user" env \
+        XDG_RUNTIME_DIR="$XDG_RUNTIME_DIR" \
+        DBUS_SESSION_BUS_ADDRESS="$DBUS_SESSION_BUS_ADDRESS" \
+        DISPLAY="$DISPLAY" \
+        WAYLAND_DISPLAY="${WAYLAND_DISPLAY:-}" \
+        XAUTHORITY="${XAUTHORITY:-}" \
+        X_CMD_TIMEOUT="${X_CMD_TIMEOUT:-15}" \
+        systemd-run --user --wait --collect --quiet \
+        --setenv=DISPLAY="$DISPLAY" \
+        --setenv=WAYLAND_DISPLAY="${WAYLAND_DISPLAY:-}" \
+        --setenv=XAUTHORITY="${XAUTHORITY:-}" \
+        --setenv=X_CMD_TIMEOUT="${X_CMD_TIMEOUT:-15}" \
+        bash "$script" "$@"; then
+        return 0
+    fi
+
+    bash "$script" "$@"
 }
