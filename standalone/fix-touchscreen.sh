@@ -21,6 +21,7 @@ while [ $# -gt 0 ]; do
 done
 
 [ -f "$APP_DIR/.env" ] && set -a && source "$APP_DIR/.env" && set +a
+NFC_AUTO_TIMBRATURA="${NFC_AUTO_TIMBRATURA:-1}"
 
 # shellcheck source=standalone/x-session-env.sh
 source "$APP_DIR/standalone/x-session-env.sh"
@@ -204,11 +205,13 @@ if ! discover_touch_devices; then
 fi
 
 if [ "${#TOUCH_IDS[@]}" -eq 0 ]; then
+    if [ "${NFC_AUTO_TIMBRATURA:-0}" = "1" ]; then
+        log "Touch non configurato — OK con NFC_AUTO_TIMBRATURA=1"
+        exit 0
+    fi
     echo "Nessun dispositivo touch in xinput (SSH senza sessione grafica completa)." >&2
     echo "Da SSH prova:" >&2
     echo "  bash $APP_DIR/standalone/ssh-touch-fix.sh" >&2
-    echo "Oppure sul Pi (terminale desktop) o dopo:" >&2
-    echo "  sudo bash $APP_DIR/standalone/fix-touch-os.sh && sudo reboot" >&2
     exit 1
 fi
 

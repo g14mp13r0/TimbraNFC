@@ -90,6 +90,7 @@ Name=TimbraNFC Kiosk
 Exec=${APP_DIR}/standalone/launch_kiosk.sh
 Terminal=false
 X-GNOME-Autostart-enabled=true
+X-GNOME-Autostart-Delay=10
 DESKTOP
 chown "${APP_USER}:${APP_USER}" "$AUTOSTART"
 
@@ -114,6 +115,9 @@ systemctl daemon-reload
 systemctl reset-failed timbranfc-server 2>/dev/null || true
 systemctl enable timbranfc-server
 systemctl restart timbranfc-server
+
+# Kiosk: SOLO autostart desktop (systemd kiosk fallisce senza sessione X completa)
+systemctl disable --now timbranfc-kiosk 2>/dev/null || true
 
 echo "Attendo avvio server (max 45s)..."
 SERVER_OK=0
@@ -142,12 +146,8 @@ else
     exit 1
 fi
 
-systemctl enable timbranfc-kiosk
-systemctl reset-failed timbranfc-kiosk 2>/dev/null || true
-if systemctl restart timbranfc-kiosk; then
-    echo "Kiosk systemd: avviato"
-else
-    echo "Kiosk systemd: fallito (normale senza sessione grafica — usa autostart al login)"
-fi
+echo "Kiosk: usa autostart desktop (timbranfc-kiosk.service disabilitato)"
+echo "  bash ${APP_DIR}/standalone/launch_kiosk.sh"
+echo "  bash ${APP_DIR}/standalone/verify-kiosk.sh"
 
 echo "Fatto. Dashboard: http://$(hostname -I | awk '{print $1}'):8080"
