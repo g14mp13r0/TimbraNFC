@@ -26,6 +26,8 @@ COLOR_ERR = "#c62828"
 COLOR_BTN = "#2d4059"
 COLOR_BTN_ACT = "#4fc3f7"
 COLOR_ACCENT = "#e85d04"
+TOP_BAR_H = 38
+BOTTOM_BAR_H = 50
 
 
 class KioskUI:
@@ -57,13 +59,20 @@ class KioskUI:
 
             img = Image.open(path).convert("RGB")
             iw, ih = img.size
-            scale = max(W / iw, H / ih)
-            nw, nh = int(iw * scale), int(ih * scale)
+
+            # Area centrale tra barra orario e messaggio badge — logo intero (contain)
+            zone_w = W
+            zone_h = H - TOP_BAR_H - BOTTOM_BAR_H
+            scale = min(zone_w / iw, zone_h / ih)
+            nw, nh = max(1, int(iw * scale)), max(1, int(ih * scale))
             img = img.resize((nw, nh), Image.Resampling.LANCZOS)
-            left = (nw - W) // 2
-            top = (nh - H) // 2
-            img = img.crop((left, top, left + W, top + H))
-            self._bg_photo = ImageTk.PhotoImage(img)
+
+            canvas = Image.new("RGB", (W, H), COLOR_BG)
+            paste_x = (W - nw) // 2
+            paste_y = TOP_BAR_H + (zone_h - nh) // 2
+            canvas.paste(img, (paste_x, paste_y))
+
+            self._bg_photo = ImageTk.PhotoImage(canvas)
             return self._bg_photo
         except Exception as exc:
             log.warning("Impossibile caricare sfondo kiosk: %s", exc)
@@ -80,33 +89,33 @@ class KioskUI:
         self._badge_corrente = None
         self._applica_sfondo()
 
-        top = tk.Frame(self.root, bg=COLOR_BG, height=52)
+        top = tk.Frame(self.root, bg=COLOR_BG, height=TOP_BAR_H)
         top.place(relx=0, rely=0, relwidth=1)
         top.pack_propagate(False)
 
         self.lbl_ora = tk.Label(
-            top, text="00:00", font=("Helvetica", 28, "bold"), fg="white", bg=COLOR_BG
+            top, text="00:00", font=("Helvetica", 24, "bold"), fg="white", bg=COLOR_BG
         )
-        self.lbl_ora.pack(side="left", padx=12, pady=6)
+        self.lbl_ora.pack(side="left", padx=10, pady=4)
 
-        self.lbl_data = tk.Label(top, text="", font=("Helvetica", 11), fg="#cccccc", bg=COLOR_BG)
-        self.lbl_data.pack(side="left", padx=4, pady=10)
+        self.lbl_data = tk.Label(top, text="", font=("Helvetica", 10), fg="#cccccc", bg=COLOR_BG)
+        self.lbl_data.pack(side="left", padx=2, pady=8)
 
-        bottom = tk.Frame(self.root, bg=COLOR_BG, height=64)
-        bottom.place(relx=0, rely=1.0, anchor="sw", relwidth=1, height=64)
+        bottom = tk.Frame(self.root, bg=COLOR_BG, height=BOTTOM_BAR_H)
+        bottom.place(relx=0, rely=1.0, anchor="sw", relwidth=1, height=BOTTOM_BAR_H)
 
         tk.Label(
             bottom,
             text="Avvicina il badge",
-            font=("Helvetica", 18, "bold"),
+            font=("Helvetica", 16, "bold"),
             fg=COLOR_ACCENT,
             bg=COLOR_BG,
-        ).pack(pady=(10, 0))
+        ).pack(pady=(8, 0))
 
         tk.Label(
             bottom,
             text="Timbratura presenze",
-            font=("Helvetica", 9),
+            font=("Helvetica", 8),
             fg="#888888",
             bg=COLOR_BG,
         ).pack()
