@@ -119,12 +119,38 @@ def _local_ip() -> str:
         return ""
 
 
+def _ack_comando(cmd_id: int | None) -> bool:
+    if cmd_id is None:
+        return False
+    device_uuid = device_identity.get_device_uuid()
+    try:
+        r = requests.post(
+            f"{config.SERVER_URL}/api/v1/devices/{device_uuid}/comandi/{cmd_id}/ack",
+            headers=_headers(),
+            timeout=10,
+        )
+        r.raise_for_status()
+        return True
+    except Exception as e:
+        log.warning("Ack comando %s fallito: %s", cmd_id, e)
+        return False
+
+
 def _esegui_comando(cmd: dict) -> None:
     tipo = cmd.get("tipo")
     cmd_id = cmd.get("id")
-    log.info("Esecuzione comando %s (id=%s)", tipo, cmd_id)
+    log.info("Comando ricevuto: %s (id=%s)", tipo, cmd_id)
+
+    # ACK prima di azioni distruttive (execv non ritorna mai)
+    if not _ack_comando(cmd_id):
+        log.error("Comando %s (id=%s) non confermato — verrà ripetuto", tipo, cmd_id)
+        return
 
     if tipo == "restart_kiosk":
+        if config.STANDALONE:
+            log.info("restart_kiosk ignorato in standalone (comando già annullato sul server)")
+            return
+        log.info("Riavvio kiosk richiesto dal server")
         os.execv(sys.executable, [sys.executable] + sys.argv)
     elif tipo == "restart_device":
         subprocess.run(["sudo", "reboot"], check=False)
@@ -134,26 +160,14 @@ def _esegui_comando(cmd: dict) -> None:
         log.warning("reset_config richiede intervento manuale")
     elif tipo == "update_software":
         log.info("update_software: payload=%s", cmd.get("payload"))
-
-    _ack_comando(cmd_id)
-
-
-def _ack_comando(cmd_id: int) -> None:
-    device_uuid = device_identity.get_device_uuid()
-    try:
-        requests.post(
-            f"{config.SERVER_URL}/api/v1/devices/{device_uuid}/comandi/{cmd_id}/ack",
-            headers=_headers(),
-            timeout=10,
-        )
-    except Exception:
-        pass
+    else:
+        log.warning("Comando sconosciuto: %s", tipo)
 
 
 def sync_loop(stop_event: threading.Event) -> None:
     global _backoff_sec
     time.sleep(5)
-    last_heartbeat = 0.0
+    last_heartbeat = time.time()
 
     while not stop_event.is_set():
         pull_dipendenti()
