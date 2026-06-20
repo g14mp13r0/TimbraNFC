@@ -49,9 +49,7 @@ grep -iE 'touch|ads7846|goodix|egalax|ft5406' /proc/bus/input/devices 2>/dev/nul
 echo ""
 
 echo "--- Fix rapido ---"
-echo "  bash standalone/fix-touchscreen.sh"
+echo "  bash standalone/ssh-touch-fix.sh"
 echo ""
-echo "Se il touch risponde ma in posizione sbagliata, prova matrici in .env:"
-echo "  TOUCH_MATRIX=\"0 1 0 -1 0 1 0 0 1\"   # rotazione 90°"
-echo "  TOUCH_MATRIX=\"-1 0 1 0 -1 1 0 0 1\"  # rotazione 180°"
-echo "  TOUCH_MATRIX=\"0 -1 1 1 0 0 0 0 1\"   # rotazione 270°"
+echo "Se xrandr fallisce (BadMatch), rotazione permanente:"
+echo "  sudo bash standalone/enable-spi-landscape.sh && sudo reboot"

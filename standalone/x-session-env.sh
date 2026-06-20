@@ -4,6 +4,16 @@
 
 _xse_user="${APP_USER:-${SUDO_USER:-$(whoami)}}"
 _xse_uid="$(id -u "$_xse_user" 2>/dev/null || id -u)"
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/${_xse_uid}}"
+
+if [ -z "${WAYLAND_DISPLAY:-}" ]; then
+    for _wl in wayland-1 wayland-0; do
+        if [ -S "${XDG_RUNTIME_DIR}/${_wl}" ]; then
+            export WAYLAND_DISPLAY="$_wl"
+            break
+        fi
+    done
+fi
 
 if [ -S /tmp/.X11-unix/X0 ]; then
     export DISPLAY="${DISPLAY:-:0}"

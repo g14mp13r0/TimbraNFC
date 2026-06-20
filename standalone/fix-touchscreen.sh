@@ -73,28 +73,54 @@ CUR_H="${CURRENT_MODE#*x}"
 CUR_H="${CUR_H%%+*}"
 
 # Ruota schermo portrait → landscape (320x480 → 480x320)
+DEFAULT_MATRIX="1 0 0 0 1 0 0 0 1"
+ROTATED=0
+
 if [ "${TOUCH_NO_ROTATE:-0}" -ne 1 ]; then
     if [ -n "$CUR_W" ] && [ -n "$CUR_H" ] && [ "$CUR_W" -lt "$CUR_H" ] && [ "$TARGET_W" -gt "$TARGET_H" ]; then
         case "$TOUCH_ROTATE" in
             left|L)
-                xrandr --output "$OUTPUT" --rotate left
-                DEFAULT_MATRIX="0 -1 1 1 0 0 0 0 1"
-                log "Rotazione display: left (480x320)"
+                _mat="0 -1 1 1 0 0 0 0 1"
+                _wlr="90"
+                _xr="left"
                 ;;
             right|R)
-                xrandr --output "$OUTPUT" --rotate right
-                DEFAULT_MATRIX="0 1 0 -1 0 1 0 0 1"
-                log "Rotazione display: right (480x320)"
+                _mat="0 1 0 -1 0 1 0 0 1"
+                _wlr="270"
+                _xr="right"
                 ;;
             *)
-                xrandr --output "$OUTPUT" --rotate "$TOUCH_ROTATE"
-                DEFAULT_MATRIX="1 0 0 0 1 0 0 0 1"
-                log "Rotazione display: $TOUCH_ROTATE"
+                _mat="1 0 0 0 1 0 0 0 1"
+                _wlr=""
+                _xr="$TOUCH_ROTATE"
                 ;;
         esac
+
+        # 1) Wayland compositor (Pi OS recente)
+        if [ -n "${WAYLAND_DISPLAY:-}" ] && command -v wlr-randr >/dev/null 2>&1; then
+            if wlr-randr --output "$OUTPUT" --transform "${_wlr:-90}" 2>/dev/null; then
+                DEFAULT_MATRIX="$_mat"
+                ROTATED=1
+                log "Rotazione Wayland (wlr-randr): ${_wlr:-90}°"
+            fi
+        fi
+
+        # 2) XWayland xrandr (spesso fallisce su SPI)
+        if [ "$ROTATED" -eq 0 ]; then
+            if xrandr --output "$OUTPUT" --rotate "$_xr" 2>/dev/null; then
+                DEFAULT_MATRIX="$_mat"
+                ROTATED=1
+                log "Rotazione X11 (xrandr): $_xr"
+            else
+                log "Rotazione software non disponibile (XWayland BadMatch)."
+                log "Applica rotazione permanente e reboot:"
+                log "  sudo bash $APP_DIR/standalone/enable-spi-landscape.sh"
+                log "  sudo reboot"
+                DEFAULT_MATRIX="$_mat"
+            fi
+        fi
     else
-        DEFAULT_MATRIX="1 0 0 0 1 0 0 0 1"
-        log "Rotazione display: non necessaria"
+        log "Rotazione display: non necessaria (${CUR_W}x${CUR_H})"
     fi
 else
     DEFAULT_MATRIX="0 1 0 -1 0 1 0 0 1"
