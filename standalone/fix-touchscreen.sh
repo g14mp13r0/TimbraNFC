@@ -40,6 +40,16 @@ fi
 
 log() { [ "${QUIET:-0}" -eq 1 ] || echo "$*"; }
 
+touch_matrix_for_rotate() {
+    case "${1:-left}" in
+        left|L)  echo "0 -1 1 1 0 0 0 0 1" ;;
+        right|R) echo "0 1 0 -1 0 1 0 0 1" ;;
+        inverted|180|2) echo "-1 0 1 0 -1 1 0 0 1" ;;
+        none|identity|0) echo "1 0 0 0 1 0 0 0 1" ;;
+        *) echo "1 0 0 0 1 0 0 0 1" ;;
+    esac
+}
+
 # Output SPI (SPI-1, fb_1, ...)
 OUTPUT=""
 CURRENT_MODE=""
@@ -73,11 +83,18 @@ CUR_H="${CURRENT_MODE#*x}"
 CUR_H="${CUR_H%%+*}"
 
 # Ruota schermo portrait → landscape (320x480 → 480x320)
-DEFAULT_MATRIX="1 0 0 0 1 0 0 0 1"
+DEFAULT_MATRIX="$(touch_matrix_for_rotate identity)"
 ROTATED=0
+DISPLAY_PORTRAIT=0
+DISPLAY_LANDSCAPE=0
+
+if [ -n "$CUR_W" ] && [ -n "$CUR_H" ]; then
+    [ "$CUR_W" -lt "$CUR_H" ] && DISPLAY_PORTRAIT=1
+    [ "$CUR_W" -gt "$CUR_H" ] && DISPLAY_LANDSCAPE=1
+fi
 
 if [ "${TOUCH_NO_ROTATE:-0}" -ne 1 ]; then
-    if [ -n "$CUR_W" ] && [ -n "$CUR_H" ] && [ "$CUR_W" -lt "$CUR_H" ] && [ "$TARGET_W" -gt "$TARGET_H" ]; then
+    if [ "$DISPLAY_PORTRAIT" -eq 1 ] && [ "$TARGET_W" -gt "$TARGET_H" ]; then
         case "$TOUCH_ROTATE" in
             left|L)
                 _mat="0 -1 1 1 0 0 0 0 1"
@@ -113,52 +130,69 @@ if [ "${TOUCH_NO_ROTATE:-0}" -ne 1 ]; then
                 log "Rotazione X11 (xrandr): $_xr"
             else
                 log "Rotazione software non disponibile (XWayland BadMatch)."
-                log "Applica rotazione permanente e reboot:"
-                log "  sudo bash $APP_DIR/standalone/enable-spi-landscape.sh"
-                log "  sudo reboot"
+                log "Usa rotazione firmware: sudo bash $APP_DIR/standalone/enable-spi-landscape.sh"
                 DEFAULT_MATRIX="$_mat"
             fi
         fi
+    elif [ "$DISPLAY_LANDSCAPE" -eq 1 ]; then
+        log "Display già landscape (${CUR_W}x${CUR_H}) — rotazione schermo non serve"
     else
         log "Rotazione display: non necessaria (${CUR_W}x${CUR_H})"
     fi
 else
-    DEFAULT_MATRIX="0 1 0 -1 0 1 0 0 1"
+    DEFAULT_MATRIX="$(touch_matrix_for_rotate right)"
 fi
 
-# Touch: xwayland-touch o ADS7846
-TOUCH_ID=""
-TOUCH_NAME=""
+# Matrice touch: display_rotate ruota il framebuffer ma spesso lascia ADS7846 in portrait
+if [ "${TOUCH_FIRMWARE_ROTATED:-0}" = "1" ]; then
+    DEFAULT_MATRIX="$(touch_matrix_for_rotate identity)"
+    log "TOUCH_FIRMWARE_ROTATED=1 → matrice identità"
+elif [ "$TARGET_W" -gt "$TARGET_H" ] && [ -z "${TOUCH_MATRIX:-}" ]; then
+    DEFAULT_MATRIX="$(touch_matrix_for_rotate "$TOUCH_ROTATE")"
+    if [ "$DISPLAY_LANDSCAPE" -eq 1 ]; then
+        log "Matrice touch OS (${TOUCH_ROTATE}) — necessaria con display_rotate=1"
+    fi
+fi
+
+# Touch: xwayland-touch o ADS7846 (tutti i dispositivi touch trovati)
+TOUCH_IDS=()
+TOUCH_NAMES=()
 while IFS= read -r line; do
     id="${line%% *}"
     name="${line#* }"
     lower="$(echo "$name" | tr '[:upper:]' '[:lower:]')"
     case "$lower" in
         *touch*|*ads7846*|*xwayland-touch*)
-            TOUCH_ID="$id"
-            TOUCH_NAME="$name"
-            break
+            TOUCH_IDS+=("$id")
+            TOUCH_NAMES+=("$name")
             ;;
     esac
 done < <(xinput list --id-only 2>/dev/null | while read -r id; do
     echo "$id $(xinput list --name-only "$id" 2>/dev/null || true)"
 done)
 
-if [ -z "$TOUCH_ID" ]; then
+if [ "${#TOUCH_IDS[@]}" -eq 0 ]; then
     echo "Nessun dispositivo touch trovato (cercato xwayland-touch / ADS7846)." >&2
+    echo "Fix OS: sudo bash $APP_DIR/standalone/fix-touch-os.sh && sudo reboot" >&2
     exit 1
 fi
 
-log "Touch: [$TOUCH_ID] $TOUCH_NAME"
-
-if xinput map-to-output "$TOUCH_ID" "$OUTPUT" 2>/dev/null; then
-    log "Mappato touch → $OUTPUT"
-fi
-
 MATRIX="${TOUCH_MATRIX:-$DEFAULT_MATRIX}"
-# shellcheck disable=SC2086
-xinput set-prop "$TOUCH_ID" "Coordinate Transformation Matrix" $MATRIX
-log "Matrice touch: $MATRIX"
 
-xinput enable "$TOUCH_ID" 2>/dev/null || true
+for i in "${!TOUCH_IDS[@]}"; do
+    TOUCH_ID="${TOUCH_IDS[$i]}"
+    TOUCH_NAME="${TOUCH_NAMES[$i]}"
+    log "Touch: [$TOUCH_ID] $TOUCH_NAME"
+
+    if xinput map-to-output "$TOUCH_ID" "$OUTPUT" 2>/dev/null; then
+        log "Mappato touch → $OUTPUT"
+    fi
+
+    # shellcheck disable=SC2086
+    xinput set-prop "$TOUCH_ID" "Coordinate Transformation Matrix" $MATRIX 2>/dev/null || \
+        log "Avviso: matrice non applicabile su [$TOUCH_ID] (prova fix-touch-os.sh)"
+    xinput enable "$TOUCH_ID" 2>/dev/null || true
+done
+
+log "Matrice touch: $MATRIX"
 log "Touch configurato."

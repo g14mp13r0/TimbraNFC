@@ -48,8 +48,31 @@ grep -iE 'touch|ads7846|goodix|egalax|ft5406' /proc/bus/input/devices 2>/dev/nul
     echo "(nessun driver touch nel kernel — controlla overlay in /boot/firmware/config.txt)"
 echo ""
 
-echo "--- Fix rapido ---"
+echo "--- config.txt (rotazione) ---"
+for _cfg in /boot/firmware/config.txt /boot/config.txt; do
+    [ -f "$_cfg" ] || continue
+    echo "File: $_cfg"
+    grep -E '^display_rotate=|^lcd_rotate=|^dtoverlay=ads7846' "$_cfg" || echo "(nessuna riga touch/display trovata)"
+    break
+done
+echo ""
+
+echo "--- udev libinput ---"
+if [ -f /etc/udev/rules.d/99-timbranfc-touch.rules ]; then
+    cat /etc/udev/rules.d/99-timbranfc-touch.rules
+else
+    echo "(manca 99-timbranfc-touch.rules — esegui fix-touch-os.sh)"
+fi
+echo ""
+
+if command -v libinput >/dev/null 2>&1; then
+    echo "--- libinput list-devices (touch) ---"
+    libinput list-devices 2>/dev/null | awk '/Device:|Size:|Calibration/' || true
+    echo ""
+fi
+
+echo "--- Fix rapido (sessione X) ---"
 echo "  bash standalone/ssh-touch-fix.sh"
 echo ""
-echo "Se xrandr fallisce (BadMatch), rotazione permanente:"
-echo "  sudo bash standalone/enable-spi-landscape.sh && sudo reboot"
+echo "--- Fix OS (kernel/udev, richiede reboot) ---"
+echo "  sudo bash standalone/fix-touch-os.sh && sudo reboot"
