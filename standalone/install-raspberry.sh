@@ -78,7 +78,6 @@ Before=timbranfc-kiosk.service
 Type=simple
 User=${APP_USER}
 Group=${APP_GROUP}
-SupplementaryGroups=scard
 WorkingDirectory=${APP_DIR}
 EnvironmentFile=-${APP_DIR}/.env
 Environment=STANDALONE=1
@@ -114,6 +113,7 @@ Wants=pcscd.service pcscd.socket
 Type=simple
 User=${APP_USER}
 Group=${APP_GROUP}
+SupplementaryGroups=scard
 WorkingDirectory=${APP_DIR}
 EnvironmentFile=-${APP_DIR}/.env
 Environment=APP_DIR=${APP_DIR}

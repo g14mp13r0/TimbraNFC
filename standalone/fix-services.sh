@@ -36,7 +36,6 @@ After=network.target
 Type=simple
 User=${APP_USER}
 Group=${APP_USER}
-SupplementaryGroups=scard
 WorkingDirectory=${APP_DIR}
 EnvironmentFile=-${APP_DIR}/.env
 Environment=STANDALONE=1
@@ -54,13 +53,15 @@ UNIT
 cat > /etc/systemd/system/timbranfc-kiosk.service <<UNIT
 [Unit]
 Description=TimbraNFC Kiosk
-After=timbranfc-server.service graphical.target
+After=timbranfc-server.service graphical.target pcscd.service pcscd.socket
 Requires=timbranfc-server.service
+Wants=pcscd.service pcscd.socket
 
 [Service]
 Type=simple
 User=${APP_USER}
 Group=${APP_USER}
+SupplementaryGroups=scard
 WorkingDirectory=${APP_DIR}
 EnvironmentFile=-${APP_DIR}/.env
 Environment=APP_DIR=${APP_DIR}
