@@ -33,8 +33,10 @@ MOCK_NFC = os.environ.get("MOCK_NFC", "0") == "1"
 # Path lettore NFC per nfcpy (ACR122U: usb:072f:2200).
 # Se non funziona, fallback automatico su "usb".
 NFC_DEVICE_PATH = os.environ.get("NFC_DEVICE_PATH", "usb:072f:2200")
-# Backend NFC: "pcsc", "nfcpy" oppure "auto" (nfcpy -> pcsc fallback)
-NFC_BACKEND = os.environ.get("NFC_BACKEND", "pcsc").strip().lower()
+# Backend NFC: "auto" (nfcpy poi pcsc), "pcsc", "nfcpy"
+NFC_BACKEND = os.environ.get(
+    "NFC_BACKEND", "auto" if STANDALONE else "pcsc"
+).strip().lower()
 
 # Sfondo kiosk (PNG). Sovrascrivibile con KIOSK_BACKGROUND=/path/al/logo.png
 KIOSK_BACKGROUND = Path(

@@ -86,9 +86,15 @@ def _run_nfcpy(callback, once: bool = False) -> bool:
 
         err = str(last_error or "").lower()
         if "resource busy" in err or "unable to claim" in err or "access denied" in err:
-            log.error("USB NFC occupato (pcscd/socket in conflitto)")
+            log.error(
+                "USB NFC occupato — ferma pcscd: sudo systemctl stop pcscd pcscd.socket "
+                "oppure usa NFC_BACKEND=auto in .env"
+            )
         elif "no such device" in err:
-            log.error("Lettore visto da USB ma non inizializzabile via nfcpy")
+            log.error(
+                "Lettore non raggiungibile via nfcpy — controlla USB (lsusb), "
+                "cavo, oppure: bash standalone/fix-nfc.sh"
+            )
         else:
             log.warning("Errore NFC: %s — retry 5s", last_error)
         time.sleep(5)

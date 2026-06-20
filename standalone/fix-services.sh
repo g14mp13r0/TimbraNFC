@@ -102,7 +102,7 @@ fi
 
 # Backend NFC di default: PC/SC per migliore compatibilita ACR122U
 if [ -f "$APP_DIR/.env" ] && ! grep -q '^NFC_BACKEND=' "$APP_DIR/.env"; then
-    echo "NFC_BACKEND=pcsc" >> "$APP_DIR/.env"
+    echo "NFC_BACKEND=auto" >> "$APP_DIR/.env"
 fi
 systemctl enable --now pcscd pcscd.socket 2>/dev/null || true
 

@@ -25,6 +25,10 @@ echo "--- gruppi utente kiosk ---"
 id -nG "$(whoami)" 2>/dev/null || true
 echo ""
 
+echo "--- log kiosk (/tmp/timbranfc-kiosk.log) ---"
+grep -iE 'nfc|badge|usb|pcscd|errore|error|avviato' /tmp/timbranfc-kiosk.log 2>/dev/null | tail -20 || echo "(log assente)"
+echo ""
+
 echo "--- servizi ---"
 systemctl is-active timbranfc-kiosk 2>&1 || true
 systemctl is-active timbranfc-server 2>&1 || true
@@ -75,7 +79,5 @@ fi
 
 echo ""
 echo "Fix rapido:"
-echo "  sudo usermod -aG scard $(whoami)"
-echo "  sudo systemctl enable --now pcscd pcscd.socket"
-echo "  sudo systemctl daemon-reload"
-echo "  sudo systemctl restart timbranfc-kiosk"
+echo "  sudo bash standalone/fix-nfc.sh"
+echo "  pkill -f run_kiosk.py; bash standalone/launch_kiosk.sh"
