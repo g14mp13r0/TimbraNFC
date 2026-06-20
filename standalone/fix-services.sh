@@ -122,9 +122,6 @@ systemctl disable --now timbranfc-kiosk 2>/dev/null || true
 systemctl enable timbranfc-server
 systemctl restart timbranfc-server
 
-# Kiosk: SOLO autostart desktop (systemd kiosk fallisce senza sessione X completa)
-systemctl disable --now timbranfc-kiosk 2>/dev/null || true
-
 echo "Attendo avvio server (max 45s)..."
 SERVER_OK=0
 for _ in $(seq 1 45); do

@@ -9,6 +9,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+import os
+
 import terminal.config as config
 from terminal import timbratura as timb_logic
 from terminal.stati import AZIONI_LABEL
@@ -18,7 +20,7 @@ log = logging.getLogger("kiosk_ui")
 W = config.DISPLAY_WIDTH
 H = config.DISPLAY_HEIGHT
 BTN_W, BTN_H = 140, 60
-CONFIRM_MS = int(getattr(config, "KIOSK_CONFIRM_MS", None) or __import__("os").environ.get("KIOSK_CONFIRM_MS", "4000"))
+CONFIRM_MS = int(os.environ.get("KIOSK_CONFIRM_MS", "4000"))
 
 COLOR_BG = "#000000"
 COLOR_OK = "#0d7377"
