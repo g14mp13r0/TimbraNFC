@@ -1,23 +1,26 @@
+# Template di riferimento — NON installare manualmente.
+# I servizi reali sono generati da install-raspberry.sh o fix-services.sh
+
 [Unit]
 Description=TimbraNFC — Kiosk timbratrice (solo touchscreen)
-After=timbranfc-server.service pcscd.service
+After=timbranfc-server.service graphical.target pcscd.service
 Requires=timbranfc-server.service
 Wants=pcscd.service
 
 [Service]
 Type=simple
-User=pi
-WorkingDirectory=/home/pi/TimbraNFC
-EnvironmentFile=-/home/pi/TimbraNFC/.env
+User=APP_USER
+Group=APP_USER
+WorkingDirectory=APP_DIR
+EnvironmentFile=-APP_DIR/.env
+Environment=APP_DIR=APP_DIR
+Environment=APP_USER=APP_USER
 Environment=STANDALONE=1
-Environment=TIMBRANFC_DATA=/home/pi/TimbraNFC/data
+Environment=TIMBRANFC_DATA=APP_DIR/data
 Environment=SERVER_URL=http://127.0.0.1:8080
-Environment=DISPLAY=:0
-Environment=XAUTHORITY=/home/pi/.Xauthority
-ExecStartPre=/bin/sleep 3
-ExecStart=/home/pi/TimbraNFC/.venv/bin/python standalone/run_kiosk.py
-Restart=always
-RestartSec=5
+ExecStart=APP_DIR/standalone/launch_kiosk.sh
+Restart=on-failure
+RestartSec=10
 
 [Install]
 WantedBy=graphical.target

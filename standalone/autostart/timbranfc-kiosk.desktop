@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=TimbraNFC Kiosk
+Comment=Timbratrice presenze NFC
+Exec=/home/gpastorino/TimbraNFC/standalone/launch_kiosk.sh
+Terminal=false
+X-GNOME-Autostart-enabled=true

@@ -41,9 +41,12 @@ def main():
     config.DATA_DIR.mkdir(parents=True, exist_ok=True)
     local_queue.init_db()
 
+    import os
+    log.info("DISPLAY=%s XAUTHORITY=%s", os.environ.get("DISPLAY"), os.environ.get("XAUTHORITY"))
+
     log.info("Attendo server locale %s ...", config.SERVER_URL)
-    if not _attendi_server():
-        log.error("Server non raggiungibile — avviare timbranfc-server.service prima del kiosk")
+    if not _attendi_server(timeout=120):
+        log.error("Server non raggiungibile su %s — verifica: systemctl status timbranfc-server", config.SERVER_URL)
         sys.exit(1)
 
     reg = device_identity.register_device(nome_suggerito="Timbratrice locale")
@@ -53,7 +56,13 @@ def main():
     sync_agent.pull_dipendenti()
     sync_agent.avvia_sync_agent()
 
-    ui = KioskUI()
+    try:
+        ui = KioskUI()
+    except Exception as e:
+        log.error("Impossibile aprire interfaccia grafica: %s", e)
+        log.error("Installa: sudo apt install python3-tk")
+        log.error("Avvia dopo login desktop, oppure usa autostart (standalone/autostart/)")
+        sys.exit(1)
     threading.Thread(target=start_nfc_loop, args=(ui.on_badge,), daemon=True).start()
     log.info(
         "Kiosk avviato %dx%d — display SOLO timbratrice (dashboard su altri PC: http://<ip-pi>:8080)",

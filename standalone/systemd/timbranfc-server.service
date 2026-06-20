@@ -1,3 +1,7 @@
+# Template di riferimento — NON installare manualmente.
+# I servizi reali sono generati da install-raspberry.sh o fix-services.sh
+# con User/WorkingDirectory/ExecStart per l'utente corrente.
+
 [Unit]
 Description=TimbraNFC — Server e dashboard web (LAN)
 After=network.target
@@ -5,14 +9,15 @@ Before=timbranfc-kiosk.service
 
 [Service]
 Type=simple
-User=pi
-WorkingDirectory=/home/pi/TimbraNFC
-EnvironmentFile=-/home/pi/TimbraNFC/.env
+User=APP_USER
+Group=APP_USER
+WorkingDirectory=APP_DIR
+EnvironmentFile=-APP_DIR/.env
 Environment=STANDALONE=1
-Environment=TIMBRANFC_DATA=/home/pi/TimbraNFC/data
+Environment=TIMBRANFC_DATA=APP_DIR/data
 Environment=SERVER_HOST=0.0.0.0
 Environment=SERVER_PORT=8080
-ExecStart=/home/pi/TimbraNFC/.venv/bin/python standalone/run_server.py
+ExecStart=APP_DIR/.venv/bin/python APP_DIR/standalone/run_server.py
 Restart=always
 RestartSec=5
 
