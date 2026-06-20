@@ -33,19 +33,23 @@ if ! command -v xinput >/dev/null 2>&1 || ! command -v xrandr >/dev/null 2>&1; t
     exit 1
 fi
 
-if [ -z "$(xrandr_query)" ]; then
+log() { [ "${QUIET:-0}" -eq 1 ] || echo "$*"; }
+
+run_timeout() {
+    x_cmd "$@" || true
+}
+
+# Una sola query xrandr (timeout non deve far crashare set -e)
+XRANDR_OUT=""
+XRANDR_OUT="$(xrandr_query)" || true
+
+if [ -z "$XRANDR_OUT" ]; then
     echo "Display non disponibile o xrandr timeout (DISPLAY=$DISPLAY)." >&2
     if ! x_socket_ok; then
         exit 1
     fi
-    echo "Socket X presente — continuo con valori di default." >&2
+    echo "Socket X presente — continuo senza xrandr." >&2
 fi
-
-log() { [ "${QUIET:-0}" -eq 1 ] || echo "$*"; }
-
-run_timeout() {
-    x_cmd "$@"
-}
 
 touch_matrix_for_rotate() {
     case "${1:-left}" in
@@ -69,16 +73,16 @@ while read -r name mode res _; do
             break
             ;;
     esac
-done < <(xrandr_query | awk '/ connected/{print $1,$2,$3}')
+done <<< "$(printf '%s\n' "$XRANDR_OUT" | awk '/ connected/{print $1,$2,$3}')"
 
-if [ -z "$OUTPUT" ]; then
-    OUTPUT="$(xrandr_query | awk '/ connected/{print $1; exit}')"
-    CURRENT_MODE="$(xrandr_query | awk -v o="$OUTPUT" '$1==o {print $3; exit}')"
+if [ -z "$OUTPUT" ] && [ -n "$XRANDR_OUT" ]; then
+    OUTPUT="$(printf '%s\n' "$XRANDR_OUT" | awk '/ connected/{print $1; exit}')"
+    CURRENT_MODE="$(printf '%s\n' "$XRANDR_OUT" | awk -v o="$OUTPUT" '$1==o {print $3; exit}')"
 fi
 
 if [ -z "$OUTPUT" ]; then
     OUTPUT="SPI-1"
-    CURRENT_MODE="${TARGET_W}x${TARGET_H}"
+    CURRENT_MODE="320x480"
     log "xrandr non disponibile — assumo $OUTPUT ($CURRENT_MODE)"
 fi
 
@@ -140,13 +144,12 @@ if [ "${TOUCH_NO_ROTATE:-0}" -ne 1 ]; then
 
         # 2) XWayland xrandr (spesso fallisce su SPI)
         if [ "$ROTATED" -eq 0 ]; then
-            if xrandr --output "$OUTPUT" --rotate "$_xr" 2>/dev/null; then
+            if x_cmd 5 xrandr --output "$OUTPUT" --rotate "$_xr" 2>/dev/null; then
                 DEFAULT_MATRIX="$_mat"
                 ROTATED=1
                 log "Rotazione X11 (xrandr): $_xr"
             else
-                log "Rotazione software non disponibile (XWayland BadMatch)."
-                log "Usa rotazione firmware: sudo bash $APP_DIR/standalone/enable-spi-landscape.sh"
+                log "Rotazione software non disponibile (xrandr timeout/BadMatch)."
                 DEFAULT_MATRIX="$_mat"
             fi
         fi
@@ -191,7 +194,7 @@ while IFS= read -r line; do
             esac
             ;;
     esac
-done < <(run_timeout 10 xinput list 2>/dev/null || true)
+done <<< "$(run_timeout 10 xinput list 2>/dev/null)"
 
 if [ "${#TOUCH_IDS[@]}" -eq 0 ]; then
     echo "Nessun dispositivo touch trovato (cercato xwayland-touch / ADS7846)." >&2
@@ -206,14 +209,17 @@ for i in "${!TOUCH_IDS[@]}"; do
     TOUCH_NAME="${TOUCH_NAMES[$i]}"
     log "Touch: [$TOUCH_ID] $TOUCH_NAME"
 
-    if xinput map-to-output "$TOUCH_ID" "$OUTPUT" 2>/dev/null; then
+    if x_cmd 5 xinput map-to-output "$TOUCH_ID" "$OUTPUT" 2>/dev/null; then
         log "Mappato touch → $OUTPUT"
     fi
 
     # shellcheck disable=SC2086
-    xinput set-prop "$TOUCH_ID" "Coordinate Transformation Matrix" $MATRIX 2>/dev/null || \
-        log "Avviso: matrice non applicabile su [$TOUCH_ID] (prova fix-touch-os.sh)"
-    xinput enable "$TOUCH_ID" 2>/dev/null || true
+    if x_cmd 5 xinput set-prop "$TOUCH_ID" "Coordinate Transformation Matrix" $MATRIX 2>/dev/null; then
+        :
+    else
+        log "Avviso: matrice non applicabile su [$TOUCH_ID]"
+    fi
+    x_cmd 5 xinput enable "$TOUCH_ID" 2>/dev/null || true
 done
 
 log "Matrice touch: $MATRIX"

@@ -60,7 +60,7 @@ x_cmd() {
 }
 
 xrandr_query() {
-    x_cmd xrandr --query 2>/dev/null
+    x_cmd xrandr --query 2>/dev/null || true
 }
 
 x_session_ok() {
