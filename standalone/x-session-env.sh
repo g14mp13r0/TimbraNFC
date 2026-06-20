@@ -46,7 +46,12 @@ fi
 
 # xrandr/xinput da SSH possono bloccarsi: usare sempre timeout
 x_cmd() {
-    local t="${X_CMD_TIMEOUT:-5}"
+    local t="${1:-${X_CMD_TIMEOUT:-5}}"
+    if [ "$#" -gt 0 ] && [[ "$1" =~ ^[0-9]+$ ]]; then
+        shift
+    else
+        t="${X_CMD_TIMEOUT:-5}"
+    fi
     if command -v timeout >/dev/null 2>&1; then
         timeout "$t" "$@"
     else
