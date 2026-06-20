@@ -20,39 +20,13 @@ for i in $(seq 1 30); do
     sleep 2
 done
 
-# DISPLAY
-if [ -z "${DISPLAY:-}" ]; then
-    if [ -S /tmp/.X11-unix/X0 ]; then
-        export DISPLAY=:0
-    elif [ -S /tmp/.X11-unix/X1 ]; then
-        export DISPLAY=:1
-    else
-        export DISPLAY=:0
-    fi
-fi
+# shellcheck source=standalone/x-session-env.sh
+source "$APP_DIR/standalone/x-session-env.sh"
 
-# XAUTHORITY — prova percorsi comuni su Pi OS
-if [ -z "${XAUTHORITY:-}" ] || [ ! -f "$XAUTHORITY" ]; then
-    UID_NUM="$(id -u "$APP_USER" 2>/dev/null || id -u)"
-    for xa in \
-        "/home/${APP_USER}/.Xauthority" \
-        "/run/user/${UID_NUM}/gdm/Xauthority" \
-        "/run/user/${UID_NUM}/.mutter-Xwaylandauth."* \
-        "/run/user/${UID_NUM}/.Xauthority"; do
-        if [ -f "$xa" ]; then
-            export XAUTHORITY="$xa"
-            break
-        fi
-    done
-fi
-
-# Verifica X11 (tkinter non funziona su Wayland puro)
-if command -v xdpyinfo &>/dev/null; then
-    if ! xdpyinfo >/dev/null 2>&1; then
-        echo "ERRORE: display X11 non disponibile (DISPLAY=$DISPLAY)" >&2
-        echo "Suggerimento: usa sessione desktop X11 o avvia dopo login grafico" >&2
-        exit 1
-    fi
+if ! x_session_ok; then
+    echo "ERRORE: sessione grafica non disponibile (DISPLAY=$DISPLAY)" >&2
+    echo "Da SSH: sudo bash standalone/setup-remote-desktop.sh && sudo reboot" >&2
+    exit 1
 fi
 
 # Touchscreen SPI: mappa input sul display corretto

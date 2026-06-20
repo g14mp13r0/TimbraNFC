@@ -4,7 +4,9 @@
 
 set -euo pipefail
 
-export DISPLAY="${DISPLAY:-:0}"
+APP_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+# shellcheck source=standalone/x-session-env.sh
+source "$APP_DIR/standalone/x-session-env.sh"
 
 echo "=== Diagnostica touch TimbraNFC ==="
 echo ""

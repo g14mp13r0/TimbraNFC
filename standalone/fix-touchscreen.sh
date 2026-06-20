@@ -22,7 +22,8 @@ done
 
 [ -f "$APP_DIR/.env" ] && set -a && source "$APP_DIR/.env" && set +a
 
-export DISPLAY="${DISPLAY:-:0}"
+# shellcheck source=standalone/x-session-env.sh
+source "$APP_DIR/standalone/x-session-env.sh"
 TARGET_W="${DISPLAY_WIDTH:-480}"
 TARGET_H="${DISPLAY_HEIGHT:-320}"
 TOUCH_ROTATE="${TOUCH_ROTATE:-left}"
