@@ -9,7 +9,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import terminal.config as config
 import terminal.local_queue as local_queue
-from terminal.stati import AZIONI_LABEL, azioni_valide, stato_da_timbrature, transizione_valida
+from terminal.stati import AZIONI_LABEL, azione_automatica, azioni_valide, stato_da_timbrature, transizione_valida
 
 log = logging.getLogger("timbratura")
 
@@ -85,3 +85,25 @@ def registra_timbratura(badge_uid: str, azione: str, feedback_fn=None) -> dict:
         "label": AZIONI_LABEL[azione],
         "ora": ora,
     }
+
+
+def registra_timbratura_auto(badge_uid: str, feedback_fn=None) -> dict:
+    """Timbratura automatica: primo passaggio IT, secondo FT (senza touch)."""
+    uid = badge_uid.strip().upper()
+    info = processa_badge(uid)
+    if not info.get("ok"):
+        if feedback_fn:
+            feedback_fn(False)
+        return info
+
+    azione = azione_automatica(info["stato"])
+    if not azione:
+        if feedback_fn:
+            feedback_fn(False)
+        return {
+            "ok": False,
+            "msg": f"Stato {info['stato']} — timbratura non disponibile",
+            "nome": f"{info['nome']} {info['cognome']}",
+        }
+
+    return registra_timbratura(uid, azione, feedback_fn=feedback_fn)

@@ -28,6 +28,15 @@ def azioni_valide(stato: StatoDipendente) -> list[Azione]:
     return list(TRANSIZIONI.get(stato, {}).keys())
 
 
+def azione_automatica(stato: StatoDipendente) -> Azione | None:
+    """Timbratura NFC senza touch: FUORI_TURNO→IT, IN_TURNO→FT, IN_PAUSA→FT."""
+    if stato == "FUORI_TURNO":
+        return "IT"
+    if stato in ("IN_TURNO", "IN_PAUSA"):
+        return "FT"
+    return None
+
+
 def transizione_valida(stato: StatoDipendente, azione: Azione) -> bool:
     return azione in TRANSIZIONI.get(stato, {})
 

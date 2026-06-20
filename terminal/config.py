@@ -43,3 +43,8 @@ KIOSK_BACKGROUND = Path(
         Path(__file__).resolve().parent / "assets" / "kiosk-background.png",
     )
 )
+
+# Timbratura solo NFC: 1° passaggio = inizio turno (IT), 2° = fine turno (FT)
+# Default attivo in standalone (nessun touch richiesto)
+_nfc_auto = os.environ.get("NFC_AUTO_TIMBRATURA", "1" if STANDALONE else "0")
+NFC_AUTO_TIMBRATURA = _nfc_auto == "1"

@@ -1,4 +1,4 @@
-"""Kiosk UI 480×320 — 4 pulsanti azione, offline-first."""
+"""Kiosk UI 480×320 — timbratura NFC (auto IT/FT) o pulsanti touch."""
 
 import locale
 import logging
@@ -101,11 +101,20 @@ class KioskUI:
 
         tk.Label(
             self.root,
-            text="Avvicina il badge",
+            text="Passa il badge",
             font=("Helvetica", 15, "bold"),
             fg=COLOR_ACCENT,
             bg=COLOR_BG,
-        ).place(relx=0.5, rely=1.0, y=-28, anchor="s")
+        ).place(relx=0.5, rely=1.0, y=-42, anchor="s")
+
+        _hint = "Entrata · Uscita" if config.NFC_AUTO_TIMBRATURA else "Seleziona azione"
+        tk.Label(
+            self.root,
+            text=_hint,
+            font=("Helvetica", 11),
+            fg="#cccccc",
+            bg=COLOR_BG,
+        ).place(relx=0.5, rely=1.0, y=-22, anchor="s")
 
         tk.Label(
             self.root,
@@ -113,7 +122,7 @@ class KioskUI:
             font=("Helvetica", 8),
             fg="#777777",
             bg=COLOR_BG,
-        ).place(relx=0.5, rely=1.0, y=-8, anchor="s")
+        ).place(relx=0.5, rely=1.0, y=-6, anchor="s")
 
     def _build_azione(self, info: dict):
         self._clear()
@@ -190,6 +199,11 @@ class KioskUI:
         self.root.after(2000, self._build_standby)
 
     def _handle_badge(self, badge_uid: str):
+        if config.NFC_AUTO_TIMBRATURA:
+            result = timb_logic.registra_timbratura_auto(badge_uid)
+            self._mostra_conferma(result)
+            return
+
         info = timb_logic.processa_badge(badge_uid)
         if not info.get("ok"):
             self._mostra_conferma(info)
