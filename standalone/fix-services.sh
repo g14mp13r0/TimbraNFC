@@ -108,6 +108,11 @@ if [ -f "$APP_DIR/.env" ] && ! grep -q '^NFC_BACKEND=' "$APP_DIR/.env"; then
 fi
 systemctl enable --now pcscd pcscd.socket 2>/dev/null || true
 
+# Blacklist driver kernel NFC che blocca ACR122U
+if [ -f "$APP_DIR/standalone/fix-acr122u-kernel.sh" ]; then
+    bash "$APP_DIR/standalone/fix-acr122u-kernel.sh"
+fi
+
 # nfcpy e pcscd si escludono: disabilita pcscd se backend nfcpy
 if [ -f "$APP_DIR/.env" ] && grep -q '^NFC_BACKEND=nfcpy' "$APP_DIR/.env"; then
     systemctl stop pcscd.service pcscd.socket 2>/dev/null || true

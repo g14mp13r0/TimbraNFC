@@ -30,7 +30,12 @@ fi
 lsusb | grep -iE '072f|acr' || true
 
 export DEBIAN_FRONTEND=noninteractive
-apt-get install -y pcscd libpcsclite1 libccid pcsc-tools usbutils 2>/dev/null || true
+apt-get install -y pcscd libpcsclite1 libccid libacsccid1 pcsc-tools usbutils 2>/dev/null || true
+
+# Driver kernel pn533 blocca ACR122U — blacklist obbligatorio
+if [ -f "$APP_DIR/standalone/fix-acr122u-kernel.sh" ]; then
+    bash "$APP_DIR/standalone/fix-acr122u-kernel.sh"
+fi
 
 if ! getent group scard >/dev/null 2>&1; then
     groupadd scard 2>/dev/null || true
