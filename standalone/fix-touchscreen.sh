@@ -113,12 +113,15 @@ if [ "${TOUCH_NO_ROTATE:-0}" -ne 1 ]; then
                 ;;
         esac
 
-        # 1) Wayland compositor (Pi OS recente)
+        # 1) Wayland compositor (labwc / Pi OS recente)
         if [ -n "${WAYLAND_DISPLAY:-}" ] && command -v wlr-randr >/dev/null 2>&1; then
-            if wlr-randr --output "$OUTPUT" --transform "${_wlr:-90}" 2>/dev/null; then
+            _wlr_err=""
+            if _wlr_err="$(wlr-randr --output "$OUTPUT" --transform "${_wlr:-90}" 2>&1)"; then
                 DEFAULT_MATRIX="$_mat"
                 ROTATED=1
                 log "Rotazione Wayland (wlr-randr): ${_wlr:-90}°"
+            else
+                log "wlr-randr fallito: ${_wlr_err:-unknown}"
             fi
         fi
 
@@ -143,14 +146,18 @@ else
     DEFAULT_MATRIX="$(touch_matrix_for_rotate right)"
 fi
 
-# Matrice touch: display_rotate ruota il framebuffer ma spesso lascia ADS7846 in portrait
-if [ "${TOUCH_FIRMWARE_ROTATED:-0}" = "1" ]; then
+# Matrice touch dopo rotazione display
+if [ -n "${TOUCH_MATRIX:-}" ]; then
+    : # esplicita in .env
+elif [ "${TOUCH_FIRMWARE_ROTATED:-0}" = "1" ] && [ "$DISPLAY_LANDSCAPE" -eq 1 ] && [ "$ROTATED" -eq 0 ]; then
     DEFAULT_MATRIX="$(touch_matrix_for_rotate identity)"
-    log "TOUCH_FIRMWARE_ROTATED=1 → matrice identità"
-elif [ "$TARGET_W" -gt "$TARGET_H" ] && [ -z "${TOUCH_MATRIX:-}" ]; then
+    log "TOUCH_FIRMWARE_ROTATED=1 + display landscape firmware → matrice identità"
+elif [ "$TARGET_W" -gt "$TARGET_H" ]; then
     DEFAULT_MATRIX="$(touch_matrix_for_rotate "$TOUCH_ROTATE")"
-    if [ "$DISPLAY_LANDSCAPE" -eq 1 ]; then
-        log "Matrice touch OS (${TOUCH_ROTATE}) — necessaria con display_rotate=1"
+    if [ "$DISPLAY_PORTRAIT" -eq 1 ]; then
+        log "Matrice touch (${TOUCH_ROTATE}) — display XWayland ancora portrait"
+    elif [ "$DISPLAY_LANDSCAPE" -eq 1 ]; then
+        log "Matrice touch (${TOUCH_ROTATE}) — display landscape"
     fi
 fi
 

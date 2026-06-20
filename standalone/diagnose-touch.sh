@@ -11,108 +11,107 @@ source "$APP_DIR/standalone/x-session-env.sh"
 echo "=== Diagnostica touch TimbraNFC ==="
 echo ""
 
-echo "--- DISPLAY ---"
+echo "--- Sessione ---"
 echo "DISPLAY=$DISPLAY"
+echo "WAYLAND_DISPLAY=${WAYLAND_DISPLAY:-<non impostato>}"
+echo "XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-<non impostato>}"
 echo ""
 
-echo "--- Sessione grafica ---"
-if xdpyinfo >/dev/null 2>&1; then
-    echo "X11 nativo: OK"
-    xdpyinfo | awk '/dimensions:|resolution:/'
-elif xrandr --query >/dev/null 2>&1; then
-    echo "XWayland: OK (Wayland + DISPLAY=:0 — normale su Pi OS recente)"
+echo "--- XWayland (xrandr) ---"
+if xrandr --query >/dev/null 2>&1; then
     xrandr --query | awk '/Screen | connected/'
+    _res="$(xrandr --query | awk '/ connected/{print $3; exit}')"
+    case "$_res" in
+        320x480*) echo "→ Portrait: serve rotazione sessione (wlr-randr) per kiosk 480x320" ;;
+        480x320*) echo "→ Landscape OK per kiosk" ;;
+    esac
 else
-    echo "Display non raggiungibile. Esegui dal terminale del desktop Pi, non da SSH."
+    echo "Display non raggiungibile da SSH (manca sessione desktop?)"
 fi
 echo ""
 
-echo "--- xinput (dispositivi pointer) ---"
+echo "--- Wayland (wlr-randr) ---"
+if [ -n "${WAYLAND_DISPLAY:-}" ] && command -v wlr-randr >/dev/null 2>&1; then
+    wlr-randr 2>/dev/null | awk '/^SPI-|^DSI-|^HDMI-|Transform:|current mode/' || wlr-randr 2>/dev/null | head -15
+else
+    echo "(wlr-randr non disponibile — installa: sudo apt install wlr-randr)"
+fi
+echo ""
+
+echo "--- xinput ---"
 if command -v xinput >/dev/null 2>&1; then
-    xinput list 2>/dev/null || echo "(xinput fallito)"
+    xinput list 2>/dev/null | grep -E 'pointer|touch|Touch|ADS7846' || xinput list 2>/dev/null || true
 else
-    echo "xinput non installato → sudo apt install xinput"
+    echo "xinput non installato"
 fi
 echo ""
 
-echo "--- xrandr (schermi) ---"
-if command -v xrandr >/dev/null 2>&1; then
-    xrandr --query 2>/dev/null | grep -E ' connected|Screen' || true
-else
-    echo "xrandr non installato"
-fi
+echo "--- kernel ADS7846 ---"
+grep -A6 'Name="ADS7846' /proc/bus/input/devices 2>/dev/null | head -10 || echo "(non trovato)"
 echo ""
 
-echo "--- kernel input (touch) ---"
-grep -iE 'touch|ads7846|goodix|egalax|ft5406' /proc/bus/input/devices 2>/dev/null | head -20 || \
-    echo "(nessun driver touch nel kernel — controlla overlay in /boot/firmware/config.txt)"
-echo ""
-
-echo "--- config.txt (display/touch overlay) ---"
+echo "--- config.txt ---"
 for _cfg in /boot/firmware/config.txt /boot/config.txt; do
     [ -f "$_cfg" ] || continue
     echo "File: $_cfg"
-    grep -E '^display_rotate=|^lcd_rotate=|^dtoverlay=piscreen|^dtoverlay=ads7846' "$_cfg" || \
-        echo "(nessuna riga piscreen/ads7846/display_rotate)"
+    grep -E '^display_rotate=|^dtoverlay=piscreen|^dtoverlay=ads7846' "$_cfg" || true
     break
 done
 echo ""
 
-echo "--- udev libinput ---"
-if [ -f /etc/udev/rules.d/99-timbranfc-touch.rules ]; then
-    cat /etc/udev/rules.d/99-timbranfc-touch.rules
+echo "--- udev rule ---"
+[ -f /etc/udev/rules.d/99-timbranfc-touch.rules ] && \
+    cat /etc/udev/rules.d/99-timbranfc-touch.rules || echo "(manca — sudo bash standalone/fix-touch-os.sh)"
+echo ""
+
+echo "--- libinput device ---"
+if command -v libinput >/dev/null 2>&1; then
+    libinput list-devices 2>/dev/null | awk '
+        /^Device:/ { dev=$0 }
+        /^Size:/ { size=$0 }
+        /^Calibration:/ { print dev; print size; print $0; print "" }
+    ' || true
 else
-    echo "(manca 99-timbranfc-touch.rules — esegui fix-touch-os.sh)"
+    echo "(libinput non installato)"
 fi
 echo ""
 
-if command -v libinput >/dev/null 2>&1; then
-    echo "--- libinput list-devices (touch) ---"
-    libinput list-devices 2>/dev/null | awk '/Device:|Size:|Calibration/' || true
-    echo ""
+echo "--- libinput quirks (event ADS7846) ---"
+_ev=""
+for _name in /sys/class/input/event*/device/name; do
+    [ -f "$_name" ] || continue
+    if [ "$(tr -d '\n' < "$_name" 2>/dev/null)" = "ADS7846 Touchscreen" ]; then
+        _ev="/dev/input/$(basename "$(dirname "$(dirname "$_name")")")"
+        break
+    fi
+done
+if [ -n "$_ev" ]; then
+    echo "Event node: $_ev"
+    if command -v libinput >/dev/null 2>&1; then
+        libinput quirks list "$_ev" 2>/dev/null || libinput list-quirks "$_ev" 2>/dev/null || \
+            echo "(comando quirks non disponibile su questa versione libinput)"
+    fi
+    echo "--- udevadm test ---"
+    udevadm info -q property -n "$_ev" 2>/dev/null | grep -E 'LIBINPUT_CALIBRATION|ID_INPUT_TOUCHSCREEN|NAME=' || true
+else
+    echo "(event ADS7846 non trovato in /sys/class/input/)"
 fi
+echo ""
 
 echo "--- xinput matrice (xwayland-touch) ---"
 if command -v xinput >/dev/null 2>&1 && xrandr --query >/dev/null 2>&1; then
     _tid="$(xinput list --id-only 2>/dev/null | while read -r id; do
         n="$(xinput list --name-only "$id" 2>/dev/null || true)"
-        case "$n" in *touch*|*Touch*|*ADS7846*) echo "$id"; break ;; esac
+        case "$n" in *touch*|*Touch*) echo "$id"; break ;; esac
     done)"
     if [ -n "$_tid" ]; then
-        xinput list-props "$_tid" 2>/dev/null | grep -i 'Coordinate Transformation Matrix' || \
-            echo "(proprietà matrice non trovata)"
-    else
-        echo "(nessun device touch in xinput)"
+        xinput list-props "$_tid" 2>/dev/null | grep -i 'Coordinate Transformation Matrix' || true
     fi
-else
-    echo "(xinput/display non disponibile)"
 fi
 echo ""
 
-echo "--- udev test ADS7846 ---"
-_ev=""
-for _d in /dev/input/event*; do
-    [ -e "$_d" ] || continue
-    if udevadm info -q property -n "$_d" 2>/dev/null | grep -q 'NAME="ADS7846 Touchscreen"'; then
-        _ev="$_d"
-        break
-    fi
-done
-if [ -n "$_ev" ]; then
-    echo "Device: $_ev"
-    udevadm info -q property -n "$_ev" 2>/dev/null | grep LIBINPUT_CALIBRATION || \
-        echo "LIBINPUT_CALIBRATION_MATRIX non impostata (bug udev o serve reboot)"
-else
-    echo "(event ADS7846 non trovato)"
-fi
-echo ""
-
-echo "--- Fix rapido (sessione X) ---"
-echo "  bash standalone/ssh-touch-fix.sh"
-echo ""
-echo "--- Fix OS (piscreen swapxy + udev, richiede reboot) ---"
-echo "  sudo bash standalone/fix-touch-os.sh && sudo reboot"
-echo ""
-echo "Setup rilevato: dtoverlay=piscreen,...,rotate=90"
-echo "  → aggiunge swapxy=1 sull'overlay (fix kernel)"
-echo "  → corregge udev (match case-sensitive ADS7846 Touchscreen)"
+echo "--- Azioni consigliate ---"
+echo "1) Rimuovi TOUCH_FIRMWARE_ROTATED=1 da .env se presente"
+echo "2) sudo bash standalone/fix-touch-os.sh && sudo reboot"
+echo "3) bash standalone/ssh-touch-fix.sh"
+echo "   (wlr-randr 480x320 + matrice touch su xwayland-touch)"
