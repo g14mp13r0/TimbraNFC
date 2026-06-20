@@ -55,4 +55,9 @@ if command -v xdpyinfo &>/dev/null; then
     fi
 fi
 
+# Touchscreen SPI: mappa input sul display corretto
+if [ -x "$APP_DIR/standalone/fix-touchscreen.sh" ]; then
+    bash "$APP_DIR/standalone/fix-touchscreen.sh" --quiet 2>/dev/null || true
+fi
+
 exec "$APP_DIR/.venv/bin/python" "$APP_DIR/standalone/run_kiosk.py"
