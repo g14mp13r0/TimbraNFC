@@ -24,11 +24,12 @@ SERVER_URL=http://127.0.0.1:8000 MOCK_NFC=1 python terminal/main.py
 
 ## Produzione
 
-### Server di sede
-1. Installare MySQL, creare DB `timbranfc`
-2. `DATABASE_URL=mysql+pymysql://user:pass@localhost/timbranfc`
-3. `alembic -c server/migrations/alembic.ini upgrade head`
-4. Copiare `server/systemd/timbranfc-server.service` e `server/nginx/timbranfc.conf`
+### Server di sede (Proxmox CT, mini PC, VM)
+1. **Proxmox:** seguire [docs/DEPLOY_PROXMOX.md](docs/DEPLOY_PROXMOX.md) oppure `bash server/scripts/install-proxmox-ct.sh`
+2. Installare MySQL/MariaDB, creare DB `timbranfc`
+3. `DATABASE_URL=mysql+pymysql://user:pass@localhost/timbranfc`
+4. `alembic -c server/migrations/alembic.ini upgrade head`
+5. Copiare `server/systemd/timbranfc-server.service` e nginx
 
 ### Terminale
 1. Copiare `.env.example` → `.env`
