@@ -24,7 +24,7 @@ apt-get --fix-broken install -y || true
 
 apt-get update
 apt-get install -y \
-    python3 python3-venv python3-pip python3-dev python3-tk git \
+    python3 python3-venv python3-pip python3-dev python3-tk python3-pil python3-pil.imagetk git \
     pcscd libccid swig libpcsclite-dev \
     build-essential x11-xserver-utils
 

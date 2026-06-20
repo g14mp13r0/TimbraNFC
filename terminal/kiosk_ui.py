@@ -1,8 +1,8 @@
 """Kiosk UI 480×320 — 4 pulsanti azione, offline-first."""
 
 import locale
+import logging
 import sys
-import threading
 import tkinter as tk
 from datetime import datetime
 from pathlib import Path
@@ -13,16 +13,19 @@ import terminal.config as config
 from terminal import timbratura as timb_logic
 from terminal.stati import AZIONI_LABEL
 
+log = logging.getLogger("kiosk_ui")
+
 W = config.DISPLAY_WIDTH
 H = config.DISPLAY_HEIGHT
 BTN_W, BTN_H = 140, 60
 CONFIRM_MS = 2500
 
-COLOR_BG = "#1a1a2e"
+COLOR_BG = "#000000"
 COLOR_OK = "#0d7377"
 COLOR_ERR = "#c62828"
 COLOR_BTN = "#2d4059"
 COLOR_BTN_ACT = "#4fc3f7"
+COLOR_ACCENT = "#e85d04"
 
 
 class KioskUI:
@@ -36,6 +39,7 @@ class KioskUI:
 
         self._badge_corrente: str | None = None
         self._btn_refs: dict[str, tk.Button] = {}
+        self._bg_photo = None
         self._build_standby()
         self._aggiorna_ora()
 
@@ -43,34 +47,69 @@ class KioskUI:
         for w in self.root.winfo_children():
             w.destroy()
 
+    def _carica_sfondo(self) -> tk.PhotoImage | None:
+        path = Path(config.KIOSK_BACKGROUND)
+        if not path.is_file():
+            log.warning("Sfondo kiosk non trovato: %s", path)
+            return None
+        try:
+            from PIL import Image, ImageTk
+
+            img = Image.open(path).convert("RGB")
+            iw, ih = img.size
+            scale = max(W / iw, H / ih)
+            nw, nh = int(iw * scale), int(ih * scale)
+            img = img.resize((nw, nh), Image.Resampling.LANCZOS)
+            left = (nw - W) // 2
+            top = (nh - H) // 2
+            img = img.crop((left, top, left + W, top + H))
+            self._bg_photo = ImageTk.PhotoImage(img)
+            return self._bg_photo
+        except Exception as exc:
+            log.warning("Impossibile caricare sfondo kiosk: %s", exc)
+            return None
+
+    def _applica_sfondo(self):
+        photo = self._carica_sfondo()
+        if photo is None:
+            return
+        tk.Label(self.root, image=photo, bd=0).place(x=0, y=0, relwidth=1, relheight=1)
+
     def _build_standby(self):
         self._clear()
         self._badge_corrente = None
+        self._applica_sfondo()
 
-        self.lbl_ora = tk.Label(self.root, text="00:00", font=("Helvetica", 36, "bold"), fg="white", bg=COLOR_BG)
-        self.lbl_ora.place(relx=0.5, rely=0.22, anchor="center")
+        top = tk.Frame(self.root, bg=COLOR_BG, height=52)
+        top.place(relx=0, rely=0, relwidth=1)
+        top.pack_propagate(False)
 
-        self.lbl_data = tk.Label(self.root, text="", font=("Helvetica", 14), fg="#aaa", bg=COLOR_BG)
-        self.lbl_data.place(relx=0.5, rely=0.38, anchor="center")
+        self.lbl_ora = tk.Label(
+            top, text="00:00", font=("Helvetica", 28, "bold"), fg="white", bg=COLOR_BG
+        )
+        self.lbl_ora.pack(side="left", padx=12, pady=6)
+
+        self.lbl_data = tk.Label(top, text="", font=("Helvetica", 11), fg="#cccccc", bg=COLOR_BG)
+        self.lbl_data.pack(side="left", padx=4, pady=10)
+
+        bottom = tk.Frame(self.root, bg=COLOR_BG, height=64)
+        bottom.place(relx=0, rely=1.0, anchor="sw", relwidth=1, height=64)
 
         tk.Label(
-            self.root, text="Avvicina il badge", font=("Helvetica", 18), fg=COLOR_BTN_ACT, bg=COLOR_BG
-        ).place(relx=0.5, rely=0.58, anchor="center")
-
-        tk.Label(
-            self.root,
-            text="Timbratrice presenze",
-            font=("Helvetica", 11),
-            fg="#555577",
+            bottom,
+            text="Avvicina il badge",
+            font=("Helvetica", 18, "bold"),
+            fg=COLOR_ACCENT,
             bg=COLOR_BG,
-        ).place(relx=0.5, rely=0.92, anchor="center")
+        ).pack(pady=(10, 0))
+
         tk.Label(
-            self.root,
-            text="Amministrazione da PC in rete",
+            bottom,
+            text="Timbratura presenze",
             font=("Helvetica", 9),
-            fg="#444466",
+            fg="#888888",
             bg=COLOR_BG,
-        ).place(relx=0.5, rely=0.97, anchor="center")
+        ).pack()
 
     def _build_azione(self, info: dict):
         self._clear()

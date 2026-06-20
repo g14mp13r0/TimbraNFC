@@ -30,3 +30,11 @@ LED_ROSSO = int(os.environ.get("LED_ROSSO", "27"))
 BUZZER = int(os.environ.get("BUZZER", "22"))
 MOCK_GPIO = os.environ.get("MOCK_GPIO", "0") == "1"
 MOCK_NFC = os.environ.get("MOCK_NFC", "0") == "1"
+
+# Sfondo kiosk (PNG). Sovrascrivibile con KIOSK_BACKGROUND=/path/al/logo.png
+KIOSK_BACKGROUND = Path(
+    os.environ.get(
+        "KIOSK_BACKGROUND",
+        Path(__file__).resolve().parent / "assets" / "kiosk-background.png",
+    )
+)
