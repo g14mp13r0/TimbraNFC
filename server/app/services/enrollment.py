@@ -48,6 +48,7 @@ def start_session() -> EnrollmentSession:
 
 
 def get_session(session_id: str | None = None) -> EnrollmentSession | None:
+    global _session
     with _lock:
         if _session is None:
             return None
