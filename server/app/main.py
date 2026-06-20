@@ -117,7 +117,7 @@ def restart_kiosk(device_id: int, db: Session = Depends(get_db)):
 
 @app.get("/dipendenti", response_class=HTMLResponse)
 def page_dipendenti(request: Request, db: Session = Depends(get_db), msg: str = "", error: str = ""):
-    dips = db.query(Dipendente).order_by(Dipendente.cognome).all()
+    dips = db.query(Dipendente).order_by(Dipendente.cognome, Dipendente.nome).all()
     return templates.TemplateResponse(
         request,
         "dipendenti.html",
@@ -131,20 +131,103 @@ def add_dipendente(
     cognome: str = Form(...),
     badge_uid: str = Form(...),
     reparto: str = Form(""),
+    email: str = Form(""),
     db: Session = Depends(get_db),
 ):
+    from server.app.services import dipendenti as dip_svc
     from server.app.services import enrollment as enrollment_svc
 
-    uid = badge_uid.strip().upper()
-    if not uid:
-        return RedirectResponse("/dipendenti?error=badge_vuoto", status_code=303)
-    if db.query(Dipendente).filter(Dipendente.badge_uid == uid).first():
-        return RedirectResponse("/dipendenti?error=badge_duplicato", status_code=303)
+    try:
+        dip_svc.crea_dipendente(
+            db, nome=nome, cognome=cognome, badge_uid=badge_uid, reparto=reparto or None, email=email or None
+        )
+    except dip_svc.DipendenteError as exc:
+        return RedirectResponse(f"/dipendenti?error={exc.code}", status_code=303)
 
-    db.add(Dipendente(nome=nome.strip(), cognome=cognome.strip(), badge_uid=uid, sede_id=1, reparto=reparto.strip() or None))
-    db.commit()
     enrollment_svc.stop_session()
     return RedirectResponse("/dipendenti?msg=aggiunto", status_code=303)
+
+
+@app.get("/dipendenti/{dip_id}/modifica", response_class=HTMLResponse)
+def page_modifica_dipendente(dip_id: int, request: Request, db: Session = Depends(get_db), error: str = ""):
+    dip = db.query(Dipendente).filter(Dipendente.id == dip_id).first()
+    if not dip:
+        return RedirectResponse("/dipendenti?error=non_trovato", status_code=303)
+    return templates.TemplateResponse(
+        request, "dipendente_modifica.html", {"dipendente": dip, "error": error}
+    )
+
+
+@app.post("/dipendenti/{dip_id}/modifica")
+def modifica_dipendente(
+    dip_id: int,
+    nome: str = Form(...),
+    cognome: str = Form(...),
+    reparto: str = Form(""),
+    email: str = Form(""),
+    db: Session = Depends(get_db),
+):
+    from server.app.services import dipendenti as dip_svc
+
+    try:
+        dip_svc.aggiorna_dipendente(
+            db, dip_id, nome=nome, cognome=cognome, reparto=reparto or None, email=email or None
+        )
+    except dip_svc.DipendenteError as exc:
+        return RedirectResponse(f"/dipendenti/{dip_id}/modifica?error={exc.code}", status_code=303)
+    return RedirectResponse("/dipendenti?msg=modificato", status_code=303)
+
+
+@app.get("/dipendenti/{dip_id}/badge", response_class=HTMLResponse)
+def page_badge_dipendente(dip_id: int, request: Request, db: Session = Depends(get_db), error: str = ""):
+    dip = db.query(Dipendente).filter(Dipendente.id == dip_id).first()
+    if not dip:
+        return RedirectResponse("/dipendenti?error=non_trovato", status_code=303)
+    return templates.TemplateResponse(
+        request, "dipendente_badge.html", {"dipendente": dip, "error": error}
+    )
+
+
+@app.post("/dipendenti/{dip_id}/badge")
+def riassegna_badge_dipendente(
+    dip_id: int,
+    badge_uid: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    from server.app.services import dipendenti as dip_svc
+    from server.app.services import enrollment as enrollment_svc
+
+    try:
+        dip_svc.riassegna_badge(db, dip_id, badge_uid)
+    except dip_svc.DipendenteError as exc:
+        return RedirectResponse(f"/dipendenti/{dip_id}/badge?error={exc.code}", status_code=303)
+
+    enrollment_svc.stop_session()
+    return RedirectResponse("/dipendenti?msg=badge_aggiornato", status_code=303)
+
+
+@app.post("/dipendenti/{dip_id}/toggle")
+def toggle_dipendente(dip_id: int, db: Session = Depends(get_db)):
+    from server.app.services import dipendenti as dip_svc
+
+    try:
+        dip = dip_svc.toggle_attivo(db, dip_id)
+    except dip_svc.DipendenteError:
+        return RedirectResponse("/dipendenti?error=non_trovato", status_code=303)
+
+    msg = "riattivato" if dip.attivo else "disattivato"
+    return RedirectResponse(f"/dipendenti?msg={msg}", status_code=303)
+
+
+@app.post("/dipendenti/{dip_id}/elimina")
+def elimina_dipendente_route(dip_id: int, db: Session = Depends(get_db)):
+    from server.app.services import dipendenti as dip_svc
+
+    try:
+        esito = dip_svc.elimina_dipendente(db, dip_id)
+    except dip_svc.DipendenteError:
+        return RedirectResponse("/dipendenti?error=non_trovato", status_code=303)
+    return RedirectResponse(f"/dipendenti?msg={esito}", status_code=303)
 
 
 @app.get("/timbrature", response_class=HTMLResponse)

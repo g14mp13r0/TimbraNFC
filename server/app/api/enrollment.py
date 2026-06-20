@@ -16,12 +16,13 @@ class CaptureBody(BaseModel):
 
 
 @router.post("/start")
-def start_enrollment():
-    session = enrollment_svc.start_session()
+def start_enrollment(dipendente_id: int | None = Query(None)):
+    session = enrollment_svc.start_session(target_dipendente_id=dipendente_id)
     return {
         "session_id": session.session_id,
         "expires_in": enrollment_svc.SESSION_TTL_SEC,
         "status": "waiting",
+        "dipendente_id": dipendente_id,
     }
 
 
@@ -46,7 +47,14 @@ def enrollment_active():
 @router.post("/capture")
 def capture_badge(body: CaptureBody, db: Session = Depends(get_db)):
     uid = body.badge_uid.strip().upper()
-    duplicate = db.query(Dipendente).filter(Dipendente.badge_uid == uid).first() is not None
+    session = enrollment_svc.get_session()
+    duplicate = False
+    existing = db.query(Dipendente).filter(Dipendente.badge_uid == uid).first()
+    if existing:
+        if session and session.target_dipendente_id and existing.id == session.target_dipendente_id:
+            duplicate = False
+        else:
+            duplicate = True
     if not enrollment_svc.capture_badge(uid, duplicate=duplicate):
         raise HTTPException(status_code=409, detail="Nessuna sessione di registrazione attiva")
     return {"ok": True, "badge_uid": uid, "duplicate": duplicate}

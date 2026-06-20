@@ -3,8 +3,11 @@
     const statusEl = document.getElementById("enroll-status");
     const btnEnroll = document.getElementById("btn-enroll");
     const btnSubmit = document.getElementById("btn-submit");
+    if (!badgeInput || !statusEl || !btnEnroll || !btnSubmit) return;
+
     let sessionId = null;
     let pollTimer = null;
+    const targetDipendenteId = window.TIMBRANFC_ENROLL_DIPENDENTE_ID || null;
 
     function setStatus(text, kind) {
         statusEl.textContent = text;
@@ -37,7 +40,7 @@
                 badgeInput.value = data.badge_uid || "";
                 enableSubmit();
                 if (data.duplicate) {
-                    setStatus("Badge già registrato nel sistema — usa un altro badge.", "error");
+                    setStatus("Badge già registrato su un altro dipendente — usa un badge diverso.", "error");
                     badgeInput.value = "";
                     enableSubmit();
                     await startEnrollment();
@@ -60,9 +63,13 @@
         await stopEnrollment();
         badgeInput.value = "";
         enableSubmit();
-        setStatus("Avvicina il badge vergine al lettore NFC del Raspberry Pi.", "waiting");
+        setStatus("Avvicina il badge al lettore NFC del Raspberry Pi.", "waiting");
         try {
-            const res = await fetch("/api/v1/enrollment/start", { method: "POST" });
+            let url = "/api/v1/enrollment/start";
+            if (targetDipendenteId) {
+                url += "?dipendente_id=" + encodeURIComponent(targetDipendenteId);
+            }
+            const res = await fetch(url, { method: "POST" });
             if (!res.ok) throw new Error("start failed");
             const data = await res.json();
             sessionId = data.session_id;

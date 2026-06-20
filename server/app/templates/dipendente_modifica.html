@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Modifica dipendente — TimbraNFC{% endblock %}
+{% block content %}
+    <p class="breadcrumb"><a href="/dipendenti">← Dipendenti</a></p>
+    <h1>Modifica dipendente</h1>
+    <p class="subtitle">{{ dipendente.cognome }} {{ dipendente.nome }} · badge <code>{{ dipendente.badge_uid }}</code></p>
+
+    {% if error == 'non_trovato' %}
+    <div class="alert alert-error">Dipendente non trovato.</div>
+    {% endif %}
+
+    <section class="enrollment-panel">
+        <form method="post" action="/dipendenti/{{ dipendente.id }}/modifica" class="enrollment-form">
+            <div class="form-grid">
+                <label>
+                    Nome
+                    <input name="nome" value="{{ dipendente.nome }}" required autocomplete="off">
+                </label>
+                <label>
+                    Cognome
+                    <input name="cognome" value="{{ dipendente.cognome }}" required autocomplete="off">
+                </label>
+                <label>
+                    Reparto
+                    <input name="reparto" value="{{ dipendente.reparto or '' }}" autocomplete="off">
+                </label>
+                <label>
+                    Email
+                    <input name="email" type="email" value="{{ dipendente.email or '' }}" autocomplete="off">
+                </label>
+            </div>
+            <p class="hint">Per cambiare il badge NFC usa <a href="/dipendenti/{{ dipendente.id }}/badge">Riassegna badge</a>.</p>
+            <div class="form-actions">
+                <button type="submit">Salva modifiche</button>
+                <a href="/dipendenti" class="btn-export">Annulla</a>
+            </div>
+        </form>
+    </section>
+{% endblock %}

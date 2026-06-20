@@ -18,6 +18,7 @@ class EnrollmentSession:
     badge_uid: str | None = None
     captured_at: float | None = None
     duplicate: bool = False
+    target_dipendente_id: int | None = None
 
     @property
     def expired(self) -> bool:
@@ -35,7 +36,7 @@ _lock = threading.Lock()
 _session: EnrollmentSession | None = None
 
 
-def start_session() -> EnrollmentSession:
+def start_session(target_dipendente_id: int | None = None) -> EnrollmentSession:
     global _session
     now = time.time()
     with _lock:
@@ -43,6 +44,7 @@ def start_session() -> EnrollmentSession:
             session_id=uuid.uuid4().hex,
             created_at=now,
             expires_at=now + SESSION_TTL_SEC,
+            target_dipendente_id=target_dipendente_id,
         )
         return _session
 

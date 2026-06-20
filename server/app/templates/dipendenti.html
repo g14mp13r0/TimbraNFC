@@ -2,15 +2,29 @@
 {% block title %}Dipendenti — TimbraNFC{% endblock %}
 {% block content %}
     <h1>Dipendenti</h1>
-    <p class="subtitle">Registra un nuovo dipendente e associa il badge NFC dal lettore del Raspberry.</p>
+    <p class="subtitle">Aggiungi, modifica, disattiva o riassegna il badge NFC di ogni dipendente.</p>
 
     {% if msg == 'aggiunto' %}
     <div class="alert alert-success">Dipendente aggiunto correttamente.</div>
+    {% elif msg == 'modificato' %}
+    <div class="alert alert-success">Dipendente aggiornato.</div>
+    {% elif msg == 'badge_aggiornato' %}
+    <div class="alert alert-success">Badge NFC aggiornato.</div>
+    {% elif msg == 'disattivato' %}
+    <div class="alert alert-success">Dipendente disattivato.</div>
+    {% elif msg == 'riattivato' %}
+    <div class="alert alert-success">Dipendente riattivato.</div>
+    {% elif msg == 'eliminato' %}
+    <div class="alert alert-success">Dipendente eliminato.</div>
+    {% elif msg == 'disattivato_per_timbrature' %}
+    <div class="alert alert-success">Non eliminato: ha timbrature in archivio — dipendente disattivato.</div>
     {% endif %}
     {% if error == 'badge_duplicato' %}
     <div class="alert alert-error">Badge già associato a un altro dipendente.</div>
     {% elif error == 'badge_vuoto' %}
     <div class="alert alert-error">Registra prima un badge NFC.</div>
+    {% elif error == 'non_trovato' %}
+    <div class="alert alert-error">Dipendente non trovato.</div>
     {% endif %}
 
     <section class="enrollment-panel">
@@ -28,6 +42,10 @@
                 <label>
                     Reparto
                     <input name="reparto" id="reparto" placeholder="Produzione" autocomplete="off">
+                </label>
+                <label>
+                    Email
+                    <input name="email" type="email" placeholder="mario.rossi@azienda.it" autocomplete="off">
                 </label>
             </div>
 
@@ -51,17 +69,42 @@
 
     <h2>Elenco</h2>
     <table>
-        <tr><th>Nome</th><th>Cognome</th><th>Badge UID</th><th>Reparto</th></tr>
+        <thead>
+            <tr>
+                <th>Nome</th>
+                <th>Cognome</th>
+                <th>Badge UID</th>
+                <th>Reparto</th>
+                <th>Email</th>
+                <th>Stato</th>
+                <th>Azioni</th>
+            </tr>
+        </thead>
+        <tbody>
         {% for d in dipendenti %}
-        <tr>
+        <tr class="{{ 'inactive' if not d.attivo }}">
             <td>{{ d.nome }}</td>
             <td>{{ d.cognome }}</td>
             <td><code>{{ d.badge_uid }}</code></td>
             <td>{{ d.reparto or '—' }}</td>
+            <td>{{ d.email or '—' }}</td>
+            <td>{{ 'Attivo' if d.attivo else 'Disattivo' }}</td>
+            <td class="actions">
+                <a href="/dipendenti/{{ d.id }}/modifica" class="btn-export btn-sm">Modifica</a>
+                <a href="/dipendenti/{{ d.id }}/badge" class="btn-export btn-sm">Badge</a>
+                <form method="post" action="/dipendenti/{{ d.id }}/toggle" class="inline-form">
+                    <button type="submit" class="btn-sm btn-secondary">{{ 'Riattiva' if not d.attivo else 'Disattiva' }}</button>
+                </form>
+                <form method="post" action="/dipendenti/{{ d.id }}/elimina" class="inline-form"
+                      onsubmit="return confirm('Eliminare {{ d.nome }} {{ d.cognome }}? Se ha timbrature verrà solo disattivato.');">
+                    <button type="submit" class="btn-sm btn-danger">Elimina</button>
+                </form>
+            </td>
         </tr>
         {% else %}
-        <tr><td colspan="4" class="empty">Nessun dipendente registrato</td></tr>
+        <tr><td colspan="7" class="empty">Nessun dipendente registrato</td></tr>
         {% endfor %}
+        </tbody>
     </table>
 {% endblock %}
 {% block scripts %}

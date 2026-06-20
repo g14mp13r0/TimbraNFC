@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Riassegna badge — TimbraNFC{% endblock %}
+{% block content %}
+    <p class="breadcrumb"><a href="/dipendenti">← Dipendenti</a></p>
+    <h1>Riassegna badge NFC</h1>
+    <p class="subtitle">{{ dipendente.cognome }} {{ dipendente.nome }} · badge attuale <code>{{ dipendente.badge_uid }}</code></p>
+
+    {% if error == 'badge_duplicato' %}
+    <div class="alert alert-error">Badge già associato a un altro dipendente.</div>
+    {% elif error == 'badge_vuoto' %}
+    <div class="alert alert-error">Leggi prima un badge NFC.</div>
+    {% endif %}
+
+    <section class="enrollment-panel">
+        <form method="post" action="/dipendenti/{{ dipendente.id }}/badge" id="form-dipendente" class="enrollment-form">
+            <div class="badge-enroll">
+                <label class="badge-enroll-label">Nuovo badge NFC</label>
+                <div class="badge-enroll-row">
+                    <input name="badge_uid" id="badge_uid" readonly required
+                           placeholder="In attesa lettura badge…">
+                    <button type="button" id="btn-enroll" class="btn-secondary">Rileggi badge</button>
+                </div>
+                <p id="enroll-status" class="enroll-status waiting">
+                    Clicca «Rileggi badge» e avvicina il nuovo badge al lettore NFC del Raspberry Pi.
+                </p>
+            </div>
+            <div class="form-actions">
+                <button type="submit" id="btn-submit" disabled>Salva nuovo badge</button>
+                <a href="/dipendenti" class="btn-export">Annulla</a>
+            </div>
+        </form>
+    </section>
+{% endblock %}
+{% block scripts %}
+<script>
+    window.TIMBRANFC_ENROLL_DIPENDENTE_ID = {{ dipendente.id }};
+</script>
+<script src="/static/enrollment.js"></script>
+{% endblock %}

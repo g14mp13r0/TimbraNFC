@@ -41,13 +41,32 @@ if ! x_socket_ok; then
     exit 1
 fi
 
-if [ "${NFC_BACKEND:-auto}" = "nfcpy" ]; then
-    systemctl stop pcscd.service pcscd.socket 2>/dev/null || true
-    systemctl mask pcscd.socket 2>/dev/null || true
-elif [ "${NFC_BACKEND:-auto}" = "pcsc" ]; then
-    systemctl unmask pcscd.socket pcscd.service 2>/dev/null || true
-    systemctl start pcscd.socket pcscd.service 2>/dev/null || true
-fi
+# pcscd si configura con sudo (fix-services / pcscd-on.sh) — mai systemctl start/stop
+# come utente normale: polkit chiede la password e blocca l'autostart del kiosk.
+_check_pcscd() {
+    local backend="${NFC_BACKEND:-auto}"
+    if [ "$(id -u)" -eq 0 ]; then
+        if [ "$backend" = "nfcpy" ]; then
+            systemctl stop pcscd.service pcscd.socket 2>/dev/null || true
+            systemctl mask pcscd.socket 2>/dev/null || true
+        elif [ "$backend" = "pcsc" ] || [ "$backend" = "auto" ]; then
+            systemctl unmask pcscd.socket pcscd.service 2>/dev/null || true
+            systemctl start pcscd.socket pcscd.service 2>/dev/null || true
+        fi
+        return
+    fi
+    if [ "$backend" = "pcsc" ] || [ "$backend" = "auto" ]; then
+        if ! systemctl is-active --quiet pcscd.service 2>/dev/null; then
+            echo "$(date -Iseconds) Avviso: pcscd non attivo — esegui una volta: sudo bash $APP_DIR/standalone/pcscd-on.sh"
+        fi
+    elif [ "$backend" = "nfcpy" ]; then
+        if systemctl is-active --quiet pcscd.socket 2>/dev/null \
+            || systemctl is-active --quiet pcscd.service 2>/dev/null; then
+            echo "$(date -Iseconds) Avviso: pcscd attivo con NFC_BACKEND=nfcpy — sudo bash $APP_DIR/standalone/pcscd-off.sh"
+        fi
+    fi
+}
+_check_pcscd
 
 PY="$APP_DIR/.venv/bin/python"
 KIOSK="$APP_DIR/standalone/run_kiosk.py"
