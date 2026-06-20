@@ -48,11 +48,12 @@ grep -iE 'touch|ads7846|goodix|egalax|ft5406' /proc/bus/input/devices 2>/dev/nul
     echo "(nessun driver touch nel kernel — controlla overlay in /boot/firmware/config.txt)"
 echo ""
 
-echo "--- config.txt (rotazione) ---"
+echo "--- config.txt (display/touch overlay) ---"
 for _cfg in /boot/firmware/config.txt /boot/config.txt; do
     [ -f "$_cfg" ] || continue
     echo "File: $_cfg"
-    grep -E '^display_rotate=|^lcd_rotate=|^dtoverlay=ads7846' "$_cfg" || echo "(nessuna riga touch/display trovata)"
+    grep -E '^display_rotate=|^lcd_rotate=|^dtoverlay=piscreen|^dtoverlay=ads7846' "$_cfg" || \
+        echo "(nessuna riga piscreen/ads7846/display_rotate)"
     break
 done
 echo ""
@@ -71,8 +72,47 @@ if command -v libinput >/dev/null 2>&1; then
     echo ""
 fi
 
+echo "--- xinput matrice (xwayland-touch) ---"
+if command -v xinput >/dev/null 2>&1 && xrandr --query >/dev/null 2>&1; then
+    _tid="$(xinput list --id-only 2>/dev/null | while read -r id; do
+        n="$(xinput list --name-only "$id" 2>/dev/null || true)"
+        case "$n" in *touch*|*Touch*|*ADS7846*) echo "$id"; break ;; esac
+    done)"
+    if [ -n "$_tid" ]; then
+        xinput list-props "$_tid" 2>/dev/null | grep -i 'Coordinate Transformation Matrix' || \
+            echo "(proprietà matrice non trovata)"
+    else
+        echo "(nessun device touch in xinput)"
+    fi
+else
+    echo "(xinput/display non disponibile)"
+fi
+echo ""
+
+echo "--- udev test ADS7846 ---"
+_ev=""
+for _d in /dev/input/event*; do
+    [ -e "$_d" ] || continue
+    if udevadm info -q property -n "$_d" 2>/dev/null | grep -q 'NAME="ADS7846 Touchscreen"'; then
+        _ev="$_d"
+        break
+    fi
+done
+if [ -n "$_ev" ]; then
+    echo "Device: $_ev"
+    udevadm info -q property -n "$_ev" 2>/dev/null | grep LIBINPUT_CALIBRATION || \
+        echo "LIBINPUT_CALIBRATION_MATRIX non impostata (bug udev o serve reboot)"
+else
+    echo "(event ADS7846 non trovato)"
+fi
+echo ""
+
 echo "--- Fix rapido (sessione X) ---"
 echo "  bash standalone/ssh-touch-fix.sh"
 echo ""
-echo "--- Fix OS (kernel/udev, richiede reboot) ---"
+echo "--- Fix OS (piscreen swapxy + udev, richiede reboot) ---"
 echo "  sudo bash standalone/fix-touch-os.sh && sudo reboot"
+echo ""
+echo "Setup rilevato: dtoverlay=piscreen,...,rotate=90"
+echo "  → aggiunge swapxy=1 sull'overlay (fix kernel)"
+echo "  → corregge udev (match case-sensitive ADS7846 Touchscreen)"
