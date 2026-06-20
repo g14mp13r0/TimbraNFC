@@ -2,29 +2,83 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dipendenti — TimbraNFC</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
 <nav class="nav">
     <a href="/" class="brand">TimbraNFC Server</a>
-    <div class="nav-links"><a href="/">Home</a><a href="/dipendenti">Dipendenti</a></div>
+    <div class="nav-links">
+        <a href="/">Home</a>
+        <a href="/dipendenti">Dipendenti</a>
+        <a href="/dispositivi">Dispositivi</a>
+    </div>
 </nav>
 <main class="container">
     <h1>Dipendenti</h1>
-    <form method="post" action="/dipendenti/add" class="form-inline">
-        <input name="nome" placeholder="Nome" required>
-        <input name="cognome" placeholder="Cognome" required>
-        <input name="badge_uid" placeholder="Badge UID" required>
-        <input name="reparto" placeholder="Reparto">
-        <button type="submit">Aggiungi</button>
-    </form>
+    <p class="subtitle">Registra un nuovo dipendente e associa il badge NFC dal lettore del Raspberry.</p>
+
+    {% if msg == 'aggiunto' %}
+    <div class="alert alert-success">Dipendente aggiunto correttamente.</div>
+    {% endif %}
+    {% if error == 'badge_duplicato' %}
+    <div class="alert alert-error">Badge già associato a un altro dipendente.</div>
+    {% elif error == 'badge_vuoto' %}
+    <div class="alert alert-error">Registra prima un badge NFC.</div>
+    {% endif %}
+
+    <section class="enrollment-panel">
+        <h2>Nuovo dipendente</h2>
+        <form method="post" action="/dipendenti/add" id="form-dipendente" class="enrollment-form">
+            <div class="form-grid">
+                <label>
+                    Nome
+                    <input name="nome" id="nome" placeholder="Mario" required autocomplete="off">
+                </label>
+                <label>
+                    Cognome
+                    <input name="cognome" id="cognome" placeholder="Rossi" required autocomplete="off">
+                </label>
+                <label>
+                    Reparto
+                    <input name="reparto" id="reparto" placeholder="Produzione" autocomplete="off">
+                </label>
+            </div>
+
+            <div class="badge-enroll">
+                <label class="badge-enroll-label">Badge NFC</label>
+                <div class="badge-enroll-row">
+                    <input name="badge_uid" id="badge_uid" readonly required
+                           placeholder="In attesa lettura badge…">
+                    <button type="button" id="btn-enroll" class="btn-secondary">Rileggi badge</button>
+                </div>
+                <p id="enroll-status" class="enroll-status waiting">
+                    Avvicina il badge vergine al lettore NFC del Raspberry Pi.
+                </p>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" id="btn-submit" disabled>Salva dipendente</button>
+            </div>
+        </form>
+    </section>
+
+    <h2>Elenco</h2>
     <table>
-        <tr><th>Nome</th><th>Cognome</th><th>Badge</th><th>Reparto</th></tr>
+        <tr><th>Nome</th><th>Cognome</th><th>Badge UID</th><th>Reparto</th></tr>
         {% for d in dipendenti %}
-        <tr><td>{{ d.nome }}</td><td>{{ d.cognome }}</td><td><code>{{ d.badge_uid }}</code></td><td>{{ d.reparto or '—' }}</td></tr>
+        <tr>
+            <td>{{ d.nome }}</td>
+            <td>{{ d.cognome }}</td>
+            <td><code>{{ d.badge_uid }}</code></td>
+            <td>{{ d.reparto or '—' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" class="empty">Nessun dipendente registrato</td></tr>
         {% endfor %}
     </table>
 </main>
+<script src="/static/enrollment.js"></script>
 </body>
 </html>

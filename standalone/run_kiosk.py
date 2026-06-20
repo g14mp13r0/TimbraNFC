@@ -63,7 +63,28 @@ def main():
         log.error("Installa: sudo apt install python3-tk")
         log.error("Avvia dopo login desktop, oppure usa autostart (standalone/autostart/)")
         sys.exit(1)
-    threading.Thread(target=start_nfc_loop, args=(ui.on_badge,), daemon=True).start()
+
+    def on_badge(uid: str) -> None:
+        try:
+            r = requests.get(f"{config.SERVER_URL}/api/v1/enrollment/active", timeout=2)
+            if r.ok and r.json().get("active"):
+                cap = requests.post(
+                    f"{config.SERVER_URL}/api/v1/enrollment/capture",
+                    json={"badge_uid": uid},
+                    timeout=2,
+                )
+                if cap.ok:
+                    data = cap.json()
+                    if data.get("duplicate"):
+                        ui.mostra_enrollment_msg("Badge già registrato", uid, ok=False)
+                    else:
+                        ui.mostra_enrollment_msg("Badge registrato", uid, ok=True)
+                return
+        except requests.RequestException as exc:
+            log.debug("Enrollment check fallito: %s", exc)
+        ui.on_badge(uid)
+
+    threading.Thread(target=start_nfc_loop, args=(on_badge,), daemon=True).start()
     log.info(
         "Kiosk avviato %dx%d — display SOLO timbratrice (dashboard su altri PC: http://<ip-pi>:8080)",
         config.DISPLAY_WIDTH,

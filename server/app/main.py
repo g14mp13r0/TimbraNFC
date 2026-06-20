@@ -14,6 +14,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from server.app.api import dashboard as dashboard_api
 from server.app.api import devices as devices_api
+from server.app.api import enrollment as enrollment_api
 from server.app.api import timbrature as timbrature_api
 from server.app.config import SECRET_KEY, VERSION
 from server.app.db import Base, engine, get_db
@@ -24,6 +25,7 @@ app = FastAPI(title="TimbraNFC Server", version=VERSION)
 app.include_router(devices_api.router)
 app.include_router(timbrature_api.router)
 app.include_router(dashboard_api.router)
+app.include_router(enrollment_api.router)
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 STATIC_DIR = Path(__file__).parent / "static"
@@ -112,9 +114,13 @@ def restart_kiosk(device_id: int, db: Session = Depends(get_db)):
 
 
 @app.get("/dipendenti", response_class=HTMLResponse)
-def page_dipendenti(request: Request, db: Session = Depends(get_db)):
+def page_dipendenti(request: Request, db: Session = Depends(get_db), msg: str = "", error: str = ""):
     dips = db.query(Dipendente).order_by(Dipendente.cognome).all()
-    return templates.TemplateResponse(request, "dipendenti.html", {"dipendenti": dips})
+    return templates.TemplateResponse(
+        request,
+        "dipendenti.html",
+        {"dipendenti": dips, "msg": msg, "error": error},
+    )
 
 
 @app.post("/dipendenti/add")
@@ -125,9 +131,18 @@ def add_dipendente(
     reparto: str = Form(""),
     db: Session = Depends(get_db),
 ):
-    db.add(Dipendente(nome=nome, cognome=cognome, badge_uid=badge_uid.upper(), sede_id=1, reparto=reparto or None))
+    from server.app.services import enrollment as enrollment_svc
+
+    uid = badge_uid.strip().upper()
+    if not uid:
+        return RedirectResponse("/dipendenti?error=badge_vuoto", status_code=303)
+    if db.query(Dipendente).filter(Dipendente.badge_uid == uid).first():
+        return RedirectResponse("/dipendenti?error=badge_duplicato", status_code=303)
+
+    db.add(Dipendente(nome=nome.strip(), cognome=cognome.strip(), badge_uid=uid, sede_id=1, reparto=reparto.strip() or None))
     db.commit()
-    return RedirectResponse("/dipendenti", status_code=303)
+    enrollment_svc.stop_session()
+    return RedirectResponse("/dipendenti?msg=aggiunto", status_code=303)
 
 
 if __name__ == "__main__":

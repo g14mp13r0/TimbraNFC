@@ -134,6 +134,18 @@ class KioskUI:
     def on_badge(self, badge_uid: str):
         self.root.after(0, lambda: self._handle_badge(badge_uid))
 
+    def mostra_enrollment_msg(self, titolo: str, uid: str, *, ok: bool = True):
+        self.root.after(0, lambda: self._mostra_enrollment(titolo, uid, ok))
+
+    def _mostra_enrollment(self, titolo: str, uid: str, ok: bool):
+        self._clear()
+        bg = COLOR_OK if ok else COLOR_ERR
+        testo = f"{titolo}\n{uid[:16]}{'…' if len(uid) > 16 else ''}"
+        frame = tk.Frame(self.root, bg=bg, padx=20, pady=15)
+        tk.Label(frame, text=testo, font=("Helvetica", 14, "bold"), fg="white", bg=bg, justify="center").pack()
+        frame.place(relx=0.5, rely=0.5, anchor="center")
+        self.root.after(2000, self._build_standby)
+
     def _handle_badge(self, badge_uid: str):
         info = timb_logic.processa_badge(badge_uid)
         if not info.get("ok"):

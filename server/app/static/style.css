@@ -80,6 +80,53 @@ button:hover, .btn-export:hover { background: #0a5c5f; }
 .actions { white-space: nowrap; }
 .hint { color: #888; font-size: 0.85rem; }
 
+.enrollment-panel {
+    background: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,.1);
+    margin-bottom: 2rem;
+}
+.enrollment-panel h2 { margin: 0 0 1rem; font-size: 1.1rem; }
+.enrollment-form label { display: flex; flex-direction: column; gap: 0.35rem; font-size: 0.85rem; color: #555; }
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+.badge-enroll {
+    border: 2px dashed #0d7377;
+    border-radius: 8px;
+    padding: 1rem;
+    background: #f7fcfc;
+    margin-bottom: 1.25rem;
+}
+.badge-enroll-label { font-weight: 600; color: #0d7377; margin-bottom: 0.5rem; }
+.badge-enroll-row { display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center; }
+.badge-enroll-row input {
+    flex: 1;
+    min-width: 220px;
+    font-family: ui-monospace, monospace;
+    font-size: 1rem;
+    background: white;
+}
+.enroll-status { margin-top: 0.75rem; font-size: 0.95rem; }
+.enroll-status.waiting { color: #1565c0; }
+.enroll-status.success { color: #2e7d32; font-weight: 600; }
+.enroll-status.error { color: #c62828; }
+.form-actions { display: flex; gap: 0.75rem; }
+.btn-secondary {
+    background: #2d4059;
+    color: white;
+    border: none;
+    cursor: pointer;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+}
+.btn-secondary:hover { background: #1f2d3d; }
+button[disabled] { opacity: 0.5; cursor: not-allowed; }
+
 .alert { padding: 0.75rem 1rem; border-radius: 4px; margin-bottom: 1rem; }
 .alert-success { background: #e8f5e9; color: #2e7d32; }
 .alert-error { background: #fce4ec; color: #c62828; }
