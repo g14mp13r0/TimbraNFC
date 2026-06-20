@@ -65,9 +65,16 @@ def main():
         sys.exit(1)
 
     def on_badge(uid: str) -> None:
+        log.info("Lettura badge: %s", uid)
+        enrollment_attiva = False
         try:
             r = requests.get(f"{config.SERVER_URL}/api/v1/enrollment/active", timeout=2)
-            if r.ok and r.json().get("active"):
+            enrollment_attiva = r.ok and r.json().get("active")
+        except requests.RequestException as exc:
+            log.debug("Enrollment check fallito: %s", exc)
+
+        if enrollment_attiva:
+            try:
                 cap = requests.post(
                     f"{config.SERVER_URL}/api/v1/enrollment/capture",
                     json={"badge_uid": uid},
@@ -79,9 +86,11 @@ def main():
                         ui.mostra_enrollment_msg("Badge già registrato", uid, ok=False)
                     else:
                         ui.mostra_enrollment_msg("Badge registrato", uid, ok=True)
-                return
-        except requests.RequestException as exc:
-            log.debug("Enrollment check fallito: %s", exc)
+                    return
+                log.warning("Enrollment capture fallita (%s) — timbratura normale", cap.status_code)
+            except requests.RequestException as exc:
+                log.warning("Enrollment capture errore: %s — timbratura normale", exc)
+
         ui.on_badge(uid)
 
     threading.Thread(target=start_nfc_loop, args=(on_badge,), daemon=True).start()

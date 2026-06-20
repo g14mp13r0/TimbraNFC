@@ -74,6 +74,9 @@
 
     btnEnroll.addEventListener("click", startEnrollment);
     window.addEventListener("beforeunload", stopEnrollment);
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "hidden") stopEnrollment();
+    });
 
-    startEnrollment();
+    setStatus("Clicca «Rileggi badge» e avvicina il badge al lettore NFC.", "waiting");
 })();

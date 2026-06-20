@@ -89,6 +89,10 @@ if [ -f "$APP_DIR/.env" ]; then
     chown "${APP_USER}:${APP_USER}" "$APP_DIR/.env"
 fi
 
+# nfcpy (ACR122U) richiede accesso USB diretto — pcscd lo blocca
+systemctl stop pcscd 2>/dev/null || true
+systemctl disable pcscd 2>/dev/null || true
+
 # Disabilita unit legacy con path /home/pi (se presenti)
 for legacy in timbratrice dashboard ui-kiosk hub; do
     systemctl disable --now "${legacy}.service" 2>/dev/null || true

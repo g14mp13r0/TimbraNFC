@@ -29,6 +29,9 @@ apt-get install -y \
     build-essential x11-xserver-utils
 
 systemctl enable --now pcscd || echo "Avviso: pcscd non avviato — collegare NFC e riprovare"
+# nfcpy usa USB diretto: pcscd occuperebbe il lettore ACR122U
+systemctl stop pcscd 2>/dev/null || true
+systemctl disable pcscd 2>/dev/null || true
 
 if [ ! -d "$APP_DIR" ]; then
     echo "Errore: $APP_DIR non trovato. Clona prima il repo in quella cartella."
