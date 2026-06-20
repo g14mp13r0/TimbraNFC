@@ -67,14 +67,14 @@ echo "Avvio run_kiosk.py..."
 PY="$APP_DIR/.venv/bin/python"
 KIOSK="$APP_DIR/standalone/run_kiosk.py"
 
-# PC/SC richiede gruppo scard; da SSH spesso non è attivo nella sessione corrente
+# nfcpy e pcscd si escludono a vicenda sull'ACR122U
+if [ "${NFC_BACKEND:-auto}" = "nfcpy" ]; then
+    systemctl stop pcscd pcscd.socket 2>/dev/null || true
+fi
+
 _run() {
     exec "$PY" "$KIOSK"
 }
-
-if [ "${NFC_BACKEND:-auto}" = "nfcpy" ]; then
-    _run
-fi
 
 if getent group scard >/dev/null 2>&1 && id -nG "$APP_USER" 2>/dev/null | grep -qw scard; then
     if ! id -nG 2>/dev/null | grep -qw scard; then
