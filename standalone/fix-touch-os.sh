@@ -141,10 +141,27 @@ sed "s|@APP_DIR@|${APP_DIR}|g" "$APP_DIR/standalone/systemd/timbranfc-touch.user
 chown -R "${APP_USER}:${APP_USER}" "/home/${APP_USER}/.config"
 
 _uid_app="$(id -u "$APP_USER")"
-sudo -u "$APP_USER" env \
-    XDG_RUNTIME_DIR="/run/user/${_uid_app}" \
-    DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/${_uid_app}/bus" \
-    systemctl --user enable timbranfc-touch.service 2>/dev/null || true
+export XDG_RUNTIME_DIR="/run/user/${_uid_app}"
+
+if command -v loginctl >/dev/null 2>&1; then
+    loginctl enable-linger "$APP_USER" 2>/dev/null || true
+    echo "Linger utente: $(loginctl show-user "$APP_USER" -p Linger 2>/dev/null || echo '?')"
+fi
+
+if [ -S "${XDG_RUNTIME_DIR}/bus" ]; then
+    sudo -u "$APP_USER" env \
+        XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR}" \
+        DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus" \
+        systemctl --user daemon-reload
+    sudo -u "$APP_USER" env \
+        XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR}" \
+        DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus" \
+        systemctl --user enable timbranfc-touch.service
+    echo "Servizio user abilitato: timbranfc-touch.service"
+else
+    echo "Avviso: bus utente assente ora (desktop non attivo)."
+    echo "Il servizio si abilita al prossimo login desktop / dopo reboot con autologin."
+fi
 
 udevadm control --reload-rules
 udevadm trigger --subsystem-match=input --action=change 2>/dev/null || true
@@ -153,7 +170,8 @@ echo ""
 echo "=== Fatto ==="
 echo "1) Riavvia (overlay): sudo reboot"
 echo "2) Dopo reboot: bash ${APP_DIR}/standalone/ssh-touch-fix.sh"
-echo "3) Verifica: bash ${APP_DIR}/standalone/diagnose-touch.sh"
+echo "3) Verifica: bash ${APP_DIR}/standalone/touch-service-status.sh"
+echo "   Log touch: tail -30 /tmp/timbranfc-touch.log"
 echo ""
 echo "In .env NON usare TOUCH_FIRMWARE_ROTATED=1 finché il touch non funziona."
 echo "Varianti overlay se sfasato:"
