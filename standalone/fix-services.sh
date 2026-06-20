@@ -22,6 +22,11 @@ echo "Cartella: $APP_DIR"
 
 chmod +x "$APP_DIR/standalone/launch_kiosk.sh" 2>/dev/null || true
 
+# Permessi smartcard (PC/SC)
+if getent group scard >/dev/null 2>&1; then
+    usermod -aG scard "$APP_USER" 2>/dev/null || true
+fi
+
 cat > /etc/systemd/system/timbranfc-server.service <<UNIT
 [Unit]
 Description=TimbraNFC Server
@@ -31,6 +36,7 @@ After=network.target
 Type=simple
 User=${APP_USER}
 Group=${APP_USER}
+SupplementaryGroups=scard
 WorkingDirectory=${APP_DIR}
 EnvironmentFile=-${APP_DIR}/.env
 Environment=STANDALONE=1

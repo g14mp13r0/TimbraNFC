@@ -21,6 +21,10 @@ echo "--- MOCK_NFC/NFC_BACKEND in .env ---"
 grep -E '^(MOCK_NFC|NFC_BACKEND)=' "$APP_DIR/.env" 2>/dev/null || echo "MOCK_NFC/NFC_BACKEND non impostati"
 echo ""
 
+echo "--- gruppi utente kiosk ---"
+id -nG "$(whoami)" 2>/dev/null || true
+echo ""
+
 echo "--- servizi ---"
 systemctl is-active timbranfc-kiosk 2>&1 || true
 systemctl is-active timbranfc-server 2>&1 || true
@@ -71,5 +75,7 @@ fi
 
 echo ""
 echo "Fix rapido:"
+echo "  sudo usermod -aG scard $(whoami)"
 echo "  sudo systemctl enable --now pcscd pcscd.socket"
+echo "  sudo systemctl daemon-reload"
 echo "  sudo systemctl restart timbranfc-kiosk"

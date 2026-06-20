@@ -30,6 +30,7 @@ apt-get install -y \
 
 systemctl enable --now pcscd || echo "Avviso: pcscd non avviato — collegare NFC e riprovare"
 systemctl enable --now pcscd.socket || true
+getent group scard >/dev/null 2>&1 && usermod -aG scard "$APP_USER" || true
 
 if [ ! -d "$APP_DIR" ]; then
     echo "Errore: $APP_DIR non trovato. Clona prima il repo in quella cartella."
@@ -77,6 +78,7 @@ Before=timbranfc-kiosk.service
 Type=simple
 User=${APP_USER}
 Group=${APP_GROUP}
+SupplementaryGroups=scard
 WorkingDirectory=${APP_DIR}
 EnvironmentFile=-${APP_DIR}/.env
 Environment=STANDALONE=1
