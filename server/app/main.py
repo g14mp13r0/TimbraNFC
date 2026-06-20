@@ -86,8 +86,9 @@ def home(request: Request, db: Session = Depends(get_db)):
         .all()
     )
     return templates.TemplateResponse(
+        request,
         "index.html",
-        {"request": request, "n_dip": n_dip, "n_timb": n_timb, "n_dev": n_dev, "recenti": recenti},
+        {"n_dip": n_dip, "n_timb": n_timb, "n_dev": n_dev, "recenti": recenti},
     )
 
 
@@ -98,7 +99,7 @@ def page_dispositivi(request: Request, db: Session = Depends(get_db)):
     for d in db.query(Dispositivo).all():
         online = d.ultimo_heartbeat and (now - d.ultimo_heartbeat) < timedelta(minutes=3)
         devices.append({**d.__dict__, "online": online})
-    return templates.TemplateResponse("dispositivi.html", {"request": request, "devices": devices})
+    return templates.TemplateResponse(request, "dispositivi.html", {"devices": devices})
 
 
 @app.post("/dispositivi/{device_id}/restart-kiosk")
@@ -113,7 +114,7 @@ def restart_kiosk(device_id: int, db: Session = Depends(get_db)):
 @app.get("/dipendenti", response_class=HTMLResponse)
 def page_dipendenti(request: Request, db: Session = Depends(get_db)):
     dips = db.query(Dipendente).order_by(Dipendente.cognome).all()
-    return templates.TemplateResponse("dipendenti.html", {"request": request, "dipendenti": dips})
+    return templates.TemplateResponse(request, "dipendenti.html", {"dipendenti": dips})
 
 
 @app.post("/dipendenti/add")
