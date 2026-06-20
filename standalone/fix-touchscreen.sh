@@ -44,13 +44,7 @@ fi
 log() { [ "${QUIET:-0}" -eq 1 ] || echo "$*"; }
 
 run_timeout() {
-    local secs="$1"
-    shift
-    if command -v timeout >/dev/null 2>&1; then
-        timeout "$secs" "$@"
-    else
-        "$@"
-    fi
+    x_cmd "$@"
 }
 
 touch_matrix_for_rotate() {

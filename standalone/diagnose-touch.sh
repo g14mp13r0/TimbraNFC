@@ -37,8 +37,8 @@ echo ""
 
 echo "--- Wayland (wlr-randr) ---"
 if [ -n "${WAYLAND_DISPLAY:-}" ] && command -v wlr-randr >/dev/null 2>&1; then
-    run_timeout 5 wlr-randr 2>/dev/null | awk '/^SPI-|^DSI-|^HDMI-|Transform:|current mode/' || \
-        run_timeout 5 wlr-randr 2>/dev/null | head -15 || echo "(wlr-randr timeout o non disponibile)"
+    x_cmd 5 wlr-randr 2>/dev/null | awk '/^SPI-|^DSI-|^HDMI-|Transform:|current mode/' || \
+        x_cmd 5 wlr-randr 2>/dev/null | head -15 || echo "(wlr-randr timeout o non disponibile)"
 else
     echo "(wlr-randr non disponibile — installa: sudo apt install wlr-randr)"
 fi
