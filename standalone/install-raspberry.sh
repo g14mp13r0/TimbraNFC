@@ -30,7 +30,11 @@ apt-get install -y \
 
 systemctl enable --now pcscd || echo "Avviso: pcscd non avviato — collegare NFC e riprovare"
 systemctl enable --now pcscd.socket || true
+SCARD_GROUP_LINE=""
 getent group scard >/dev/null 2>&1 && usermod -aG scard "$APP_USER" || true
+if getent group scard >/dev/null 2>&1; then
+    SCARD_GROUP_LINE="SupplementaryGroups=scard"
+fi
 
 if [ ! -d "$APP_DIR" ]; then
     echo "Errore: $APP_DIR non trovato. Clona prima il repo in quella cartella."
@@ -113,7 +117,7 @@ Wants=pcscd.service pcscd.socket
 Type=simple
 User=${APP_USER}
 Group=${APP_GROUP}
-SupplementaryGroups=scard
+${SCARD_GROUP_LINE}
 WorkingDirectory=${APP_DIR}
 EnvironmentFile=-${APP_DIR}/.env
 Environment=APP_DIR=${APP_DIR}

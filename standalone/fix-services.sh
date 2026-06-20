@@ -23,8 +23,10 @@ echo "Cartella: $APP_DIR"
 chmod +x "$APP_DIR/standalone/launch_kiosk.sh" 2>/dev/null || true
 
 # Permessi smartcard (PC/SC)
+SCARD_GROUP_LINE=""
 if getent group scard >/dev/null 2>&1; then
     usermod -aG scard "$APP_USER" 2>/dev/null || true
+    SCARD_GROUP_LINE="SupplementaryGroups=scard"
 fi
 
 cat > /etc/systemd/system/timbranfc-server.service <<UNIT
@@ -36,6 +38,7 @@ After=network.target
 Type=simple
 User=${APP_USER}
 Group=${APP_USER}
+${SCARD_GROUP_LINE}
 WorkingDirectory=${APP_DIR}
 EnvironmentFile=-${APP_DIR}/.env
 Environment=STANDALONE=1
