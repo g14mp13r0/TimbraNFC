@@ -63,4 +63,24 @@ for i in $(seq 1 30); do
 done
 
 echo "Avvio run_kiosk.py..."
-exec "$APP_DIR/.venv/bin/python" "$APP_DIR/standalone/run_kiosk.py"
+
+PY="$APP_DIR/.venv/bin/python"
+KIOSK="$APP_DIR/standalone/run_kiosk.py"
+
+# PC/SC richiede gruppo scard; da SSH spesso non è attivo nella sessione corrente
+_run() {
+    exec "$PY" "$KIOSK"
+}
+
+if [ "${NFC_BACKEND:-auto}" = "nfcpy" ]; then
+    _run
+fi
+
+if getent group scard >/dev/null 2>&1 && id -nG "$APP_USER" 2>/dev/null | grep -qw scard; then
+    if ! id -nG 2>/dev/null | grep -qw scard; then
+        echo "Avvio kiosk con sg scard (permessi PC/SC)"
+        exec sg scard -c "exec \"$PY\" \"$KIOSK\""
+    fi
+fi
+
+_run
