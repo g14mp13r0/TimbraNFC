@@ -1,7 +1,6 @@
 #!/bin/bash
-# Mappa il touch sul display corretto (3.5" SPI 480x320)
+# Display SPI 3.5" (320x480 portrait) → landscape 480x320 + touch ADS7846
 # Uso: bash standalone/fix-touchscreen.sh
-#      TOUCH_MATRIX="0 1 0 -1 0 1 0 0 1" bash standalone/fix-touchscreen.sh
 
 set -euo pipefail
 
@@ -13,9 +12,10 @@ while [ $# -gt 0 ]; do
         --quiet) QUIET=1; shift ;;
         --matrix)
             shift
-            TOUCH_MATRIX="${1:?usage: --matrix \"0 1 0 -1 0 1 0 0 1\"}"
+            TOUCH_MATRIX="${1:?usage: --matrix \"0 -1 1 1 0 0 0 0 1\"}"
             shift
             ;;
+        --no-rotate) TOUCH_NO_ROTATE=1; shift ;;
         *) shift ;;
     esac
 done
@@ -23,19 +23,77 @@ done
 [ -f "$APP_DIR/.env" ] && set -a && source "$APP_DIR/.env" && set +a
 
 export DISPLAY="${DISPLAY:-:0}"
+TARGET_W="${DISPLAY_WIDTH:-480}"
+TARGET_H="${DISPLAY_HEIGHT:-320}"
+TOUCH_ROTATE="${TOUCH_ROTATE:-left}"
 
-if ! command -v xinput >/dev/null 2>&1; then
+if ! command -v xinput >/dev/null 2>&1 || ! command -v xrandr >/dev/null 2>&1; then
     echo "Installa: sudo apt install -y xinput x11-xserver-utils" >&2
     exit 1
 fi
 
-if ! xdpyinfo >/dev/null 2>&1; then
-    echo "Sessione X11 non attiva (DISPLAY=$DISPLAY). Avvia da desktop, non da SSH puro." >&2
+if ! xrandr --query >/dev/null 2>&1; then
+    echo "Display non disponibile (DISPLAY=$DISPLAY). Esegui dal desktop del Pi." >&2
     exit 1
 fi
 
-log() { [ "$QUIET" -eq 1 ] || echo "$*"; }
+log() { [ "${QUIET:-0}" -eq 1 ] || echo "$*"; }
 
+# Output SPI (SPI-1, fb_1, ...)
+OUTPUT=""
+CURRENT_MODE=""
+while read -r name mode res _; do
+    [ "$mode" = "connected" ] || continue
+    case "$name" in
+        SPI-*|fb_*|DSI-*)
+            OUTPUT="$name"
+            CURRENT_MODE="$res"
+            break
+            ;;
+    esac
+done < <(xrandr --query | awk '/ connected/{print $1,$2,$3}')
+
+if [ -z "$OUTPUT" ]; then
+    OUTPUT="$(xrandr --query | awk '/ connected/{print $1; exit}')"
+    CURRENT_MODE="$(xrandr --query | awk -v o="$OUTPUT" '$1==o {print $3; exit}')"
+fi
+
+if [ -z "$OUTPUT" ]; then
+    echo "Nessun output display trovato." >&2
+    exit 1
+fi
+
+log "Display: $OUTPUT ($CURRENT_MODE) → target ${TARGET_W}x${TARGET_H}"
+
+# Ruota schermo portrait → landscape (320x480 → 480x320)
+if [ "${TOUCH_NO_ROTATE:-0}" -ne 1 ]; then
+    if [ "$CURRENT_MODE" = "320x480" ] && [ "$TARGET_W" -gt "$TARGET_H" ]; then
+        case "$TOUCH_ROTATE" in
+            left|L)
+                xrandr --output "$OUTPUT" --rotate left
+                DEFAULT_MATRIX="0 -1 1 1 0 0 0 0 1"
+                log "Rotazione display: left (480x320)"
+                ;;
+            right|R)
+                xrandr --output "$OUTPUT" --rotate right
+                DEFAULT_MATRIX="0 1 0 -1 0 1 0 0 1"
+                log "Rotazione display: right (480x320)"
+                ;;
+            *)
+                xrandr --output "$OUTPUT" --rotate "$TOUCH_ROTATE"
+                DEFAULT_MATRIX="1 0 0 0 1 0 0 0 1"
+                log "Rotazione display: $TOUCH_ROTATE"
+                ;;
+        esac
+    else
+        DEFAULT_MATRIX="1 0 0 0 1 0 0 0 1"
+        log "Rotazione display: non necessaria"
+    fi
+else
+    DEFAULT_MATRIX="0 1 0 -1 0 1 0 0 1"
+fi
+
+# Touch: xwayland-touch o ADS7846
 TOUCH_ID=""
 TOUCH_NAME=""
 while IFS= read -r line; do
@@ -43,7 +101,7 @@ while IFS= read -r line; do
     name="${line#* }"
     lower="$(echo "$name" | tr '[:upper:]' '[:lower:]')"
     case "$lower" in
-        *touch*|*ads7846*|*goodix*|*egalax*|*ft5406*|*stylus*|*pen*)
+        *touch*|*ads7846*|*xwayland-touch*)
             TOUCH_ID="$id"
             TOUCH_NAME="$name"
             break
@@ -54,46 +112,20 @@ done < <(xinput list --id-only 2>/dev/null | while read -r id; do
 done)
 
 if [ -z "$TOUCH_ID" ]; then
-    echo "Nessun dispositivo touch trovato. Esegui: bash standalone/diagnose-touch.sh" >&2
+    echo "Nessun dispositivo touch trovato (cercato xwayland-touch / ADS7846)." >&2
     exit 1
 fi
 
 log "Touch: [$TOUCH_ID] $TOUCH_NAME"
 
-OUTPUT=""
-if xrandr --query 2>/dev/null | grep -q '^fb_1 connected'; then
-    OUTPUT="fb_1"
-else
-    while read -r name mode _; do
-        [ "$mode" = "connected" ] || continue
-        res="$(xrandr --query | awk -v n="$name" '$1==n {print $3; exit}')"
-        if [ "$res" = "480x320" ] || [ "$res" = "320x480" ]; then
-            OUTPUT="$name"
-            break
-        fi
-        [ -z "$OUTPUT" ] && OUTPUT="$name"
-    done < <(xrandr --query | awk '/ connected/{print $1,$2}')
+if xinput map-to-output "$TOUCH_ID" "$OUTPUT" 2>/dev/null; then
+    log "Mappato touch → $OUTPUT"
 fi
 
-if [ -n "$OUTPUT" ]; then
-    if xinput map-to-output "$TOUCH_ID" "$OUTPUT" 2>/dev/null; then
-        log "Mappato touch → $OUTPUT"
-    else
-        log "map-to-output non supportato su questo driver"
-    fi
-fi
-
-MATRIX="${TOUCH_MATRIX:-}"
-if [ -n "$MATRIX" ]; then
-    # shellcheck disable=SC2086
-    xinput set-prop "$TOUCH_ID" "Coordinate Transformation Matrix" $MATRIX
-    log "Matrice touch: $MATRIX"
-else
-    # 90° orario — comune TFT 3.5" in landscape
-    if xinput set-prop "$TOUCH_ID" "Coordinate Transformation Matrix" 0 1 0 -1 0 1 0 0 1 2>/dev/null; then
-        log "Matrice default 90° applicata"
-    fi
-fi
+MATRIX="${TOUCH_MATRIX:-$DEFAULT_MATRIX}"
+# shellcheck disable=SC2086
+xinput set-prop "$TOUCH_ID" "Coordinate Transformation Matrix" $MATRIX
+log "Matrice touch: $MATRIX"
 
 xinput enable "$TOUCH_ID" 2>/dev/null || true
 log "Touch configurato."

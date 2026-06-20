@@ -15,11 +15,13 @@ echo ""
 
 echo "--- Sessione grafica ---"
 if xdpyinfo >/dev/null 2>&1; then
-    echo "X11: OK"
+    echo "X11 nativo: OK"
     xdpyinfo | awk '/dimensions:|resolution:/'
+elif xrandr --query >/dev/null 2>&1; then
+    echo "XWayland: OK (Wayland + DISPLAY=:0 — normale su Pi OS recente)"
+    xrandr --query | awk '/Screen | connected/'
 else
-    echo "X11: NON disponibile (Wayland puro o SSH senza DISPLAY)"
-    echo "→ Il kiosk Tkinter richiede sessione desktop X11"
+    echo "Display non raggiungibile. Esegui dal terminale del desktop Pi, non da SSH."
 fi
 echo ""
 
