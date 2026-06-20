@@ -41,8 +41,10 @@ if ! x_socket_ok; then
     exit 1
 fi
 
-if [ "${NFC_BACKEND:-nfcpy}" = "nfcpy" ]; then
+if [ "${NFC_BACKEND:-auto}" = "nfcpy" ]; then
     systemctl stop pcscd pcscd.socket 2>/dev/null || true
+elif [ "${NFC_BACKEND:-auto}" = "pcsc" ]; then
+    systemctl start pcscd pcscd.socket 2>/dev/null || true
 fi
 
 PY="$APP_DIR/.venv/bin/python"
@@ -51,7 +53,12 @@ KIOSK="$APP_DIR/standalone/run_kiosk.py"
 _start_python() {
     export DISPLAY XAUTHORITY WAYLAND_DISPLAY XDG_RUNTIME_DIR DBUS_SESSION_BUS_ADDRESS
     echo "$(date -Iseconds) Avvio kiosk DISPLAY=$DISPLAY NFC_BACKEND=${NFC_BACKEND:-?}"
-    # Mai usare sg scard qui: perde DISPLAY e Tk si chiude subito
+    if [ "${NFC_BACKEND:-auto}" = "pcsc" ] && getent group scard >/dev/null 2>&1 \
+        && id -nG "$APP_USER" 2>/dev/null | grep -qw scard \
+        && ! id -nG 2>/dev/null | grep -qw scard; then
+        sg scard -c "export DISPLAY='$DISPLAY' XAUTHORITY='${XAUTHORITY:-}' WAYLAND_DISPLAY='${WAYLAND_DISPLAY:-}' XDG_RUNTIME_DIR='$XDG_RUNTIME_DIR'; exec '$PY' '$KIOSK'"
+        return $?
+    fi
     "$PY" "$KIOSK"
 }
 

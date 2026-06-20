@@ -46,16 +46,20 @@ def test_nfcpy() -> int:
     except ImportError as e:
         print(f"FAIL:nfcpy_import:{e}")
         return 1
+    import time
+
     paths = ["usb:072f:2200", "usb"]
     last_err = ""
-    for path in paths:
-        try:
-            with nfc.ContactlessFrontend(path) as clf:
-                print(f"OK:path:{path}")
-                return 0
-        except Exception as e:
-            last_err = f"{path}:{e}"
-            print(f"WARN:{last_err}", file=sys.stderr)
+    for attempt in range(3):
+        for path in paths:
+            try:
+                with nfc.ContactlessFrontend(path) as clf:
+                    print(f"OK:path:{path}")
+                    return 0
+            except Exception as e:
+                last_err = f"{path}:{e}"
+                print(f"WARN:{last_err}", file=sys.stderr)
+        time.sleep(1)
     print(f"FAIL:nfcpy:{last_err or 'no_path'}")
     return 1
 
