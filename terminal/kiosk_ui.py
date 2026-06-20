@@ -108,7 +108,7 @@ class KioskUI:
             font=("Helvetica", 15, "bold"),
             fg=COLOR_ACCENT,
             bg=COLOR_BG,
-        ).place(relx=1.0, x=-10, rely=0.5, anchor="e")
+        ).place(x=10, y=58, anchor="nw")
 
     def _build_azione(self, info: dict):
         self._clear()
