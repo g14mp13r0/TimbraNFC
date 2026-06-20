@@ -102,13 +102,18 @@ class KioskUI:
         )
         self.lbl_data.place(x=10, y=36, anchor="nw")
 
-        tk.Label(
+        self.lbl_passa_badge = tk.Label(
             self.root,
             text="Passa il badge",
             font=("Helvetica", 15, "bold"),
             fg=COLOR_ACCENT,
             bg=COLOR_BG,
-        ).place(x=10, y=58, anchor="nw")
+        )
+        self.lbl_passa_badge.place(x=10, y=58, anchor="nw")
+
+        # Sopra lo sfondo a schermo intero
+        for w in (self.lbl_ora, self.lbl_data, self.lbl_passa_badge):
+            w.lift()
 
     def _build_azione(self, info: dict):
         self._clear()
