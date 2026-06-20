@@ -238,12 +238,15 @@ def page_timbrature(
     a: str | None = None,
     mese: str | None = None,
     dipendente_id: int | None = None,
+    msg: str = "",
+    error: str = "",
 ):
     from server.app.services.report import lista_timbrature, resolve_period
 
     da, a, mese = resolve_period(da, a, mese)
     timbrature = lista_timbrature(db, da, a, dipendente_id)
     dipendenti = db.query(Dipendente).filter(Dipendente.attivo == True).order_by(Dipendente.cognome).all()
+    n_totale = db.query(Timbratura).count()
     return templates.TemplateResponse(
         request,
         "timbrature.html",
@@ -254,7 +257,32 @@ def page_timbrature(
             "a": a,
             "mese": mese,
             "dipendente_id": dipendente_id,
+            "n_totale": n_totale,
+            "msg": msg,
+            "error": error,
         },
+    )
+
+
+@app.post("/timbrature/azzera")
+def azzera_timbrature(confirm: str = Form(...), db: Session = Depends(get_db)):
+    from server.app.services.timbrature_admin import clear_timbrature_locali, clear_timbrature_server
+
+    if confirm.strip().upper() != "AZZERA":
+        return RedirectResponse("/timbrature?error=conferma_richiesta", status_code=303)
+
+    n_server = clear_timbrature_server(db)
+    n_local = 0
+    try:
+        import terminal.config as terminal_config
+
+        n_local = clear_timbrature_locali(terminal_config.LOCAL_DB_PATH)
+    except Exception:
+        pass
+
+    return RedirectResponse(
+        f"/timbrature?msg=azzerate&n={n_server}&nl={n_local}",
+        status_code=303,
     )
 
 

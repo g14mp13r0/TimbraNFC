@@ -4,6 +4,13 @@
     <h1>Timbrature</h1>
     <p class="subtitle">Elenco completo delle timbrature registrate. Per ore e turni usa <a href="/report">Report turni</a>.</p>
 
+    {% if msg == 'azzerate' %}
+    <div class="alert alert-success">Timbrature azzerate: {{ request.query_params.get('n', '0') }} dal server{% if request.query_params.get('nl') %}, {{ request.query_params.get('nl') }} dalla coda locale{% endif %}.</div>
+    {% endif %}
+    {% if error == 'conferma_richiesta' %}
+    <div class="alert alert-error">Conferma non valida — digita esattamente <strong>AZZERA</strong>.</div>
+    {% endif %}
+
     <form method="get" class="filters">
         <label>Mese
             <input type="month" name="mese" value="{{ mese }}">
@@ -61,4 +68,16 @@
             {% endfor %}
         </tbody>
     </table>
+
+    <section class="danger-panel">
+        <h2>Azzera timbrature</h2>
+        <p class="hint">Elimina <strong>tutte</strong> le timbrature di tutti i dipendenti ({{ n_totale }} nel database). I dipendenti e i badge restano invariati. Operazione irreversibile.</p>
+        <form method="post" action="/timbrature/azzera" class="filters"
+              onsubmit="return confirm('Eliminare TUTTE le timbrature?');">
+            <label>Digita AZZERA per confermare
+                <input type="text" name="confirm" autocomplete="off" placeholder="AZZERA" required>
+            </label>
+            <button type="submit" class="btn-danger">Azzera tutte le timbrature</button>
+        </form>
+    </section>
 {% endblock %}

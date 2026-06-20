@@ -141,6 +141,16 @@ button[disabled] { opacity: 0.5; cursor: not-allowed; }
 .alert-success { background: #e8f5e9; color: #2e7d32; }
 .alert-error { background: #fce4ec; color: #c62828; }
 
+.danger-panel {
+    margin-top: 2.5rem;
+    background: #fff5f5;
+    border: 1px solid #ffcdd2;
+    border-radius: 8px;
+    padding: 1.25rem 1.5rem;
+}
+.danger-panel h2 { margin: 0 0 0.75rem; color: #b71c1c; font-size: 1.1rem; }
+.danger-panel .filters { background: transparent; box-shadow: none; padding: 0; margin-top: 0.75rem; }
+
 .login-box {
     max-width: 360px; margin: 4rem auto; background: white;
     padding: 2rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,.1);
