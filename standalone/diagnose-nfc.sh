@@ -12,13 +12,13 @@ echo "--- USB ---"
 lsusb 2>/dev/null | grep -iE '072f|acr|nfc|smart' || echo "(ACR122U non trovato su USB — controlla cavo)"
 echo ""
 
-echo "--- pcscd/socket (devono essere inactive per nfcpy) ---"
+echo "--- pcscd/socket (devono essere active per backend pcsc) ---"
 systemctl is-active pcscd 2>&1 || true
 systemctl is-active pcscd.socket 2>&1 || true
 echo ""
 
-echo "--- MOCK_NFC in .env ---"
-grep -E '^MOCK_NFC=' "$APP_DIR/.env" 2>/dev/null || echo "MOCK_NFC non impostato (default 0)"
+echo "--- MOCK_NFC/NFC_BACKEND in .env ---"
+grep -E '^(MOCK_NFC|NFC_BACKEND)=' "$APP_DIR/.env" 2>/dev/null || echo "MOCK_NFC/NFC_BACKEND non impostati"
 echo ""
 
 echo "--- servizi ---"
@@ -30,39 +30,40 @@ echo "--- log kiosk (NFC) ---"
 journalctl -u timbranfc-kiosk -n 25 --no-pager 2>/dev/null | grep -iE 'nfc|badge|usb|pcscd|errore|error' || journalctl -u timbranfc-kiosk -n 10 --no-pager
 echo ""
 
-echo "--- test nfcpy (3 secondi, avvicina badge) ---"
+echo "--- test PC/SC (5 secondi, avvicina badge) ---"
 if [ -f "$APP_DIR/.venv/bin/python" ]; then
     "$APP_DIR/.venv/bin/python" <<'PY' || true
 import sys
 sys.path.insert(0, ".")
 try:
-    import nfc
-    print("nfcpy OK")
-    opened = False
-    for path in ("usb:072f:2200", "usb"):
-        try:
-            clf = nfc.ContactlessFrontend(path)
-            print(f"Lettore USB aperto su {path} — avvicina badge entro 3s...")
-            opened = True
-            break
-        except Exception as e:
-            print(f"Apertura fallita su {path}: {e}")
-    if not opened:
-        raise RuntimeError("Impossibile aprire ACR122U con nfcpy")
-    with clf:
-        target = clf.sense(nfc.clf.RemoteTarget("106A"), iterations=15, interval=0.2)
-        if target is None:
+    from smartcard.System import readers
+    print("pyscard OK")
+    r = readers()
+    if not r:
+        print("Nessun reader PC/SC")
+    else:
+        print("Reader:", r[0])
+        conn = r[0].createConnection()
+        import time
+        deadline = time.time() + 5
+        got = False
+        while time.time() < deadline:
+            try:
+                conn.connect()
+                data, sw1, sw2 = conn.transmit([0xFF, 0xCA, 0x00, 0x00, 0x00])
+                conn.disconnect()
+                if sw1 == 0x90 and sw2 == 0x00 and data:
+                    print("UID:", "".join(f"{b:02X}" for b in data))
+                    got = True
+                    break
+            except Exception:
+                pass
+            time.sleep(0.3)
+        if not got:
             print("Nessun badge rilevato (timeout)")
-        else:
-            tag = nfc.tag.activate(clf, target)
-            if tag and tag.identifier:
-                print("UID:", tag.identifier.hex().upper())
-            else:
-                print("Badge rilevato ma UID non letto")
 except Exception as e:
     print("ERRORE:", e)
-    if "busy" in str(e).lower() or "claim" in str(e).lower():
-        print("→ Prova: sudo systemctl stop pcscd && sudo systemctl disable pcscd")
+    print("→ Prova: sudo systemctl enable --now pcscd pcscd.socket")
 PY
 else
     echo "venv non trovato in $APP_DIR/.venv"
@@ -70,6 +71,5 @@ fi
 
 echo ""
 echo "Fix rapido:"
-echo "  sudo systemctl stop pcscd pcscd.socket"
-echo "  sudo systemctl disable pcscd pcscd.socket"
+echo "  sudo systemctl enable --now pcscd pcscd.socket"
 echo "  sudo systemctl restart timbranfc-kiosk"

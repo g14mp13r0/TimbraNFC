@@ -34,21 +34,33 @@ def start_nfc_loop(callback) -> None:
         log.info("NFC mock — nessun lettore attivo")
         return
 
+    backend = config.NFC_BACKEND
+    if backend == "nfcpy":
+        _run_nfcpy(callback)
+        return
+    if backend == "pcsc":
+        _run_pcsc(callback)
+        return
+
+    # auto: tenta nfcpy, poi fallback a pcsc (piu stabile su ACR122U)
+    if _run_nfcpy(callback, once=True):
+        return
+    log.warning("Fallback al backend PC/SC")
+    _run_pcsc(callback)
+
+
+def _run_nfcpy(callback, once: bool = False) -> bool:
     try:
         import nfc
     except ImportError:
         log.error("nfcpy non installato")
-        return
+        return False
 
     device_paths = [config.NFC_DEVICE_PATH, "usb"]
-    # Dedup mantenendo ordine
     seen: set[str] = set()
     device_paths = [p for p in device_paths if not (p in seen or seen.add(p))]
+    log.info("Backend NFC: nfcpy (path: %s)", ", ".join(device_paths))
 
-    log.info(
-        "Avvio lettore NFC ACR122U (USB diretto, senza pcscd). Path tentati: %s",
-        ", ".join(device_paths),
-    )
     while True:
         last_error: Exception | None = None
         connected = False
@@ -67,20 +79,67 @@ def start_nfc_loop(callback) -> None:
                 last_error = e
                 log.warning("Apertura NFC fallita su %s: %s", device_path, e)
 
-        if not connected:
-            err = str(last_error or "").lower()
-            if "resource busy" in err or "unable to claim" in err or "access denied" in err:
-                log.error(
-                    "USB NFC occupato (spesso da pcscd/socket). Esegui: "
-                    "sudo systemctl stop pcscd pcscd.socket && "
-                    "sudo systemctl disable pcscd pcscd.socket && "
-                    "sudo systemctl restart timbranfc-kiosk"
-                )
-            elif "no such device" in err:
-                log.error(
-                    "Lettore visto da USB ma non inizializzabile via nfcpy. "
-                    "Prova scollega/ricollega ACR122U e riavvia kiosk."
-                )
-            else:
-                log.warning("Errore NFC: %s — retry 5s", last_error)
-            time.sleep(5)
+        if connected:
+            continue
+        if once:
+            return False
+
+        err = str(last_error or "").lower()
+        if "resource busy" in err or "unable to claim" in err or "access denied" in err:
+            log.error("USB NFC occupato (pcscd/socket in conflitto)")
+        elif "no such device" in err:
+            log.error("Lettore visto da USB ma non inizializzabile via nfcpy")
+        else:
+            log.warning("Errore NFC: %s — retry 5s", last_error)
+        time.sleep(5)
+
+
+def _run_pcsc(callback) -> None:
+    try:
+        from smartcard.Exceptions import CardConnectionException, NoCardException
+        from smartcard.System import readers
+    except ImportError:
+        log.error("pyscard non installato (pip install pyscard)")
+        return
+
+    log.info("Backend NFC: PC/SC (ACR122U via pcscd)")
+    last_uid = None
+    last_emit = 0.0
+    cooldown = 1.2
+
+    while True:
+        try:
+            rlist = readers()
+            if not rlist:
+                log.warning("Nessun reader PC/SC disponibile — retry 3s")
+                time.sleep(3)
+                continue
+            reader = rlist[0]
+            conn = reader.createConnection()
+            try:
+                conn.connect()
+                data, sw1, sw2 = conn.transmit([0xFF, 0xCA, 0x00, 0x00, 0x00])
+                if sw1 == 0x90 and sw2 == 0x00 and data:
+                    uid = "".join(f"{b:02X}" for b in data)
+                    now = time.time()
+                    if uid != last_uid or (now - last_emit) > cooldown:
+                        last_uid = uid
+                        last_emit = now
+                        log.info("Badge rilevato (PC/SC): %s", uid)
+                        callback(uid)
+                else:
+                    # Nessuna carta o APDU non pronto: non floodare log
+                    pass
+            except (NoCardException, CardConnectionException):
+                pass
+            except Exception as e:
+                log.warning("Errore PC/SC lettura badge: %s", e)
+            finally:
+                try:
+                    conn.disconnect()
+                except Exception:
+                    pass
+            time.sleep(0.25)
+        except Exception as e:
+            log.warning("Errore backend PC/SC: %s — retry 2s", e)
+            time.sleep(2)
