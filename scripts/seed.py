@@ -14,8 +14,6 @@ SEDI = [
 ]
 
 SAMPLE = [
-    ("Mario", "Rossi", "04A1B2C3D4E5", "mario.rossi@azienda.it", "Produzione", 1),
-    ("Laura", "Bianchi", "04F6E5D4C3B2", "laura.bianchi@azienda.it", "Amministrazione", 1),
     ("Giuseppe", "Verdi", "041122334455", None, "Magazzino", 2),
 ]
 
