@@ -108,24 +108,7 @@ class KioskUI:
             font=("Helvetica", 15, "bold"),
             fg=COLOR_ACCENT,
             bg=COLOR_BG,
-        ).place(relx=0.5, rely=1.0, y=-42, anchor="s")
-
-        _hint = "Entrata · Uscita" if config.NFC_AUTO_TIMBRATURA else "Seleziona azione"
-        tk.Label(
-            self.root,
-            text=_hint,
-            font=("Helvetica", 11),
-            fg="#cccccc",
-            bg=COLOR_BG,
-        ).place(relx=0.5, rely=1.0, y=-22, anchor="s")
-
-        tk.Label(
-            self.root,
-            text="Timbratura presenze",
-            font=("Helvetica", 8),
-            fg="#777777",
-            bg=COLOR_BG,
-        ).place(relx=0.5, rely=1.0, y=-6, anchor="s")
+        ).place(relx=1.0, x=-10, rely=0.5, anchor="e")
 
     def _build_azione(self, info: dict):
         self._clear()
