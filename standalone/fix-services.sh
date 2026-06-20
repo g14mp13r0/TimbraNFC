@@ -82,19 +82,8 @@ RestartSec=10
 WantedBy=graphical.target
 UNIT
 
-# Autostart desktop
-AUTOSTART="/home/${APP_USER}/.config/autostart/timbranfc-kiosk.desktop"
-mkdir -p "$(dirname "$AUTOSTART")"
-cat > "$AUTOSTART" <<DESKTOP
-[Desktop Entry]
-Type=Application
-Name=TimbraNFC Kiosk
-Exec=${APP_DIR}/standalone/launch_kiosk.sh
-Terminal=false
-X-GNOME-Autostart-enabled=true
-X-GNOME-Autostart-Delay=10
-DESKTOP
-chown "${APP_USER}:${APP_USER}" "$AUTOSTART"
+# Autostart kiosk al boot (senza login manuale)
+bash "$APP_DIR/standalone/setup-boot-kiosk.sh"
 
 # .env — correggi path pi se presenti
 if [ -f "$APP_DIR/.env" ]; then
@@ -161,8 +150,8 @@ else
     exit 1
 fi
 
-echo "Kiosk: usa autostart desktop (timbranfc-kiosk.service disabilitato)"
-echo "  bash ${APP_DIR}/standalone/launch_kiosk.sh"
+echo "Kiosk: autologin desktop + autostart (timbranfc-kiosk.service disabilitato)"
+echo "  sudo bash ${APP_DIR}/standalone/setup-boot-kiosk.sh   # solo autologin/autostart"
 echo "  bash ${APP_DIR}/standalone/verify-kiosk.sh"
 
 echo "Fatto. Dashboard: http://$(hostname -I | awk '{print $1}'):8080"

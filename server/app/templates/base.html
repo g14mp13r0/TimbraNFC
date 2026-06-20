@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}TimbraNFC{% endblock %}</title>
+    <link rel="stylesheet" href="/static/style.css">
+    {% block head %}{% endblock %}
+</head>
+<body>
+{% set path = request.url.path %}
+<nav class="nav">
+    <a href="/" class="brand">TimbraNFC Server</a>
+    <div class="nav-links">
+        <a href="/" class="{% if path == '/' %}nav-active{% endif %}">Home</a>
+        <a href="/dipendenti" class="{% if path.startswith('/dipendenti') %}nav-active{% endif %}">Dipendenti</a>
+        <a href="/timbrature" class="{% if path.startswith('/timbrature') %}nav-active{% endif %}">Timbrature</a>
+        <a href="/report" class="{% if path.startswith('/report') %}nav-active{% endif %}">Report turni</a>
+        <a href="/dispositivi" class="{% if path.startswith('/dispositivi') %}nav-active{% endif %}">Dispositivi</a>
+        <a href="/docs" class="{% if path.startswith('/docs') %}nav-active{% endif %}">API Docs</a>
+    </div>
+</nav>
+<main class="container">
+{% block content %}{% endblock %}
+</main>
+{% block scripts %}{% endblock %}
+</body>
+</html>

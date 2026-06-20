@@ -1,16 +1,6 @@
-<!DOCTYPE html>
-<html lang="it">
-<head>
-    <meta charset="UTF-8">
-    <title>Dispositivi — TimbraNFC</title>
-    <link rel="stylesheet" href="/static/style.css">
-</head>
-<body>
-<nav class="nav">
-    <a href="/" class="brand">TimbraNFC Server</a>
-    <div class="nav-links"><a href="/">Home</a><a href="/dispositivi">Dispositivi</a></div>
-</nav>
-<main class="container">
+{% extends "base.html" %}
+{% block title %}Dispositivi — TimbraNFC{% endblock %}
+{% block content %}
     <h1>Flotta terminali</h1>
     <table>
         <tr><th>Nome</th><th>UUID</th><th>Stato</th><th>Versione</th><th>Ultimo HB</th><th>Azioni</th></tr>
@@ -29,6 +19,4 @@
         </tr>
         {% endfor %}
     </table>
-</main>
-</body>
-</html>
+{% endblock %}

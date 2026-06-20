@@ -6,7 +6,8 @@ from sqlalchemy.orm import Session
 
 from server.app.db import get_db
 from server.app.models import DeviceComando, Dipendente, Dispositivo, Sede, Timbratura, UtenteAdmin
-from server.app.services.stati import calcola_ore_lavorate, stato_dipendente_oggi
+from server.app.services.report import report_turni
+from server.app.services.stati import stato_dipendente_oggi
 
 router = APIRouter(prefix="/api/v1/dashboard", tags=["dashboard"])
 
@@ -75,32 +76,12 @@ def report(
     dipendente_id: int | None = None,
     db: Session = Depends(get_db),
 ):
-    q = db.query(Timbratura).filter(
-        Timbratura.timestamp_terminale >= datetime.fromisoformat(da),
-        Timbratura.timestamp_terminale <= datetime.fromisoformat(a + "T23:59:59"),
-    )
-    if dipendente_id:
-        q = q.filter(Timbratura.dipendente_id == dipendente_id)
-    rows = q.order_by(Timbratura.timestamp_terminale).all()
-
-    per_dip: dict[int, list] = {}
-    for r in rows:
-        per_dip.setdefault(r.dipendente_id, []).append(
-            {"azione": r.azione, "timestamp": r.timestamp_terminale}
-        )
-
-    riepilogo = []
-    for did, timbs in per_dip.items():
-        dip = db.query(Dipendente).get(did)
-        if dip:
-            riepilogo.append(
-                {
-                    "id": did,
-                    "nome": f"{dip.nome} {dip.cognome}",
-                    "ore": calcola_ore_lavorate(timbs),
-                }
-            )
-    return {"riepilogo": riepilogo, "timbrature": len(rows)}
+    data = report_turni(db, da, a, dipendente_id)
+    return {
+        "turni": data["turni"],
+        "riepilogo": data["riepilogo"],
+        "n_timbrature": db.query(Timbratura).count(),
+    }
 
 
 @router.post("/dipendenti")

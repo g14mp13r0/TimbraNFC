@@ -5,6 +5,7 @@
 set -euo pipefail
 
 APP_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+APP_USER="${APP_USER:-$(whoami)}"
 LOG="/tmp/timbranfc-kiosk.log"
 
 echo "=== Verifica kiosk TimbraNFC ==="
@@ -22,6 +23,20 @@ echo "--- Display ---"
 # shellcheck source=standalone/x-session-env.sh
 source "$APP_DIR/standalone/x-session-env.sh"
 echo "DISPLAY=$DISPLAY socket=$(x_socket_ok && echo OK || echo NO)"
+echo ""
+
+echo "--- Autologin desktop ---"
+if [ -f /etc/lightdm/lightdm.conf.d/50-timbranfc-autologin.conf ]; then
+    grep -E '^autologin-' /etc/lightdm/lightdm.conf.d/50-timbranfc-autologin.conf | sed 's/^/  /'
+else
+    echo "  NON configurato — esegui: sudo bash $APP_DIR/standalone/setup-boot-kiosk.sh"
+fi
+AUTOSTART="/home/${APP_USER}/.config/autostart/timbranfc-kiosk.desktop"
+if [ -f "$AUTOSTART" ]; then
+    echo "  autostart: $AUTOSTART"
+else
+    echo "  autostart: ASSENTE"
+fi
 echo ""
 
 echo "--- Kiosk systemd (dovrebbe essere disabled) ---"

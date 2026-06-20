@@ -42,14 +42,34 @@ sudo bash standalone/install-raspberry.sh
 
 ## Servizi systemd
 
-| Servizio | Ruolo | Display |
-|----------|-------|---------|
-| `timbranfc-server` | API + dashboard web | No |
-| `timbranfc-kiosk` | UI timbratrice NFC | Sì (touchscreen) |
+| Servizio | Ruolo | Avvio |
+|----------|-------|-------|
+| `timbranfc-server` | API + dashboard web | Automatico al boot |
+| Kiosk UI | Timbratrice NFC touchscreen | Autologin desktop + autostart |
 
 ```bash
 sudo systemctl status timbranfc-server
-sudo systemctl status timbranfc-kiosk
+bash standalone/verify-kiosk.sh
+tail -f /tmp/timbranfc-kiosk.log
+```
+
+### Avvio automatico kiosk (senza login)
+
+Dopo l'installazione, configura autologin e autostart:
+
+```bash
+cd ~/TimbraNFC
+sudo bash standalone/setup-boot-kiosk.sh
+sudo reboot
+```
+
+Al boot il Pi entra da solo nel desktop e avvia `kiosk_ui` (~30 secondi). Nessuna password sul touchscreen.
+
+Se il kiosk non parte:
+
+```bash
+sudo bash standalone/fix-services.sh    # server + autologin + autostart
+sudo reboot
 ```
 
 Il kiosk **non apre mai** la dashboard: è riservato al touchscreen per le timbrature.

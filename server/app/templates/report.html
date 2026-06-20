@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Report turni — TimbraNFC{% endblock %}
+{% block content %}
+    <h1>Report turni</h1>
+    <p class="subtitle">Turni calcolati dalle timbrature (IT/FT). Elenco eventi in <a href="/timbrature">Timbrature</a>.</p>
+
+    <form method="get" class="filters">
+        <label>Mese
+            <input type="month" name="mese" value="{{ mese }}">
+        </label>
+        <label>Dipendente
+            <select name="dipendente_id">
+                <option value="">Tutti</option>
+                {% for d in dipendenti %}
+                <option value="{{ d.id }}" {{ 'selected' if dipendente_id == d.id }}>{{ d.cognome }} {{ d.nome }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <span class="filter-sep">oppure periodo:</span>
+        <label>Da <input type="date" name="da" value="{{ da }}"></label>
+        <label>A <input type="date" name="a" value="{{ a }}"></label>
+        <button type="submit">Filtra</button>
+        <a href="/report/export.csv?da={{ da }}&amp;a={{ a }}{% if dipendente_id %}&amp;dipendente_id={{ dipendente_id }}{% endif %}{% if mese %}&amp;mese={{ mese }}{% endif %}" class="btn-export">Export CSV</a>
+    </form>
+
+    <p class="hint">Periodo: <strong>{{ da }}</strong> → <strong>{{ a }}</strong></p>
+
+    <h2>Riepilogo periodo</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Dipendente</th>
+                <th>Giorni</th>
+                <th>N. turni</th>
+                <th>Ore totali</th>
+                <th>Tempo totale</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in riepilogo %}
+            <tr>
+                <td>{{ r.dipendente }}</td>
+                <td>{{ r.giorni }}</td>
+                <td>{{ r.n_turni }}</td>
+                <td><strong>{{ r.ore }} h</strong></td>
+                <td>{{ r.durata_totale }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" class="empty">Nessun turno nel periodo selezionato</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h2>Dettaglio turni</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Dipendente</th>
+                <th>Data</th>
+                <th>Ora inizio</th>
+                <th>Ora fine</th>
+                <th>Tempo totale</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for t in turni %}
+            <tr{% if t.aperto %} class="turno-aperto"{% endif %}>
+                <td>{{ t.dipendente }}</td>
+                <td>{{ t.data }}</td>
+                <td>{{ t.ora_inizio }}</td>
+                <td>{% if t.ora_fine %}{{ t.ora_fine }}{% else %}<em>in corso</em>{% endif %}</td>
+                <td><strong>{{ t.durata }}</strong></td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" class="empty">Nessun turno completato nel periodo</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

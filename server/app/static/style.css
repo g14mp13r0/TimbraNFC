@@ -20,6 +20,7 @@ body {
 .nav .brand { font-weight: 700; color: #4fc3f7; text-decoration: none; font-size: 1.1rem; }
 .nav-links a { color: #ccc; text-decoration: none; margin-left: 1.5rem; }
 .nav-links a:hover { color: white; }
+.nav-links a.nav-active { color: #4fc3f7; font-weight: 600; }
 
 .container { max-width: 1100px; margin: 2rem auto; padding: 0 1.5rem; }
 
@@ -53,8 +54,10 @@ tr.inactive td { opacity: 0.5; }
 .empty { text-align: center; color: #999; padding: 2rem !important; }
 
 .badge { padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; }
-.badge-entrata { background: #e8f5e9; color: #2e7d32; }
-.badge-uscita { background: #fce4ec; color: #c62828; }
+.badge-IT { background: #e8f5e9; color: #2e7d32; }
+.badge-FT { background: #fce4ec; color: #c62828; }
+.badge-IP { background: #fff3e0; color: #e65100; }
+.badge-FP { background: #e3f2fd; color: #1565c0; }
 .badge-admin { background: #e3f2fd; color: #1565c0; }
 .badge-hr { background: #fff3e0; color: #e65100; }
 .badge-lettura { background: #f3e5f5; color: #6a1b9a; }
@@ -77,7 +80,9 @@ button:hover, .btn-export:hover { background: #0a5c5f; }
 .btn-sm { padding: 0.25rem 0.5rem; font-size: 0.8rem; }
 .btn-danger { background: #c62828; }
 .btn-danger:hover { background: #a31f1f; }
+tr.turno-aperto td { background: #fff8e1; }
 .actions { white-space: nowrap; }
+.filter-sep { color: #888; font-size: 0.85rem; margin: 0 0.25rem; }
 .hint { color: #888; font-size: 0.85rem; }
 
 .enrollment-panel {

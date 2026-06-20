@@ -1,37 +1,27 @@
-<!DOCTYPE html>
-<html lang="it">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TimbraNFC Server</title>
-    <link rel="stylesheet" href="/static/style.css">
-</head>
-<body>
-<nav class="nav">
-    <a href="/" class="brand">TimbraNFC Server</a>
-    <div class="nav-links">
-        <a href="/">Home</a>
-        <a href="/dipendenti">Dipendenti</a>
-        <a href="/dispositivi">Dispositivi</a>
-        <a href="/docs">API Docs</a>
-    </div>
-</nav>
-<main class="container">
+{% extends "base.html" %}
+{% block title %}TimbraNFC Server{% endblock %}
+{% block content %}
     <h1>Panoramica sede</h1>
     <div class="cards">
         <div class="card"><div class="card-value">{{ n_dip }}</div><div class="card-label">Dipendenti</div></div>
         <div class="card"><div class="card-value">{{ n_timb }}</div><div class="card-label">Timbrature oggi</div></div>
         <div class="card"><div class="card-value">{{ n_dev }}</div><div class="card-label">Terminali</div></div>
     </div>
-    <h2>Timbrature recenti</h2>
+    <h2>Timbrature recenti <a href="/timbrature" class="btn-export btn-sm">Vedi tutte</a></h2>
     <table>
-        <tr><th>ID</th><th>Azione</th><th>Ricevuto</th></tr>
+        <thead>
+            <tr><th>Data/Ora</th><th>Azione</th><th>Ricevuto server</th></tr>
+        </thead>
+        <tbody>
         {% for t in recenti %}
-        <tr><td>{{ t.id }}</td><td>{{ t.azione }}</td><td>{{ t.ricevuto_il }}</td></tr>
+        <tr>
+            <td>{{ t.timestamp_terminale.strftime('%Y-%m-%d %H:%M:%S') if t.timestamp_terminale else '—' }}</td>
+            <td><span class="badge badge-{{ t.azione }}">{{ t.azione }}</span></td>
+            <td>{{ t.ricevuto_il.strftime('%Y-%m-%d %H:%M:%S') if t.ricevuto_il else '—' }}</td>
+        </tr>
         {% else %}
-        <tr><td colspan="3">Nessuna timbratura</td></tr>
+        <tr><td colspan="3" class="empty">Nessuna timbratura — <a href="/timbrature">apri elenco</a></td></tr>
         {% endfor %}
+        </tbody>
     </table>
-</main>
-</body>
-</html>
+{% endblock %}

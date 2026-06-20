@@ -139,8 +139,9 @@ systemctl daemon-reload
 systemctl enable timbranfc-server
 systemctl restart timbranfc-server
 sleep 2
-systemctl enable timbranfc-kiosk || true
-systemctl restart timbranfc-kiosk || echo "Kiosk systemd: usa autostart al login se fallisce"
+
+# Autologin + autostart kiosk (no login manuale)
+bash "$APP_DIR/standalone/setup-boot-kiosk.sh"
 
 IP=$(hostname -I | awk '{print $1}')
 echo ""
@@ -149,6 +150,7 @@ echo "Timbratrice: touchscreen (kiosk)"
 echo "Dashboard:   http://${IP}:8080"
 echo "Utente app:  ${APP_USER}"
 echo ""
-echo "  sudo systemctl status timbranfc-server timbranfc-kiosk"
-echo "  journalctl -u timbranfc-kiosk -f"
-echo "  (oppure il kiosk parte da autostart al login desktop)"
+echo "  sudo systemctl status timbranfc-server"
+echo "  bash standalone/verify-kiosk.sh"
+echo "  tail -f /tmp/timbranfc-kiosk.log"
+echo "  (kiosk: autologin desktop + autostart al boot)"

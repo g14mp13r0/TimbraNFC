@@ -1,3 +1,5 @@
+import csv
+import io
 import sys
 from pathlib import Path
 
@@ -5,8 +7,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 from datetime import datetime, timedelta
 
-from fastapi import Depends, FastAPI, Form, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import Depends, FastAPI, Form, Query, Request
+from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
@@ -143,6 +145,126 @@ def add_dipendente(
     db.commit()
     enrollment_svc.stop_session()
     return RedirectResponse("/dipendenti?msg=aggiunto", status_code=303)
+
+
+@app.get("/timbrature", response_class=HTMLResponse)
+def page_timbrature(
+    request: Request,
+    db: Session = Depends(get_db),
+    da: str | None = None,
+    a: str | None = None,
+    mese: str | None = None,
+    dipendente_id: int | None = None,
+):
+    from server.app.services.report import lista_timbrature, resolve_period
+
+    da, a, mese = resolve_period(da, a, mese)
+    timbrature = lista_timbrature(db, da, a, dipendente_id)
+    dipendenti = db.query(Dipendente).filter(Dipendente.attivo == True).order_by(Dipendente.cognome).all()
+    return templates.TemplateResponse(
+        request,
+        "timbrature.html",
+        {
+            "timbrature": timbrature,
+            "dipendenti": dipendenti,
+            "da": da,
+            "a": a,
+            "mese": mese,
+            "dipendente_id": dipendente_id,
+        },
+    )
+
+
+@app.get("/timbrature/export.csv")
+def export_timbrature_csv(
+    db: Session = Depends(get_db),
+    da: str | None = None,
+    a: str | None = None,
+    mese: str | None = None,
+    dipendente_id: int | None = None,
+):
+    from server.app.services.report import lista_timbrature, resolve_period
+
+    da, a, _mese = resolve_period(da, a, mese)
+    rows = lista_timbrature(db, da, a, dipendente_id)
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow([
+        "ID", "Data", "Ora", "Dipendente", "Badge", "Reparto",
+        "Azione", "Codice", "Terminale", "Ricevuto server",
+    ])
+    for t in rows:
+        writer.writerow([
+            t["id"], t["data"], t["ora"], t["dipendente"], t["badge_uid"],
+            t["reparto"], t["azione_label"], t["azione"], t["dispositivo"], t["ricevuto_il"],
+        ])
+    buf.seek(0)
+    filename = f"timbrature_{da}_{a}.csv"
+    return StreamingResponse(
+        iter([buf.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@app.get("/report", response_class=HTMLResponse)
+def page_report(
+    request: Request,
+    db: Session = Depends(get_db),
+    da: str | None = None,
+    a: str | None = None,
+    mese: str | None = None,
+    dipendente_id: int | None = None,
+):
+    from server.app.services.report import report_turni, resolve_period
+
+    da, a, mese = resolve_period(da, a, mese)
+    data = report_turni(db, da, a, dipendente_id)
+    dipendenti = db.query(Dipendente).filter(Dipendente.attivo == True).order_by(Dipendente.cognome).all()
+    return templates.TemplateResponse(
+        request,
+        "report.html",
+        {
+            "turni": data["turni"],
+            "riepilogo": data["riepilogo"],
+            "dipendenti": dipendenti,
+            "da": da,
+            "a": a,
+            "mese": mese,
+            "dipendente_id": dipendente_id,
+        },
+    )
+
+
+@app.get("/report/export.csv")
+def export_report_csv(
+    db: Session = Depends(get_db),
+    da: str | None = None,
+    a: str | None = None,
+    mese: str | None = None,
+    dipendente_id: int | None = None,
+):
+    from server.app.services.report import report_turni, resolve_period
+
+    da, a, _mese = resolve_period(da, a, mese)
+    data = report_turni(db, da, a, dipendente_id)
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(["Dipendente", "Data", "Ora inizio", "Ora fine", "Tempo totale", "Ore"])
+    for t in data["turni"]:
+        ore = round(t["durata_secondi"] / 3600, 2)
+        writer.writerow([t["dipendente"], t["data"], t["ora_inizio"], t["ora_fine"] or "", t["durata"], ore])
+    writer.writerow([])
+    writer.writerow(["Riepilogo", "Giorni", "N. turni", "Ore totali", "Tempo totale", ""])
+    for r in data["riepilogo"]:
+        writer.writerow([r["dipendente"], r["giorni"], r["n_turni"], r["ore"], r["durata_totale"], ""])
+    buf.seek(0)
+    filename = f"report_turni_{da}_{a}.csv"
+    return StreamingResponse(
+        iter([buf.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 if __name__ == "__main__":

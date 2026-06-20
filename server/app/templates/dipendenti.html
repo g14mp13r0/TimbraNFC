@@ -1,21 +1,6 @@
-<!DOCTYPE html>
-<html lang="it">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dipendenti — TimbraNFC</title>
-    <link rel="stylesheet" href="/static/style.css">
-</head>
-<body>
-<nav class="nav">
-    <a href="/" class="brand">TimbraNFC Server</a>
-    <div class="nav-links">
-        <a href="/">Home</a>
-        <a href="/dipendenti">Dipendenti</a>
-        <a href="/dispositivi">Dispositivi</a>
-    </div>
-</nav>
-<main class="container">
+{% extends "base.html" %}
+{% block title %}Dipendenti — TimbraNFC{% endblock %}
+{% block content %}
     <h1>Dipendenti</h1>
     <p class="subtitle">Registra un nuovo dipendente e associa il badge NFC dal lettore del Raspberry.</p>
 
@@ -78,7 +63,7 @@
         <tr><td colspan="4" class="empty">Nessun dipendente registrato</td></tr>
         {% endfor %}
     </table>
-</main>
+{% endblock %}
+{% block scripts %}
 <script src="/static/enrollment.js"></script>
-</body>
-</html>
+{% endblock %}

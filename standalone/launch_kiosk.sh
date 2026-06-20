@@ -26,7 +26,7 @@ if [ -f "$LOCK" ]; then
     fi
 fi
 
-for i in $(seq 1 45); do
+for i in $(seq 1 90); do
     if [ -S /tmp/.X11-unix/X0 ] || [ -S /tmp/.X11-unix/X1 ]; then
         break
     fi
