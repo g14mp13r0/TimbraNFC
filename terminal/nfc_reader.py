@@ -40,24 +40,47 @@ def start_nfc_loop(callback) -> None:
         log.error("nfcpy non installato")
         return
 
-    log.info("Avvio lettore NFC ACR122U (USB diretto, senza pcscd)...")
+    device_paths = [config.NFC_DEVICE_PATH, "usb"]
+    # Dedup mantenendo ordine
+    seen: set[str] = set()
+    device_paths = [p for p in device_paths if not (p in seen or seen.add(p))]
+
+    log.info(
+        "Avvio lettore NFC ACR122U (USB diretto, senza pcscd). Path tentati: %s",
+        ", ".join(device_paths),
+    )
     while True:
-        try:
-            with nfc.ContactlessFrontend("usb") as clf:
-                log.info("Lettore NFC connesso")
-                while True:
-                    uid = _leggi_uid(clf)
-                    if uid:
-                        log.info("Badge rilevato: %s", uid)
-                        callback(uid)
-                        time.sleep(1.2)
-        except Exception as e:
-            err = str(e).lower()
+        last_error: Exception | None = None
+        connected = False
+        for device_path in device_paths:
+            try:
+                with nfc.ContactlessFrontend(device_path) as clf:
+                    connected = True
+                    log.info("Lettore NFC connesso su path: %s", device_path)
+                    while True:
+                        uid = _leggi_uid(clf)
+                        if uid:
+                            log.info("Badge rilevato: %s", uid)
+                            callback(uid)
+                            time.sleep(1.2)
+            except Exception as e:
+                last_error = e
+                log.warning("Apertura NFC fallita su %s: %s", device_path, e)
+
+        if not connected:
+            err = str(last_error or "").lower()
             if "resource busy" in err or "unable to claim" in err or "access denied" in err:
                 log.error(
-                    "USB NFC occupato (spesso da pcscd). Esegui: sudo systemctl stop pcscd && "
-                    "sudo systemctl disable pcscd && sudo systemctl restart timbranfc-kiosk"
+                    "USB NFC occupato (spesso da pcscd/socket). Esegui: "
+                    "sudo systemctl stop pcscd pcscd.socket && "
+                    "sudo systemctl disable pcscd pcscd.socket && "
+                    "sudo systemctl restart timbranfc-kiosk"
+                )
+            elif "no such device" in err:
+                log.error(
+                    "Lettore visto da USB ma non inizializzabile via nfcpy. "
+                    "Prova scollega/ricollega ACR122U e riavvia kiosk."
                 )
             else:
-                log.warning("Errore NFC: %s — retry 5s", e)
+                log.warning("Errore NFC: %s — retry 5s", last_error)
             time.sleep(5)

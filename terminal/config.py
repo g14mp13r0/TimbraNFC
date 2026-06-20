@@ -30,6 +30,9 @@ LED_ROSSO = int(os.environ.get("LED_ROSSO", "27"))
 BUZZER = int(os.environ.get("BUZZER", "22"))
 MOCK_GPIO = os.environ.get("MOCK_GPIO", "0") == "1"
 MOCK_NFC = os.environ.get("MOCK_NFC", "0") == "1"
+# Path lettore NFC per nfcpy (ACR122U: usb:072f:2200).
+# Se non funziona, fallback automatico su "usb".
+NFC_DEVICE_PATH = os.environ.get("NFC_DEVICE_PATH", "usb:072f:2200")
 
 # Sfondo kiosk (PNG). Sovrascrivibile con KIOSK_BACKGROUND=/path/al/logo.png
 KIOSK_BACKGROUND = Path(

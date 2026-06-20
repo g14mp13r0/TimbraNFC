@@ -90,8 +90,8 @@ if [ -f "$APP_DIR/.env" ]; then
 fi
 
 # nfcpy (ACR122U) richiede accesso USB diretto — pcscd lo blocca
-systemctl stop pcscd 2>/dev/null || true
-systemctl disable pcscd 2>/dev/null || true
+systemctl stop pcscd pcscd.socket 2>/dev/null || true
+systemctl disable pcscd pcscd.socket 2>/dev/null || true
 
 # Disabilita unit legacy con path /home/pi (se presenti)
 for legacy in timbratrice dashboard ui-kiosk hub; do

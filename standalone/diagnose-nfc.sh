@@ -12,8 +12,9 @@ echo "--- USB ---"
 lsusb 2>/dev/null | grep -iE '072f|acr|nfc|smart' || echo "(ACR122U non trovato su USB — controlla cavo)"
 echo ""
 
-echo "--- pcscd (deve essere inactive per nfcpy) ---"
+echo "--- pcscd/socket (devono essere inactive per nfcpy) ---"
 systemctl is-active pcscd 2>&1 || true
+systemctl is-active pcscd.socket 2>&1 || true
 echo ""
 
 echo "--- MOCK_NFC in .env ---"
@@ -37,8 +38,18 @@ sys.path.insert(0, ".")
 try:
     import nfc
     print("nfcpy OK")
-    with nfc.ContactlessFrontend("usb") as clf:
-        print("Lettore USB aperto — avvicina badge entro 3s...")
+    opened = False
+    for path in ("usb:072f:2200", "usb"):
+        try:
+            clf = nfc.ContactlessFrontend(path)
+            print(f"Lettore USB aperto su {path} — avvicina badge entro 3s...")
+            opened = True
+            break
+        except Exception as e:
+            print(f"Apertura fallita su {path}: {e}")
+    if not opened:
+        raise RuntimeError("Impossibile aprire ACR122U con nfcpy")
+    with clf:
         target = clf.sense(nfc.clf.RemoteTarget("106A"), iterations=15, interval=0.2)
         if target is None:
             print("Nessun badge rilevato (timeout)")
@@ -59,6 +70,6 @@ fi
 
 echo ""
 echo "Fix rapido:"
-echo "  sudo systemctl stop pcscd"
-echo "  sudo systemctl disable pcscd"
+echo "  sudo systemctl stop pcscd pcscd.socket"
+echo "  sudo systemctl disable pcscd pcscd.socket"
 echo "  sudo systemctl restart timbranfc-kiosk"

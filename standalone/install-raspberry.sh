@@ -30,8 +30,8 @@ apt-get install -y \
 
 systemctl enable --now pcscd || echo "Avviso: pcscd non avviato — collegare NFC e riprovare"
 # nfcpy usa USB diretto: pcscd occuperebbe il lettore ACR122U
-systemctl stop pcscd 2>/dev/null || true
-systemctl disable pcscd 2>/dev/null || true
+systemctl stop pcscd pcscd.socket 2>/dev/null || true
+systemctl disable pcscd pcscd.socket 2>/dev/null || true
 
 if [ ! -d "$APP_DIR" ]; then
     echo "Errore: $APP_DIR non trovato. Clona prima il repo in quella cartella."
@@ -107,7 +107,6 @@ cat > /etc/systemd/system/timbranfc-kiosk.service <<UNIT
 Description=TimbraNFC — Kiosk timbratrice (solo touchscreen)
 After=timbranfc-server.service graphical.target pcscd.service
 Requires=timbranfc-server.service
-Wants=pcscd.service
 
 [Service]
 Type=simple
