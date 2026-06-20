@@ -10,8 +10,15 @@ source "$APP_DIR/standalone/x-session-env.sh"
 
 echo "DISPLAY=$DISPLAY"
 echo "XAUTHORITY=${XAUTHORITY:-<non trovato>}"
+echo "WAYLAND_DISPLAY=${WAYLAND_DISPLAY:-<non impostato>}"
 
-if ! x_session_ok; then
+echo -n "Verifica sessione X... "
+if x_session_ok; then
+    echo "OK"
+elif x_socket_ok; then
+    echo "xrandr timeout ma socket X attivo — continuo"
+else
+    echo "NON DISPONIBILE"
     echo ""
     echo "Sessione grafica non attiva sul Pi."
     echo "Serve autologin desktop + reboot. Da SSH esegui:"
@@ -21,11 +28,16 @@ if ! x_session_ok; then
 fi
 
 echo "Applico fix touch (display + xwayland-touch)..."
-bash "$APP_DIR/standalone/fix-touchscreen.sh" || {
+export X_CMD_TIMEOUT=8
+if bash "$APP_DIR/standalone/fix-touchscreen.sh"; then
+    :
+else
+    _rc=$?
     echo ""
-    echo "fix-touchscreen.sh terminato con errore (codice $?)"
-    exit 1
-}
+    echo "fix-touchscreen.sh terminato con errore (codice $_rc)"
+    exit "$_rc"
+fi
+
 echo ""
 echo "OK. Se il kiosk non è visibile, riavvia autostart:"
 echo "  pkill -f run_kiosk.py || true"

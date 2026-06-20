@@ -33,9 +33,12 @@ if ! command -v xinput >/dev/null 2>&1 || ! command -v xrandr >/dev/null 2>&1; t
     exit 1
 fi
 
-if ! xrandr --query >/dev/null 2>&1; then
-    echo "Display non disponibile (DISPLAY=$DISPLAY). Esegui dal desktop del Pi." >&2
-    exit 1
+if [ -z "$(xrandr_query)" ]; then
+    echo "Display non disponibile o xrandr timeout (DISPLAY=$DISPLAY)." >&2
+    if ! x_socket_ok; then
+        exit 1
+    fi
+    echo "Socket X presente — continuo con valori di default." >&2
 fi
 
 log() { [ "${QUIET:-0}" -eq 1 ] || echo "$*"; }
@@ -72,16 +75,17 @@ while read -r name mode res _; do
             break
             ;;
     esac
-done < <(xrandr --query | awk '/ connected/{print $1,$2,$3}')
+done < <(xrandr_query | awk '/ connected/{print $1,$2,$3}')
 
 if [ -z "$OUTPUT" ]; then
-    OUTPUT="$(xrandr --query | awk '/ connected/{print $1; exit}')"
-    CURRENT_MODE="$(xrandr --query | awk -v o="$OUTPUT" '$1==o {print $3; exit}')"
+    OUTPUT="$(xrandr_query | awk '/ connected/{print $1; exit}')"
+    CURRENT_MODE="$(xrandr_query | awk -v o="$OUTPUT" '$1==o {print $3; exit}')"
 fi
 
 if [ -z "$OUTPUT" ]; then
-    echo "Nessun output display trovato." >&2
-    exit 1
+    OUTPUT="SPI-1"
+    CURRENT_MODE="${TARGET_W}x${TARGET_H}"
+    log "xrandr non disponibile — assumo $OUTPUT ($CURRENT_MODE)"
 fi
 
 log "Display: $OUTPUT ($CURRENT_MODE) → target ${TARGET_W}x${TARGET_H}"

@@ -8,16 +8,6 @@ APP_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 # shellcheck source=standalone/x-session-env.sh
 source "$APP_DIR/standalone/x-session-env.sh"
 
-run_timeout() {
-    local secs="$1"
-    shift
-    if command -v timeout >/dev/null 2>&1; then
-        timeout "$secs" "$@"
-    else
-        "$@"
-    fi
-}
-
 echo "=== Diagnostica touch TimbraNFC ==="
 echo ""
 
@@ -28,15 +18,20 @@ echo "XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-<non impostato>}"
 echo ""
 
 echo "--- XWayland (xrandr) ---"
-if xrandr --query >/dev/null 2>&1; then
-    xrandr --query | awk '/Screen | connected/'
-    _res="$(xrandr --query | awk '/ connected/{print $3; exit}')"
+_xr="$(xrandr_query)"
+if [ -n "$_xr" ]; then
+    printf '%s\n' "$_xr" | awk '/Screen | connected/'
+    _res="$(printf '%s\n' "$_xr" | awk '/ connected/{print $3; exit}')"
     case "$_res" in
         320x480*) echo "→ Portrait: serve rotazione sessione (wlr-randr) per kiosk 480x320" ;;
         480x320*) echo "→ Landscape OK per kiosk" ;;
     esac
 else
-    echo "Display non raggiungibile da SSH (manca sessione desktop?)"
+    if x_socket_ok; then
+        echo "xrandr timeout — socket X presente, sessione desktop probabilmente attiva"
+    else
+        echo "Display non raggiungibile da SSH (manca sessione desktop?)"
+    fi
 fi
 echo ""
 
@@ -110,7 +105,7 @@ fi
 echo ""
 
 echo "--- xinput matrice (xwayland-touch) ---"
-if command -v xinput >/dev/null 2>&1 && xrandr --query >/dev/null 2>&1; then
+if command -v xinput >/dev/null 2>&1 && { [ -n "$_xr" ] || x_socket_ok; }; then
     _tid="$(xinput list --id-only 2>/dev/null | while read -r id; do
         n="$(xinput list --name-only "$id" 2>/dev/null || true)"
         case "$n" in *touch*|*Touch*) echo "$id"; break ;; esac
