@@ -1,14 +1,21 @@
 import os
 from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
-DATA_DIR = BASE_DIR / "server" / "data"
+ROOT = Path(__file__).resolve().parent.parent.parent
+DATA_DIR = Path(os.environ.get("TIMBRANFC_DATA", ROOT / "data"))
 DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+STANDALONE = os.environ.get("STANDALONE", "1") == "1"
 
 DATABASE_URL = os.environ.get(
     "DATABASE_URL",
     f"sqlite:///{DATA_DIR / 'timbranfc.db'}",
 )
+
+# 0.0.0.0 → dashboard accessibile da altri PC in LAN
+SERVER_HOST = os.environ.get("SERVER_HOST", "0.0.0.0")
+SERVER_PORT = int(os.environ.get("SERVER_PORT", "8080"))
+
 API_KEY = os.environ.get("API_KEY", "")
 SECRET_KEY = os.environ.get("SECRET_KEY", "cambia-in-produzione")
 ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "admin@local")

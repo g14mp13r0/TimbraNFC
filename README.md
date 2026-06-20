@@ -1,48 +1,51 @@
-# TimbraNFC v2 — Architettura terminal/server
+# TimbraNFC — Timbratrice standalone su Raspberry Pi
+
+Un solo Raspberry Pi: **timbratrice NFC** sul touchscreen + **dashboard web** accessibile da altri PC in rete.
+
+```
+Touchscreen Pi  →  solo timbratura (IT / IP / FP / FT)
+PC in LAN       →  http://<ip-raspberry>:8080  (admin, report, dipendenti)
+```
+
+## Installazione (Raspberry Pi)
+
+```bash
+git clone https://github.com/g14mp13r0/TimbraNFC.git /home/pi/TimbraNFC
+cd /home/pi/TimbraNFC
+sudo bash standalone/install-raspberry.sh
+```
+
+Guida completa: [docs/DEPLOY_STANDALONE.md](docs/DEPLOY_STANDALONE.md)
+
+## Sviluppo su PC
+
+```bash
+pip install -r requirements-server.txt -r requirements-terminal.txt
+cp .env.standalone.example .env
+
+# Terminale 1 — server
+python standalone/run_server.py
+
+# Terminale 2 — kiosk (mock NFC)
+MOCK_NFC=1 python standalone/run_kiosk.py
+```
+
+Dashboard: http://localhost:8080
 
 ## Struttura
 
 ```
-terminal/     → Raspberry Pi (NFC + display 3.5" + coda offline)
-server/       → Mini PC sede (FastAPI + MySQL + dashboard)
-shared/       → Schemi Pydantic API
-docs/         → Specifiche tecniche
+standalone/     → entry point Pi (run_server.py, run_kiosk.py)
+terminal/       → kiosk UI, NFC, coda locale
+server/         → FastAPI + dashboard web
+shared/         → schemi API
+data/           → SQLite (timbranfc.db + local_queue.db)
 ```
 
-## Quick start (sviluppo)
+## Deploy alternativi (opzionali)
 
-```bash
-# Server
-pip install -r requirements-server.txt
-python server/scripts/seed.py
-DATABASE_URL=sqlite:///./server/data/timbranfc.db python -m uvicorn server.app.main:app --reload
-
-# Terminale (mock NFC/GUI)
-pip install -r requirements-terminal.txt
-SERVER_URL=http://127.0.0.1:8000 MOCK_NFC=1 python terminal/main.py
-```
-
-## Produzione
-
-### Server di sede (Proxmox CT, mini PC, VM)
-1. **Proxmox:** seguire [docs/DEPLOY_PROXMOX.md](docs/DEPLOY_PROXMOX.md) oppure `bash server/scripts/install-proxmox-ct.sh`
-2. Installare MySQL/MariaDB, creare DB `timbranfc`
-3. `DATABASE_URL=mysql+pymysql://user:pass@localhost/timbranfc`
-4. `alembic -c server/migrations/alembic.ini upgrade head`
-5. Copiare `server/systemd/timbranfc-server.service` e nginx
-
-### Terminale
-1. Copiare `.env.example` → `.env`
-2. Impostare `SERVER_URL`, `API_KEY`, `SEDE_ID`
-3. `sudo cp terminal/systemd/timbranfc-terminal.service /etc/systemd/system/`
-4. Calibrare touch: `xinput_calibrator`
-
-## Provisioning nuovo terminale
-1. Avviare terminale → genera `device_uuid` automaticamente
-2. Registrazione via `POST /api/v1/devices/register`
-3. Pull anagrafica automatico da sync_agent
-4. Assegnare nome dispositivo da dashboard → Dispositivi
+- [Multi-sede con server Proxmox](docs/DEPLOY_PROXMOX.md) — non necessario per standalone
 
 ## Legacy
 
-I file in root (`main.py`, `dashboard/`, `sync.py`…) sono la v1 deprecata.
+I file in root (`main.py`, `dashboard/`, …) sono la v1 deprecata.

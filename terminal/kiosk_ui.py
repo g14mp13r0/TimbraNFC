@@ -55,7 +55,22 @@ class KioskUI:
 
         tk.Label(
             self.root, text="Avvicina il badge", font=("Helvetica", 18), fg=COLOR_BTN_ACT, bg=COLOR_BG
-        ).place(relx=0.5, rely=0.62, anchor="center")
+        ).place(relx=0.5, rely=0.58, anchor="center")
+
+        tk.Label(
+            self.root,
+            text="Timbratrice presenze",
+            font=("Helvetica", 11),
+            fg="#555577",
+            bg=COLOR_BG,
+        ).place(relx=0.5, rely=0.92, anchor="center")
+        tk.Label(
+            self.root,
+            text="Amministrazione da PC in rete",
+            font=("Helvetica", 9),
+            fg="#444466",
+            bg=COLOR_BG,
+        ).place(relx=0.5, rely=0.97, anchor="center")
 
     def _build_azione(self, info: dict):
         self._clear()

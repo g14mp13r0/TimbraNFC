@@ -69,6 +69,14 @@ def registra_timbratura(badge_uid: str, azione: str, feedback_fn=None) -> dict:
     fb(True)
     log.info("Timbratura locale #%s: %s %s — %s", id_locale, info["nome"], info["cognome"], azione)
 
+    # Standalone: sincronizza subito verso il server locale (stesso Raspberry)
+    if config.STANDALONE:
+        try:
+            from terminal import sync_agent
+            sync_agent.push_timbrature()
+        except Exception as e:
+            log.warning("Sync immediata fallita (resta in coda): %s", e)
+
     return {
         "ok": True,
         "id_locale": id_locale,

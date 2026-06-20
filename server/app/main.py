@@ -131,5 +131,6 @@ def add_dipendente(
 
 if __name__ == "__main__":
     import uvicorn
+    from server.app.config import SERVER_HOST, SERVER_PORT
 
-    uvicorn.run("server.app.main:app", host="0.0.0.0", port=8000, reload=False)
+    uvicorn.run("server.app.main:app", host=SERVER_HOST, port=SERVER_PORT, reload=False)

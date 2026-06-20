@@ -1,0 +1,23 @@
+[Unit]
+Description=TimbraNFC — Kiosk timbratrice (solo touchscreen)
+After=timbranfc-server.service pcscd.service
+Requires=timbranfc-server.service
+Wants=pcscd.service
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/TimbraNFC
+EnvironmentFile=-/home/pi/TimbraNFC/.env
+Environment=STANDALONE=1
+Environment=TIMBRANFC_DATA=/home/pi/TimbraNFC/data
+Environment=SERVER_URL=http://127.0.0.1:8080
+Environment=DISPLAY=:0
+Environment=XAUTHORITY=/home/pi/.Xauthority
+ExecStartPre=/bin/sleep 3
+ExecStart=/home/pi/TimbraNFC/.venv/bin/python standalone/run_kiosk.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=graphical.target
