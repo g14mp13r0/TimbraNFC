@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Dipendenti — TimbraNFC</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<nav class="nav">
+    <a href="/" class="brand">TimbraNFC Server</a>
+    <div class="nav-links"><a href="/">Home</a><a href="/dipendenti">Dipendenti</a></div>
+</nav>
+<main class="container">
+    <h1>Dipendenti</h1>
+    <form method="post" action="/dipendenti/add" class="form-inline">
+        <input name="nome" placeholder="Nome" required>
+        <input name="cognome" placeholder="Cognome" required>
+        <input name="badge_uid" placeholder="Badge UID" required>
+        <input name="reparto" placeholder="Reparto">
+        <button type="submit">Aggiungi</button>
+    </form>
+    <table>
+        <tr><th>Nome</th><th>Cognome</th><th>Badge</th><th>Reparto</th></tr>
+        {% for d in dipendenti %}
+        <tr><td>{{ d.nome }}</td><td>{{ d.cognome }}</td><td><code>{{ d.badge_uid }}</code></td><td>{{ d.reparto or '—' }}</td></tr>
+        {% endfor %}
+    </table>
+</main>
+</body>
+</html>

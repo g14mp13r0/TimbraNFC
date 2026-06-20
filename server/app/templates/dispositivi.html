@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Dispositivi — TimbraNFC</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<nav class="nav">
+    <a href="/" class="brand">TimbraNFC Server</a>
+    <div class="nav-links"><a href="/">Home</a><a href="/dispositivi">Dispositivi</a></div>
+</nav>
+<main class="container">
+    <h1>Flotta terminali</h1>
+    <table>
+        <tr><th>Nome</th><th>UUID</th><th>Stato</th><th>Versione</th><th>Ultimo HB</th><th>Azioni</th></tr>
+        {% for d in devices %}
+        <tr>
+            <td>{{ d.nome }}</td>
+            <td><code>{{ d.device_uuid[:8] }}…</code></td>
+            <td>{{ 'online' if d.online else 'offline' }}</td>
+            <td>{{ d.versione_sw or '—' }}</td>
+            <td>{{ d.ultimo_heartbeat or '—' }}</td>
+            <td>
+                <form method="post" action="/dispositivi/{{ d.id }}/restart-kiosk">
+                    <button type="submit">Restart kiosk</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</main>
+</body>
+</html>

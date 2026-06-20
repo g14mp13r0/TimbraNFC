@@ -1,0 +1,17 @@
+[Unit]
+Description=TimbraNFC Terminale (kiosk + sync)
+After=network.target pcscd.service
+Wants=pcscd.service
+
+[Service]
+User=pi
+WorkingDirectory=/home/pi/TimbraNFC
+EnvironmentFile=-/home/pi/TimbraNFC/.env
+Environment=DISPLAY=:0
+ExecStart=/usr/bin/python3 terminal/main.py
+Restart=always
+RestartSec=5
+WatchdogSec=60
+
+[Install]
+WantedBy=graphical.target

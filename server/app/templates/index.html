@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TimbraNFC Server</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<nav class="nav">
+    <a href="/" class="brand">TimbraNFC Server</a>
+    <div class="nav-links">
+        <a href="/">Home</a>
+        <a href="/dipendenti">Dipendenti</a>
+        <a href="/dispositivi">Dispositivi</a>
+        <a href="/docs">API Docs</a>
+    </div>
+</nav>
+<main class="container">
+    <h1>Panoramica sede</h1>
+    <div class="cards">
+        <div class="card"><div class="card-value">{{ n_dip }}</div><div class="card-label">Dipendenti</div></div>
+        <div class="card"><div class="card-value">{{ n_timb }}</div><div class="card-label">Timbrature oggi</div></div>
+        <div class="card"><div class="card-value">{{ n_dev }}</div><div class="card-label">Terminali</div></div>
+    </div>
+    <h2>Timbrature recenti</h2>
+    <table>
+        <tr><th>ID</th><th>Azione</th><th>Ricevuto</th></tr>
+        {% for t in recenti %}
+        <tr><td>{{ t.id }}</td><td>{{ t.azione }}</td><td>{{ t.ricevuto_il }}</td></tr>
+        {% else %}
+        <tr><td colspan="3">Nessuna timbratura</td></tr>
+        {% endfor %}
+    </table>
+</main>
+</body>
+</html>

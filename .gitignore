@@ -10,6 +10,7 @@ build/
 # Ambiente e segreti
 .env
 *.db
+server/data/
 
 # IDE
 .idea/

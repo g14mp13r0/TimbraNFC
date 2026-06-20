@@ -1,10 +1,3 @@
-fastapi>=0.110.0
-uvicorn[standard]>=0.27.0
-flask>=3.0.0
-requests>=2.31.0
-nfcpy>=1.0.4
-openpyxl>=3.1.0
-werkzeug>=3.0.0
-
-# Solo su Raspberry Pi (GPIO):
-# RPi.GPIO>=0.7.1
+# Dipendenze — usare requirements-server.txt e requirements-terminal.txt
+-r requirements-server.txt
+-r requirements-terminal.txt
