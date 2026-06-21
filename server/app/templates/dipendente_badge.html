@@ -2,7 +2,6 @@
 {% block title %}{{ t('badge_reassign_title') }} — TimbraNFC{% endblock %}
 {% block breadcrumb %}<a href="/dipendenti">{{ t('nav_dipendenti') }}</a> / <b>{{ t('breadcrumb_badge') }}</b>{% endblock %}
 {% block content %}
-    <p class="breadcrumb-link"><a href="/dipendenti">{{ t('back_to_dip') }}</a></p>
     <div class="page-head">
         <h1>{{ t('badge_reassign_title') }}</h1>
         <p class="subtitle">{{ dipendente.cognome }} {{ dipendente.nome }} · {{ t('badge_current') }} <code>{{ dipendente.badge_uid }}</code></p>

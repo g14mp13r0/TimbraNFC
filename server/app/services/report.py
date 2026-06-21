@@ -75,13 +75,15 @@ def report_turni(
             {"azione": r.azione, "timestamp": r.timestamp_terminale}
         )
 
+    if per_dip:
+        dip_rows = db.query(Dipendente).filter(Dipendente.id.in_(per_dip.keys())).all()
+        dip_cache = {d.id: d for d in dip_rows}
+
     turni: list[dict] = []
     riepilogo: list[dict] = []
 
     for did, timbs in per_dip.items():
-        if did not in dip_cache:
-            dip_cache[did] = db.query(Dipendente).get(did)
-        dip = dip_cache[did]
+        dip = dip_cache.get(did)
         if not dip:
             continue
 

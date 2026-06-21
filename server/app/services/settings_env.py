@@ -273,7 +273,7 @@ def parse_env_file(path: Path | None = None) -> dict[str, str]:
     return out
 
 
-def read_settings() -> dict[str, str]:
+def read_settings(*, with_network: bool = False) -> dict[str, str]:
     """Valori effettivi: .env + variabili d'ambiente del processo + default."""
     env = parse_env_file()
     merged: dict[str, str] = {}
@@ -292,7 +292,12 @@ def read_settings() -> dict[str, str]:
         elif field["type"] in ("int", "text", "choice", "readonly"):
             merged[key] = str(merged[key]).strip()
 
-    return enrich_settings(merged)
+    if with_network:
+        return enrich_settings(merged)
+    port = merged.get("SERVER_PORT", "8080")
+    merged["SERVER_URL"] = f"http://127.0.0.1:{port}"
+    merged["SERVER_HOST"] = merged.get("SERVER_HOST") or "0.0.0.0"
+    return merged
 
 
 def enrich_settings(merged: dict[str, str]) -> dict[str, str]:
@@ -415,7 +420,7 @@ def save_settings(form: dict[str, str]) -> tuple[dict[str, str], tuple[bool, str
     """Salva impostazioni dal form; password vuote = non modificare."""
     from server.app.services.network_config import apply_lan_network, validate_manual_network
 
-    current = read_settings()
+    current = read_settings(with_network=True)
     updates: dict[str, str] = {}
 
     for field in SETTINGS_FIELDS:

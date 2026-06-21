@@ -7,12 +7,13 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 from fastapi import Depends, FastAPI, File, Form, Query, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -78,12 +79,18 @@ def startup():
     _init_db()
 
 
-def _sidebar_counts(db: Session) -> dict:
-    return {
-        "sidebar_n_dip": db.query(Dipendente).filter(Dipendente.attivo == True).count(),
-        "sidebar_n_dev": db.query(Dispositivo).count(),
-        "sidebar_n_timb": db.query(Timbratura).count(),
-    }
+def _sidebar_counts(db: Session, *, n_timb: int | None = None) -> dict:
+    n_dip = db.query(func.count(Dipendente.id)).filter(Dipendente.attivo == True).scalar() or 0
+    n_dev = db.query(func.count(Dispositivo.id)).scalar() or 0
+    if n_timb is None:
+        oggi_start = datetime.combine(date.today(), datetime.min.time())
+        n_timb = (
+            db.query(func.count(Timbratura.id))
+            .filter(Timbratura.timestamp_terminale >= oggi_start)
+            .scalar()
+            or 0
+        )
+    return {"sidebar_n_dip": n_dip, "sidebar_n_dev": n_dev, "sidebar_n_timb": n_timb}
 
 
 def _device_dict(d: Dispositivo, online: bool) -> dict:
@@ -106,14 +113,7 @@ def health():
 
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request, db: Session = Depends(get_db)):
-    oggi = datetime.now().date()
-    n_dip = db.query(Dipendente).filter(Dipendente.attivo == True).count()
-    n_timb = (
-        db.query(Timbratura)
-        .filter(Timbratura.timestamp_terminale >= datetime.combine(oggi, datetime.min.time()))
-        .count()
-    )
-    n_dev = db.query(Dispositivo).count()
+    counts = _sidebar_counts(db)
     recenti = (
         db.query(Timbratura)
         .options(joinedload(Timbratura.dipendente), joinedload(Timbratura.dispositivo))
@@ -122,12 +122,12 @@ def home(request: Request, db: Session = Depends(get_db)):
         .all()
     )
     ctx = {
-        "n_dip": n_dip,
-        "n_timb": n_timb,
-        "n_dev": n_dev,
+        "n_dip": counts["sidebar_n_dip"],
+        "n_timb": counts["sidebar_n_timb"],
+        "n_dev": counts["sidebar_n_dev"],
         "recenti": recenti,
         "active_page": "home",
-        **_sidebar_counts(db),
+        **counts,
     }
     ctx["sidebar_n_dip"] = n_dip
     return templates.TemplateResponse(request, "index.html", ctx)
@@ -166,8 +166,24 @@ def page_dipendenti(request: Request, db: Session = Depends(get_db), msg: str = 
         "active_page": "dipendenti",
         **_sidebar_counts(db),
     }
-    ctx["sidebar_n_dip"] = len(dips)
+    ctx["sidebar_n_dip"] = sum(1 for d in dips if d.attivo)
     return templates.TemplateResponse(request, "dipendenti.html", ctx)
+
+
+@app.get("/dipendenti/export.csv")
+def export_dipendenti_csv(db: Session = Depends(get_db)):
+    dips = db.query(Dipendente).order_by(Dipendente.cognome, Dipendente.nome).all()
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(["ID", "Nome", "Cognome", "Badge", "Reparto", "Email", "Attivo"])
+    for d in dips:
+        writer.writerow([d.id, d.nome, d.cognome, d.badge_uid, d.reparto or "", d.email or "", "1" if d.attivo else "0"])
+    buf.seek(0)
+    return StreamingResponse(
+        iter([buf.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": 'attachment; filename="dipendenti.csv"'},
+    )
 
 
 @app.post("/dipendenti/add")
@@ -295,7 +311,7 @@ def page_timbrature(
     da, a, mese = resolve_period(da, a, mese)
     timbrature = lista_timbrature(db, da, a, dipendente_id)
     dipendenti = db.query(Dipendente).filter(Dipendente.attivo == True).order_by(Dipendente.cognome).all()
-    n_totale = db.query(Timbratura).count()
+    n_totale = db.query(func.count(Timbratura.id)).scalar() or 0
     ctx = {
         "timbrature": timbrature,
         "dipendenti": dipendenti,
@@ -307,9 +323,8 @@ def page_timbrature(
         "msg": msg,
         "error": error,
         "active_page": "timbrature",
-        **_sidebar_counts(db),
+        **_sidebar_counts(db, n_timb=n_totale),
     }
-    ctx["sidebar_n_timb"] = n_totale
     return templates.TemplateResponse(request, "timbrature.html", ctx)
 
 
@@ -441,7 +456,7 @@ def _settings_page_context(db: Session, *, msg: str = "", error: str = "", resta
         read_settings,
     )
 
-    settings = read_settings()
+    settings = read_settings(with_network=True)
     lang = settings.get("KIOSK_LANG", "it")
     env_raw = parse_env_file()
     bg_path = kiosk_background_path()

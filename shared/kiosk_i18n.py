@@ -738,6 +738,11 @@ _STRINGS: dict[str, dict[Lang, str]] = {
         "fr": "{n} terminaux enregistrés dans la flotte",
         "en": "{n} terminals registered in fleet",
     },
+    "home_dev_hint": {
+        "it": "Stato heartbeat e riavvio kiosk dalla pagina Terminale (menu laterale).",
+        "fr": "État heartbeat et redémarrage kiosk depuis la page Terminal (menu latéral).",
+        "en": "Heartbeat status and kiosk restart from the Terminals page (sidebar menu).",
+    },
     "home_dev_hint_pre": {
         "it": "Vai alla pagina",
         "fr": "Allez à la page",

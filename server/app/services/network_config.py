@@ -6,9 +6,14 @@ import ipaddress
 import re
 import socket
 import subprocess
+import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent.parent.parent
+
+_LAN_CACHE: dict[str, str] | None = None
+_LAN_CACHE_AT: float = 0.0
+_LAN_CACHE_TTL = 30.0
 
 
 def _run(cmd: list[str], timeout: int = 8) -> subprocess.CompletedProcess[str]:
@@ -72,14 +77,19 @@ def _active_nmcli_connection() -> str:
     return out.splitlines()[0].split(":")[-1]
 
 
-def detect_lan() -> dict[str, str]:
+def detect_lan(*, force: bool = False) -> dict[str, str]:
+    global _LAN_CACHE, _LAN_CACHE_AT
+    now = time.monotonic()
+    if not force and _LAN_CACHE is not None and (now - _LAN_CACHE_AT) < _LAN_CACHE_TTL:
+        return dict(_LAN_CACHE)
+
     iface = default_interface()
     ip = primary_ip()
     gw = default_gateway()
     subnet = subnet_for_interface(iface) if iface else "255.255.255.0"
     mode = nmcli_connection_mode() or "dhcp"
     dns = gw or "8.8.8.8"
-    return {
+    _LAN_CACHE = {
         "interface": iface,
         "ip": ip,
         "subnet": subnet,
@@ -87,6 +97,8 @@ def detect_lan() -> dict[str, str]:
         "dns": dns,
         "mode": mode,
     }
+    _LAN_CACHE_AT = now
+    return dict(_LAN_CACHE)
 
 
 def validate_ipv4(value: str, *, allow_empty: bool = False) -> bool:
@@ -129,6 +141,9 @@ def apply_lan_network(settings: dict[str, str]) -> tuple[bool, str]:
         r = _run(cmd)
         if r.returncode == 0:
             msg = (r.stdout or r.stderr or "Rete aggiornata").strip()
+            global _LAN_CACHE, _LAN_CACHE_AT
+            _LAN_CACHE = None
+            _LAN_CACHE_AT = 0.0
             return True, msg
 
     hint = "sudo bash standalone/apply-network.sh " + " ".join(args)

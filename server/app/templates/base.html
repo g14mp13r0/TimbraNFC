@@ -4,8 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{% block title %}TimbraNFC{% endblock %}</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/style.css">
 {% block extra_head %}{% endblock %}
 </head>
@@ -88,12 +86,6 @@
           <a href="/dispositivi">{{ t('nav_dispositivi') }}</a>
           <a href="/impostazioni">{{ t('nav_impostazioni') }}</a>
         </nav>
-      </div>
-      <div class="topbar-right">
-        <a href="/dispositivi" class="icon-btn" title="{{ t('devices_online_title') }}">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/></svg>
-          <span class="live-dot"></span>
-        </a>
       </div>
     </div>
 
