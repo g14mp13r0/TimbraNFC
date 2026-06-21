@@ -129,7 +129,6 @@ def home(request: Request, db: Session = Depends(get_db)):
         "active_page": "home",
         **counts,
     }
-    ctx["sidebar_n_dip"] = n_dip
     return templates.TemplateResponse(request, "index.html", ctx)
 
 
