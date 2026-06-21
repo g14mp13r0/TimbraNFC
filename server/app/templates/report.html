@@ -90,13 +90,13 @@
                             <td>
                                 {% if turno.aperto %}
                                 <div class="shift-line">
-                                    <div class="pt"><div class="dot in"></div>{{ turno.ora_inizio }}</div>
+                                    <div class="pt"><div class="dot in"></div>{{ turno.ora_inizio or '—' }}</div>
                                     <div class="bar open-bar"></div>
                                     <div class="pt"><div class="dot open"></div><span style="color:var(--amber);">{{ t('shift_in_progress') }}</span></div>
                                 </div>
                                 {% else %}
                                 <div class="shift-line">
-                                    <div class="pt"><div class="dot in"></div>{{ turno.ora_inizio }}</div>
+                                    <div class="pt"><div class="dot in"></div>{{ turno.ora_inizio or '—' }}</div>
                                     <div class="bar filled"></div>
                                     <div class="pt"><div class="dot out"></div>{{ turno.ora_fine }}</div>
                                 </div>

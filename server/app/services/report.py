@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from server.app.models import Dipendente, Dispositivo, Timbratura
 from shared.kiosk_i18n import action_label
-from shared.turni import calcola_turni, riepilogo_da_turni
+from shared.turni import calcola_turni, riepilogo_da_turni, stato_turno_aperto
 
 
 def resolve_period(
@@ -46,6 +46,10 @@ def _range_datetime(da: str, a: str) -> tuple[datetime, datetime]:
     start = datetime.fromisoformat(da)
     end = datetime.fromisoformat(a + "T23:59:59")
     return start, end
+
+
+def _timbrature_items(rows) -> list[dict]:
+    return [{"azione": r.azione, "timestamp": r.timestamp_terminale} for r in rows]
 
 
 def report_turni(
@@ -88,7 +92,23 @@ def report_turni(
             continue
 
         nome = f"{dip.cognome} {dip.nome}"
-        turni_dip = calcola_turni(timbs)
+        prior = (
+            db.query(Timbratura)
+            .filter(
+                Timbratura.dipendente_id == did,
+                Timbratura.timestamp_terminale < start,
+            )
+            .order_by(Timbratura.timestamp_terminale)
+            .all()
+        )
+        inizio_aperto, segment_aperto, durata_aperta = stato_turno_aperto(_timbrature_items(prior))
+        turni_dip = calcola_turni(
+            timbs,
+            includi_aperti=True,
+            inizio_turno_aperto=inizio_aperto,
+            segment_start_aperto=segment_aperto,
+            durata_aperto=durata_aperta,
+        )
         for t in turni_dip:
             turni.append(
                 {

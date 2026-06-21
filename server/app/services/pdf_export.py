@@ -213,7 +213,7 @@ def report_turni_pdf(data: dict, da: str, a: str, lang: str | None = None) -> by
         detail_rows.append([
             row["dipendente"],
             format_date(row["data"]),
-            row["ora_inizio"],
+            row["ora_inizio"] or "—",
             fine,
             row["durata"],
         ])
