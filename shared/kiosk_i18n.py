@@ -475,6 +475,7 @@ _STRINGS: dict[str, dict[Lang, str]] = {
     "btn_filter": {"it": "Filtra", "fr": "Filtrer", "en": "Filter"},
     "btn_export_csv": {"it": "Export CSV", "fr": "Export CSV", "en": "Export CSV"},
     "btn_export_pdf": {"it": "Export PDF", "fr": "Export PDF", "en": "Export PDF"},
+    "btn_export_html": {"it": "Report HTML", "fr": "Rapport HTML", "en": "HTML report"},
     "btn_export_list": {"it": "Esporta elenco", "fr": "Exporter la liste", "en": "Export list"},
     "btn_manage": {"it": "Gestisci →", "fr": "Gérer →", "en": "Manage →"},
     "btn_save": {"it": "Salva", "fr": "Enregistrer", "en": "Save"},
@@ -850,6 +851,69 @@ _STRINGS: dict[str, dict[Lang, str]] = {
         "it": "Nessun turno completato nel periodo",
         "fr": "Aucun poste terminé sur la période",
         "en": "No completed shifts in the period",
+    },
+    "report_brand_tagline_default": {
+        "it": "Rilevazione presenze NFC",
+        "fr": "Pointage NFC",
+        "en": "NFC time tracking",
+    },
+    "report_all_employees": {"it": "Tutti i dipendenti", "fr": "Tous les employés", "en": "All employees"},
+    "report_n_employees": {"it": "{n} dipendenti", "fr": "{n} employés", "en": "{n} employees"},
+    "report_includes_open": {
+        "it": "include {n} turno in corso",
+        "fr": "inclut {n} poste en cours",
+        "en": "includes {n} open shift",
+    },
+    "report_html_summary": {"it": "Riepilogo periodo", "fr": "Résumé période", "en": "Period summary"},
+    "report_anomalies": {"it": "Turni anomali", "fr": "Postes anormaux", "en": "Anomalous shifts"},
+    "report_in_period": {
+        "it": "nel periodo selezionato",
+        "fr": "sur la période sélectionnée",
+        "en": "in the selected period",
+    },
+    "report_suspicious": {
+        "it": "durata o intervallo sospetti",
+        "fr": "durée ou intervalle suspects",
+        "en": "suspicious duration or gap",
+    },
+    "report_dept_totals": {
+        "it": "Totale ore per reparto",
+        "fr": "Total heures par service",
+        "en": "Total hours by department",
+    },
+    "report_employees_count": {"it": "Dipendenti", "fr": "Employés", "en": "Employees"},
+    "report_dept_hours": {"it": "Ore totali", "fr": "Heures totales", "en": "Total hours"},
+    "report_legend_open": {"it": "Turno in corso", "fr": "Poste en cours", "en": "Open shift"},
+    "report_legend_warn": {"it": "Possibile anomalia", "fr": "Anomalie possible", "en": "Possible anomaly"},
+    "report_html_footer": {
+        "it": "TimbraNFC · report generato automaticamente",
+        "fr": "TimbraNFC · rapport généré automatiquement",
+        "en": "TimbraNFC · automatically generated report",
+    },
+    "report_page": {"it": "Pagina", "fr": "Page", "en": "Page"},
+    "report_anomaly_title": {"it": "Nota anomalie:", "fr": "Note anomalies :", "en": "Anomaly note:"},
+    "report_generated": {"it": "Generato il", "fr": "Généré le", "en": "Generated on"},
+    "report_period_label": {"it": "Periodo:", "fr": "Période :", "en": "Period:"},
+    "report_flag_breve": {"it": "breve", "fr": "court", "en": "short"},
+    "report_flag_ravvicinato": {"it": "ravvicinato", "fr": "rapproché", "en": "close"},
+    "report_flag_aperto": {"it": "in corso", "fr": "en cours", "en": "in progress"},
+    "report_anomaly_note": {
+        "it": (
+            "{n} turni tra le {da_ora} e le {a_ora} hanno durata inferiore a 10 minuti "
+            "e/o un intervallo inferiore a 5 minuti dal turno precedente. Verificare il funzionamento del lettore "
+            "NFC in quella fascia oraria: potrebbe trattarsi di letture multiple accidentali anziché di turni "
+            "di lavoro effettivi."
+        ),
+        "fr": (
+            "{n} postes entre {da_ora} et {a_ora} durent moins de 10 minutes "
+            "et/ou sont espacés de moins de 5 minutes du poste précédent. Vérifier le lecteur NFC "
+            "sur cette plage horaire : lectures multiples accidentelles possibles."
+        ),
+        "en": (
+            "{n} shifts between {da_ora} and {a_ora} are shorter than 10 minutes "
+            "and/or less than 5 minutes after the previous shift. Check the NFC reader "
+            "in that time window — these may be accidental multiple reads rather than actual work shifts."
+        ),
     },
     "shift_in_progress": {"it": "in corso", "fr": "en cours", "en": "in progress"},
     # --- Dispositivi ---

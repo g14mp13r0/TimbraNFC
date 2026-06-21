@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+<meta charset="UTF-8">
+<title>{{ title }}</title>
+<style>
+  :root{
+    --ink:        #1c2230;
+    --ink-soft:   #5a6478;
+    --line:       #e2e5ec;
+    --line-soft:  #eef0f5;
+    --paper:      #ffffff;
+    --bg:         #f6f7fa;
+    --brand:      #c0392b;
+    --brand-deep: #1c2230;
+    --ok:         #2f8f5b;
+    --ok-bg:      #e9f7ef;
+    --warn:       #b9770e;
+    --warn-bg:    #fdf3e3;
+    --live:       #2563eb;
+    --live-bg:    #eaf1ff;
+    --mono: "JetBrains Mono", "SF Mono", Consolas, monospace;
+    --sans: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  }
+
+  *{ box-sizing:border-box; }
+  body{
+    margin:0;
+    font-family:var(--sans);
+    color:var(--ink);
+    background:var(--bg);
+    font-size:13px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .page{
+    max-width:980px;
+    margin:0 auto;
+    padding:40px 48px 56px;
+    background:var(--paper);
+  }
+
+  .doc-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    border-bottom:3px solid var(--brand-deep);
+    padding-bottom:20px;
+    margin-bottom:28px;
+  }
+  .doc-header .brand{
+    display:flex;
+    align-items:center;
+    gap:14px;
+  }
+  .logo-mark{
+    width:46px;height:46px;
+    border-radius:50%;
+    background:var(--brand);
+    color:#fff;
+    display:flex;align-items:center;justify-content:center;
+    font-weight:800;font-size:18px;
+    font-family:var(--mono);
+    flex-shrink:0;
+  }
+  .brand-text h1{
+    margin:0;
+    font-size:19px;
+    letter-spacing:-0.01em;
+  }
+  .brand-text .sub{
+    margin-top:2px;
+    font-size:11.5px;
+    color:var(--ink-soft);
+    letter-spacing:.02em;
+  }
+  .doc-meta{
+    text-align:right;
+    font-size:11.5px;
+    color:var(--ink-soft);
+    line-height:1.7;
+  }
+  .doc-meta .period{
+    font-family:var(--mono);
+    color:var(--ink);
+    font-weight:600;
+    font-size:12.5px;
+  }
+
+  .summary-title{
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.08em;
+    color:var(--ink-soft);
+    font-weight:700;
+    margin:0 0 12px;
+  }
+  .summary-grid{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:12px;
+    margin-bottom:32px;
+  }
+  .stat-card{
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:14px 16px;
+    background:var(--paper);
+  }
+  .stat-card .label{
+    font-size:10.5px;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    color:var(--ink-soft);
+    font-weight:600;
+  }
+  .stat-card .value{
+    font-family:var(--mono);
+    font-size:21px;
+    font-weight:700;
+    margin-top:6px;
+    color:var(--ink);
+  }
+  .stat-card .value.accent{ color:var(--brand); }
+  .stat-card .value.warn{ color:var(--warn); }
+  .stat-card .hint{
+    font-size:10.5px;
+    color:var(--ink-soft);
+    margin-top:3px;
+  }
+
+  .dept-table{
+    width:100%;
+    border-collapse:collapse;
+    margin-bottom:32px;
+    font-size:12.5px;
+  }
+  .dept-table caption{
+    text-align:left;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.08em;
+    color:var(--ink-soft);
+    font-weight:700;
+    margin-bottom:12px;
+    caption-side:top;
+  }
+  .dept-table th{
+    text-align:left;
+    background:var(--brand-deep);
+    color:#fff;
+    padding:9px 14px;
+    font-weight:600;
+    font-size:11.5px;
+    letter-spacing:.01em;
+  }
+  .dept-table th:first-child{ border-radius:7px 0 0 7px; }
+  .dept-table th:last-child{ border-radius:0 7px 7px 0; text-align:right; }
+  .dept-table td{
+    padding:9px 14px;
+    border-bottom:1px solid var(--line-soft);
+  }
+  .dept-table td:last-child{ text-align:right; font-family:var(--mono); font-weight:600; }
+  .dept-table tr:last-child td{ border-bottom:none; }
+
+  .section-title{
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.08em;
+    color:var(--ink-soft);
+    font-weight:700;
+    margin:0 0 12px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+  }
+  .legend{
+    display:flex;
+    gap:14px;
+    font-size:10.5px;
+    text-transform:none;
+    letter-spacing:0;
+    font-weight:500;
+  }
+  .legend span{ display:inline-flex; align-items:center; gap:5px; color:var(--ink-soft); }
+  .legend .dot{ width:7px;height:7px;border-radius:50%; display:inline-block; }
+  .dot.live{ background:var(--live); }
+  .dot.warn{ background:var(--warn); }
+
+  table.detail{
+    width:100%;
+    border-collapse:collapse;
+    font-size:12.5px;
+  }
+  table.detail thead th{
+    text-align:left;
+    padding:10px 14px;
+    background:var(--ink);
+    color:#fff;
+    font-weight:600;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.04em;
+  }
+  table.detail thead th.num{ text-align:right; }
+  table.detail thead th:first-child{ border-radius:7px 0 0 7px; }
+  table.detail thead th:last-child{ border-radius:0 7px 7px 0; }
+
+  table.detail tbody td{
+    padding:9px 14px;
+    border-bottom:1px solid var(--line-soft);
+    color:var(--ink);
+  }
+  table.detail tbody tr:nth-child(even){ background:#fbfbfd; }
+  table.detail tbody tr:last-child td{ border-bottom:none; }
+
+  td.time{ font-family:var(--mono); }
+  td.duration{ font-family:var(--mono); font-weight:600; text-align:right; }
+
+  .badge{
+    display:inline-flex;
+    align-items:center;
+    gap:5px;
+    padding:2px 8px;
+    border-radius:20px;
+    font-size:10px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.03em;
+    white-space:nowrap;
+  }
+  .badge.live{ background:var(--live-bg); color:var(--live); }
+  .badge.live .pulse{
+    width:5px;height:5px;border-radius:50%;
+    background:var(--live);
+  }
+  .badge.warn{ background:var(--warn-bg); color:var(--warn); }
+
+  tr.flag-row{
+    background:var(--warn-bg) !important;
+  }
+
+  .anomaly-box{
+    margin-top:18px;
+    border:1px solid #f0d9ab;
+    background:var(--warn-bg);
+    border-radius:10px;
+    padding:14px 16px;
+    font-size:11.5px;
+    color:#7a5510;
+    line-height:1.6;
+  }
+  .anomaly-box strong{ color:#5c4109; }
+
+  .doc-footer{
+    margin-top:40px;
+    padding-top:14px;
+    border-top:1px solid var(--line);
+    display:flex;
+    justify-content:space-between;
+    font-size:10px;
+    color:var(--ink-soft);
+  }
+
+  @media print{
+    body{ background:#fff; }
+    .page{ padding:0; max-width:none; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="doc-header">
+    <div class="brand">
+      <div class="logo-mark">{{ logo_letter }}</div>
+      <div class="brand-text">
+        <h1>{{ title }}</h1>
+        <div class="sub">{{ brand_tagline }}</div>
+      </div>
+    </div>
+    <div class="doc-meta">
+      <div>{{ labels.generated }} {{ generated_at }}</div>
+      <div class="period">{{ labels.period }} {{ period_da }} → {{ period_a }}</div>
+    </div>
+  </div>
+
+  <p class="summary-title">{{ labels.summary }}</p>
+  <div class="summary-grid">
+    <div class="stat-card">
+      <div class="label">{{ labels.employee }}</div>
+      <div class="value" style="font-size:15px; font-family:var(--sans);">{{ card_dipendente }}</div>
+      <div class="hint">{{ card_hint }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">{{ labels.total_time }}</div>
+      <div class="value accent">{{ durata_totale }}</div>
+      {% if hint_aperti %}<div class="hint">{{ hint_aperti }}</div>{% endif %}
+    </div>
+    <div class="stat-card">
+      <div class="label">{{ labels.shifts }}</div>
+      <div class="value">{{ n_turni }}</div>
+      <div class="hint">{{ labels.in_period }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">{{ labels.anomalies }}</div>
+      <div class="value warn">{{ n_anomalie }}</div>
+      <div class="hint">{{ labels.suspicious }}</div>
+    </div>
+  </div>
+
+  {% if reparti %}
+  <table class="dept-table">
+    <caption>{{ labels.dept_totals }}</caption>
+    <thead>
+      <tr>
+        <th>{{ labels.department }}</th>
+        <th>{{ labels.employees }}</th>
+        <th style="text-align:right;">{{ labels.dept_hours }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in reparti %}
+      <tr>
+        <td>{{ r.reparto }}</td>
+        <td>{{ r.n_dipendenti }}</td>
+        <td>{{ r.durata_totale }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  <p class="section-title">
+    <span>{{ labels.detail }}</span>
+    <span class="legend">
+      <span><i class="dot live"></i>{{ labels.legend_open }}</span>
+      <span><i class="dot warn"></i>{{ labels.legend_warn }}</span>
+    </span>
+  </p>
+
+  <table class="detail">
+    <thead>
+      <tr>
+        <th>{{ labels.employee }}</th>
+        <th>{{ labels.department }}</th>
+        <th>{{ labels.date }}</th>
+        <th>{{ labels.start }}</th>
+        <th>{{ labels.end }}</th>
+        <th class="num">{{ labels.total_time }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in turni %}
+      <tr{% if row.flagged %} class="flag-row"{% endif %}>
+        <td>{{ row.dipendente }}</td>
+        <td>{{ row.reparto }}</td>
+        <td>{{ row.data }}</td>
+        <td class="time">{{ row.ora_inizio }}</td>
+        <td class="time">
+          {% if row.fine_live %}
+          <span class="badge live"><i class="pulse"></i>{{ row.ora_fine }}</span>
+          {% else %}
+          {{ row.ora_fine }}
+          {% endif %}
+        </td>
+        <td class="duration">
+          {{ row.durata }}
+          {% for flag in row.flags %}
+          <span class="badge warn">{{ flag }}</span>
+          {% endfor %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if anomaly_note %}
+  <div class="anomaly-box">
+    <strong>{{ labels.anomaly_title }}</strong> {{ anomaly_note }}
+  </div>
+  {% endif %}
+
+  <div class="doc-footer">
+    <span>{{ labels.footer }}</span>
+    <span>{{ labels.page }} 1 / 1</span>
+  </div>
+
+</div>
+</body>
+</html>

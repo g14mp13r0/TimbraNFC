@@ -782,6 +782,23 @@ def export_report_pdf(
     )
 
 
+@app.get("/report/export.html", response_class=HTMLResponse)
+def export_report_html(
+    db: Session = Depends(get_db),
+    da: str | None = None,
+    a: str | None = None,
+    mese: str | None = None,
+    dipendente_id: int | None = Depends(optional_int_query),
+):
+    from server.app.services.report import report_turni, resolve_period
+    from server.app.services.report_html import report_turni_html
+
+    da, a, _mese = resolve_period(da, a, mese)
+    data = report_turni(db, da, a, dipendente_id)
+    html = report_turni_html(data, da, a, _current_lang(), dipendente_id=dipendente_id)
+    return HTMLResponse(content=html)
+
+
 # --- Impostazioni ---
 
 def _settings_page_context(db: Session, *, msg: str = "", error: str = "", restart_error: str = "", network_warn: str = "", section: str = ""):
