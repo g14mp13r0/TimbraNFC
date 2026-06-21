@@ -35,17 +35,14 @@ Dashboard: http://localhost:8080
 ## Struttura
 
 ```
-standalone/     → entry point Pi (run_server.py, run_kiosk.py)
-terminal/       → kiosk UI, NFC, coda locale
-server/         → FastAPI + dashboard web
-shared/         → schemi API
-data/           → SQLite (timbranfc.db + local_queue.db)
+standalone/     → installazione Pi, run_server.py, run_kiosk.py, script manutenzione
+terminal/       → kiosk UI, NFC, coda locale, sync
+server/         → FastAPI + dashboard web (Jinja2)
+shared/         → i18n, schemi API, calcolo turni, date
+docs/           → guide deploy e specifica tecnica
+data/           → SQLite runtime (timbranfc.db + local_queue.db)
 ```
 
 ## Deploy alternativi (opzionali)
 
 - [Multi-sede con server Proxmox](docs/DEPLOY_PROXMOX.md) — non necessario per standalone
-
-## Legacy
-
-I file in root (`main.py`, `dashboard/`, …) sono la v1 deprecata.

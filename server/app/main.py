@@ -21,7 +21,7 @@ from server.app.api import dashboard as dashboard_api
 from server.app.api import devices as devices_api
 from server.app.api import enrollment as enrollment_api
 from server.app.api import timbrature as timbrature_api
-from server.app.config import SECRET_KEY, VERSION
+from server.app.config import VERSION
 from server.app.db import Base, engine, get_db
 from server.app.models import Dipendente, Dispositivo, Sede, Timbratura, UtenteAdmin
 
@@ -65,8 +65,6 @@ templates.env.filters["fmt_datetime"] = _format_datetime
 
 if STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
-
-_sessions: dict[str, dict] = {}
 
 
 def _init_db():

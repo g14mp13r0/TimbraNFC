@@ -1,9 +1,0 @@
-[Unit]
-Description=Invio report presenze mensile via email
-
-[Service]
-Type=oneshot
-User=pi
-WorkingDirectory=/home/pi/TimbraNFC
-EnvironmentFile=-/home/pi/TimbraNFC/.env
-ExecStart=/usr/bin/python3 scripts/send_report.py
