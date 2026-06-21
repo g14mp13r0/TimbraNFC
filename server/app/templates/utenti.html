@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}{{ t('nav_utenti') }} — TimbraNFC{% endblock %}
+{% block breadcrumb %}{{ t('nav_system') }} / <b>{{ t('nav_utenti') }}</b>{% endblock %}
+{% block content %}
+    <div class="page-head">
+        <h1>{{ t('nav_utenti') }}</h1>
+        <p class="subtitle">{{ t('utenti_subtitle') }}</p>
+    </div>
+
+    {% if msg == 'aggiunto' %}
+    <div class="alert alert-success">{{ t('msg_utente_added') }}</div>
+    {% elif msg == 'modificato' %}
+    <div class="alert alert-success">{{ t('msg_utente_updated') }}</div>
+    {% elif msg == 'eliminato' %}
+    <div class="alert alert-success">{{ t('msg_utente_deleted') }}</div>
+    {% endif %}
+    {% if error == 'email_duplicato' %}
+    <div class="alert alert-error">{{ t('err_email_duplicate') }}</div>
+    {% elif error == 'email_vuota' %}
+    <div class="alert alert-error">{{ t('err_email_empty') }}</div>
+    {% elif error == 'password_vuota' %}
+    <div class="alert alert-error">{{ t('err_password_empty') }}</div>
+    {% elif error == 'ruolo_invalido' %}
+    <div class="alert alert-error">{{ t('err_ruolo_invalido') }}</div>
+    {% elif error == 'non_trovato' %}
+    <div class="alert alert-error">{{ t('err_not_found') }}</div>
+    {% elif error == 'ultimo_admin' %}
+    <div class="alert alert-error">{{ t('err_ultimo_admin') }}</div>
+    {% elif error == 'se_stesso' %}
+    <div class="alert alert-error">{{ t('err_delete_self') }}</div>
+    {% endif %}
+
+    <section class="enrollment-panel">
+        <h2>{{ t('utenti_new') }}</h2>
+        <form method="post" action="/utenti/add" class="enrollment-form">
+            <div class="form-grid">
+                <label>{{ t('col_email') }}<input name="email" type="email" placeholder="nome@azienda.it" required autocomplete="off"></label>
+                <label>{{ t('lbl_password') }}<input name="password" type="password" required autocomplete="new-password"></label>
+                <label>{{ t('col_role') }}
+                    <select name="ruolo" required>
+                        <option value="admin">{{ t('role_admin') }}</option>
+                        <option value="contabile">{{ t('role_contabile') }}</option>
+                    </select>
+                </label>
+            </div>
+            <div class="form-actions">
+                <button type="submit">{{ t('utenti_save') }}</button>
+            </div>
+        </form>
+    </section>
+
+    <div class="card">
+        <div class="card-head">
+            <div>
+                <h2>{{ t('utenti_list') }}</h2>
+                <div class="card-sub">{{ utenti|length }} {{ t('results_label') }}</div>
+            </div>
+        </div>
+        <div class="card-body flush">
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>{{ t('col_email') }}</th>
+                            <th>{{ t('col_role') }}</th>
+                            <th>{{ t('col_created') }}</th>
+                            <th>{{ t('col_actions') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for u in utenti %}
+                    <tr>
+                        <td class="cell-strong">
+                            {{ u.email }}
+                            {% if u.id == current_user_id %}<span class="pill pill-gray" style="margin-left:8px;">{{ t('utenti_you') }}</span>{% endif %}
+                        </td>
+                        <td>
+                            {% if (u.ruolo|lower) in ['admin', 'amministratore', 'administrator'] %}
+                            <span class="pill pill-green"><span class="pill-dot"></span>{{ t('role_admin') }}</span>
+                            {% else %}
+                            <span class="pill pill-gray"><span class="pill-dot"></span>{{ t('role_contabile') }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="cell-mute">{{ u.creato_il | fmt_datetime }}</td>
+                        <td class="actions">
+                            <div class="row-actions">
+                                <a href="/utenti/{{ u.id }}/modifica" class="btn-export btn-sm">{{ t('btn_edit') }}</a>
+                                {% if u.id != current_user_id %}
+                                <form method="post" action="/utenti/{{ u.id }}/elimina" class="inline-form"
+                                      onsubmit="return confirm('{{ t('utente_delete_confirm')|replace('{email}', u.email)|e }}');">
+                                    <button type="submit" class="btn-sm btn-danger">{{ t('btn_delete') }}</button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="4" class="empty">{{ t('utenti_no_users') }}</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+{% endblock %}

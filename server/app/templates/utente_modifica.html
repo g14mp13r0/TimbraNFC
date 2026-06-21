@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}{{ t('edit_utente_title') }} — TimbraNFC{% endblock %}
+{% block breadcrumb %}<a href="/utenti">{{ t('nav_utenti') }}</a> / <b>{{ t('breadcrumb_edit') }}</b>{% endblock %}
+{% block content %}
+    <div class="page-head">
+        <h1>{{ t('edit_utente_title') }}</h1>
+        <p class="subtitle">{{ utente.email }}</p>
+    </div>
+
+    {% if error == 'email_duplicato' %}
+    <div class="alert alert-error">{{ t('err_email_duplicate') }}</div>
+    {% elif error == 'email_vuota' %}
+    <div class="alert alert-error">{{ t('err_email_empty') }}</div>
+    {% elif error == 'password_vuota' %}
+    <div class="alert alert-error">{{ t('err_password_empty') }}</div>
+    {% elif error == 'ruolo_invalido' %}
+    <div class="alert alert-error">{{ t('err_ruolo_invalido') }}</div>
+    {% elif error == 'ultimo_admin' %}
+    <div class="alert alert-error">{{ t('err_ultimo_admin') }}</div>
+    {% elif error == 'non_trovato' %}
+    <div class="alert alert-error">{{ t('err_not_found') }}</div>
+    {% endif %}
+
+    <div class="card" style="max-width:680px;">
+        <div class="card-body">
+            <form method="post" action="/utenti/{{ utente.id }}/modifica" class="enrollment-form">
+                <div class="form-grid">
+                    <label>{{ t('col_email') }}<input name="email" type="email" value="{{ utente.email }}" required autocomplete="off"></label>
+                    <label>{{ t('col_role') }}
+                        <select name="ruolo" required>
+                            <option value="admin" {{ 'selected' if utente_ruolo == 'admin' }}>{{ t('role_admin') }}</option>
+                            <option value="contabile" {{ 'selected' if utente_ruolo == 'contabile' }}>{{ t('role_contabile') }}</option>
+                        </select>
+                    </label>
+                    <label>{{ t('lbl_password_new') }}<input name="password" type="password" autocomplete="new-password" placeholder="{{ t('lbl_password_keep') }}"></label>
+                </div>
+                <p class="hint" style="margin-top:16px;">{{ t('edit_utente_hint') }}</p>
+                <div class="form-actions">
+                    <button type="submit">{{ t('btn_save_changes') }}</button>
+                    <a href="/utenti" class="btn-export">{{ t('btn_cancel') }}</a>
+                </div>
+            </form>
+        </div>
+    </div>
+{% endblock %}

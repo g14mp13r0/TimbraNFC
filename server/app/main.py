@@ -427,6 +427,109 @@ def elimina_dipendente_route(dip_id: int, db: Session = Depends(get_db)):
     return RedirectResponse(f"/dipendenti?msg={esito}", status_code=303)
 
 
+# --- Utenti web (solo admin) ---
+
+
+@app.get("/utenti", response_class=HTMLResponse)
+def page_utenti(
+    request: Request,
+    db: Session = Depends(get_db),
+    msg: str = "",
+    error: str = "",
+):
+    from server.app.services import utenti_web as utenti_svc
+
+    user = get_session_user(request)
+    return _render_page(
+        request,
+        db,
+        "utenti.html",
+        {
+            "utenti": utenti_svc.lista_utenti(db),
+            "current_user_id": user["id"] if user else None,
+            "msg": msg,
+            "error": error,
+            "active_page": "utenti",
+        },
+    )
+
+
+@app.post("/utenti/add")
+def add_utente(
+    email: str = Form(...),
+    password: str = Form(...),
+    ruolo: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    from server.app.services import utenti_web as utenti_svc
+
+    try:
+        utenti_svc.crea_utente(db, email=email, password=password, ruolo=ruolo)
+    except utenti_svc.UtenteWebError as exc:
+        return RedirectResponse(f"/utenti?error={exc.code}", status_code=303)
+    return RedirectResponse("/utenti?msg=aggiunto", status_code=303)
+
+
+@app.get("/utenti/{user_id}/modifica", response_class=HTMLResponse)
+def page_modifica_utente(
+    user_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    error: str = "",
+):
+    utente = db.query(UtenteAdmin).filter(UtenteAdmin.id == user_id).first()
+    if not utente:
+        return RedirectResponse("/utenti?error=non_trovato", status_code=303)
+    return _render_page(
+        request,
+        db,
+        "utente_modifica.html",
+        {
+            "utente": utente,
+            "utente_ruolo": normalize_ruolo(utente.ruolo) or ROLE_ADMIN,
+            "error": error,
+            "active_page": "utenti",
+        },
+    )
+
+
+@app.post("/utenti/{user_id}/modifica")
+def modifica_utente(
+    user_id: int,
+    email: str = Form(...),
+    password: str = Form(""),
+    ruolo: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    from server.app.services import utenti_web as utenti_svc
+
+    try:
+        utenti_svc.aggiorna_utente(
+            db,
+            user_id,
+            email=email,
+            password=password or None,
+            ruolo=ruolo,
+        )
+    except utenti_svc.UtenteWebError as exc:
+        return RedirectResponse(f"/utenti/{user_id}/modifica?error={exc.code}", status_code=303)
+    return RedirectResponse("/utenti?msg=modificato", status_code=303)
+
+
+@app.post("/utenti/{user_id}/elimina")
+def elimina_utente_route(user_id: int, request: Request, db: Session = Depends(get_db)):
+    from server.app.services import utenti_web as utenti_svc
+
+    user = get_session_user(request)
+    if not user:
+        return login_redirect("/utenti")
+    try:
+        utenti_svc.elimina_utente(db, user_id, current_user_id=user["id"])
+    except utenti_svc.UtenteWebError as exc:
+        return RedirectResponse(f"/utenti?error={exc.code}", status_code=303)
+    return RedirectResponse("/utenti?msg=eliminato", status_code=303)
+
+
 @app.get("/timbrature", response_class=HTMLResponse)
 def page_timbrature(
     request: Request,
