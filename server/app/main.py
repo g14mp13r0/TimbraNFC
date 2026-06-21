@@ -10,7 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 from datetime import date, datetime, timedelta
 
 from fastapi import Depends, FastAPI, File, Form, Query, Request, UploadFile
-from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import func
@@ -123,6 +123,16 @@ def _device_dict(d: Dispositivo, online: bool) -> dict:
 @app.get("/health")
 def health():
     return {"status": "ok", "version": VERSION}
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon():
+    path = STATIC_DIR / "favicon.png"
+    if path.is_file():
+        return FileResponse(path, media_type="image/jpeg")
+    from fastapi import HTTPException
+
+    raise HTTPException(status_code=404)
 
 
 # --- Dashboard web (Jinja2) ---
@@ -467,7 +477,7 @@ def export_report_csv(
     writer = csv.writer(buf)
     writer.writerow(["Dipendente", "Data", "Ora inizio", "Ora fine", "Tempo totale"])
     for t in data["turni"]:
-        writer.writerow([t["dipendente"], _format_date(t["data"]), t["ora_inizio"], t["ora_fine"] or "", t["durata"]])
+        writer.writerow([t["dipendente"], _format_date(t["data"]), t["ora_inizio"] or "", t["ora_fine"] or "", t["durata"]])
     writer.writerow([])
     writer.writerow(["Riepilogo", "Giorni", "N. turni", "Tempo totale"])
     for r in data["riepilogo"]:

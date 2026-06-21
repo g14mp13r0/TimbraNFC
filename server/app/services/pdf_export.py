@@ -185,7 +185,7 @@ def report_turni_pdf(data: dict, da: str, a: str, lang: str | None = None) -> by
     riepilogo = sorted(data.get("riepilogo", []), key=lambda r: r["dipendente"].lower())
     turni = sorted(
         data.get("turni", []),
-        key=lambda r: (r["dipendente"].lower(), r["data"], r["ora_inizio"]),
+        key=lambda r: (r["dipendente"].lower(), r["data"], r["ora_inizio"] or ""),
     )
 
     summary_headers = [

@@ -127,7 +127,7 @@ def report_turni(
             }
         )
 
-    turni.sort(key=lambda x: (x["data"], x["dipendente"], x["ora_inizio"]))
+    turni.sort(key=lambda x: (x["data"], x["dipendente"], x["ora_inizio"] or ""))
     riepilogo.sort(key=lambda x: x["dipendente"])
     return {"turni": turni, "riepilogo": riepilogo}
 
