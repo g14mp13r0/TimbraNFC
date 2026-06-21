@@ -62,6 +62,10 @@ if ! "$VENV" -c "import fastapi, uvicorn" 2>/dev/null; then
     echo "→ Reinstallo requirements-server.txt"
     "$APP_DIR/.venv/bin/pip" install -r "$APP_DIR/requirements-server.txt"
 fi
+if ! "$VENV" -c "import itsdangerous" 2>/dev/null; then
+    echo "→ Installo itsdangerous (sessioni login)"
+    "$APP_DIR/.venv/bin/pip" install 'itsdangerous>=2.1.0'
+fi
 if ! "$VENV" -c "import reportlab" 2>/dev/null; then
     echo "→ Installo reportlab (export PDF)"
     "$APP_DIR/.venv/bin/pip" install 'reportlab>=4.0.0'
