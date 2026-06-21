@@ -47,7 +47,6 @@
                             <th>{{ t('lbl_employee') }}</th>
                             <th>{{ t('col_days') }}</th>
                             <th>{{ t('col_n_shifts') }}</th>
-                            <th>{{ t('col_total_hours') }}</th>
                             <th>{{ t('col_total_time') }}</th>
                         </tr>
                     </thead>
@@ -57,11 +56,10 @@
                             <td class="cell-strong">{{ r.dipendente }}</td>
                             <td>{{ r.giorni }}</td>
                             <td>{{ r.n_turni }}</td>
-                            <td><strong style="color:var(--navy-950);">{{ r.ore }} h</strong></td>
-                            <td class="cell-mute">{{ r.durata_totale }}</td>
+                            <td class="cell-mute"><strong style="color:var(--navy-950);">{{ r.durata_totale }}</strong></td>
                         </tr>
                         {% else %}
-                        <tr><td colspan="5" class="empty">{{ t('report_no_shifts') }}</td></tr>
+                        <tr><td colspan="4" class="empty">{{ t('report_no_shifts') }}</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>

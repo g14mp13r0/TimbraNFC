@@ -158,11 +158,10 @@ def report_turni_pdf(data: dict, da: str, a: str, lang: str | None = None) -> by
         t("lbl_employee", code),
         t("col_days", code),
         t("col_n_shifts", code),
-        t("col_total_hours", code),
         t("col_total_time", code),
     ]
     summary_rows = [
-        [r["dipendente"], str(r["giorni"]), str(r["n_turni"]), f"{r['ore']} h", r["durata_totale"]]
+        [r["dipendente"], str(r["giorni"]), str(r["n_turni"]), r["durata_totale"]]
         for r in riepilogo
     ]
 

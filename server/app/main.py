@@ -456,14 +456,13 @@ def export_report_csv(
     data = report_turni(db, da, a, dipendente_id)
     buf = io.StringIO()
     writer = csv.writer(buf)
-    writer.writerow(["Dipendente", "Data", "Ora inizio", "Ora fine", "Tempo totale", "Ore"])
+    writer.writerow(["Dipendente", "Data", "Ora inizio", "Ora fine", "Tempo totale"])
     for t in data["turni"]:
-        ore = round(t["durata_secondi"] / 3600, 2)
-        writer.writerow([t["dipendente"], t["data"], t["ora_inizio"], t["ora_fine"] or "", t["durata"], ore])
+        writer.writerow([t["dipendente"], t["data"], t["ora_inizio"], t["ora_fine"] or "", t["durata"]])
     writer.writerow([])
-    writer.writerow(["Riepilogo", "Giorni", "N. turni", "Ore totali", "Tempo totale", ""])
+    writer.writerow(["Riepilogo", "Giorni", "N. turni", "Tempo totale"])
     for r in data["riepilogo"]:
-        writer.writerow([r["dipendente"], r["giorni"], r["n_turni"], r["ore"], r["durata_totale"], ""])
+        writer.writerow([r["dipendente"], r["giorni"], r["n_turni"], r["durata_totale"]])
     buf.seek(0)
     filename = f"report_turni_{da}_{a}.csv"
     return StreamingResponse(
