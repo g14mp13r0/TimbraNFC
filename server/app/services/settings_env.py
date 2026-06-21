@@ -101,33 +101,90 @@ SETTINGS_FIELDS: list[dict[str, Any]] = [
         "type": "bool",
         "default": "0",
     },
-    # --- Rete ---
+    # --- Rete LAN (IP del Raspberry) ---
     {
-        "key": "SERVER_URL",
-        "label": "URL server (kiosk → API)",
-        "section": "network",
+        "key": "NETWORK_MODE",
+        "label": "Configurazione IP",
+        "section": "network_lan",
+        "type": "choice",
+        "choices": [("dhcp", "DHCP (automatico)"), ("manual", "IP statico (manuale)")],
+        "default": "dhcp",
+        "hint": "DHCP: indirizzo assegnato dal router. Manuale: IP, maschera e gateway fissi.",
+    },
+    {
+        "key": "LAN_IP",
+        "label": "Indirizzo IP (LAN)",
+        "section": "network_lan",
         "type": "text",
+        "default": "",
+        "hint": "Es. 192.168.178.124 — indirizzo da usare nel browser da altri PC",
+    },
+    {
+        "key": "LAN_SUBNET",
+        "label": "Maschera di sottorete",
+        "section": "network_lan",
+        "type": "text",
+        "default": "255.255.255.0",
+    },
+    {
+        "key": "LAN_GATEWAY",
+        "label": "Gateway (router)",
+        "section": "network_lan",
+        "type": "text",
+        "default": "",
+        "hint": "Es. 192.168.178.1",
+    },
+    {
+        "key": "LAN_DNS",
+        "label": "DNS (opzionale)",
+        "section": "network_lan",
+        "type": "text",
+        "default": "",
+        "hint": "Lasciare vuoto per usare il gateway come DNS",
+    },
+    {
+        "key": "DASHBOARD_URL",
+        "label": "URL dashboard (da altri PC)",
+        "section": "network_lan",
+        "type": "readonly",
         "default": "http://127.0.0.1:8080",
+        "hint": "Aprire questo indirizzo dal browser su PC/tablet in rete locale",
     },
     {
-        "key": "SERVER_HOST",
-        "label": "Host dashboard",
-        "section": "network",
-        "type": "text",
-        "default": "0.0.0.0",
-        "hint": "0.0.0.0 = accessibile da altri PC in LAN",
+        "key": "LAN_INTERFACE",
+        "label": "Interfaccia di rete",
+        "section": "network_lan",
+        "type": "readonly",
+        "default": "",
     },
+    # --- Dashboard e sync ---
     {
         "key": "SERVER_PORT",
         "label": "Porta dashboard",
-        "section": "network",
+        "section": "network_app",
         "type": "int",
         "default": "8080",
     },
     {
+        "key": "SERVER_URL",
+        "label": "URL API kiosk (locale)",
+        "section": "network_app",
+        "type": "readonly",
+        "default": "http://127.0.0.1:8080",
+        "hint": "Il kiosk sulla stessa Pi usa sempre 127.0.0.1 — non è l'IP LAN",
+    },
+    {
+        "key": "SERVER_HOST",
+        "label": "Bind server (tecnico)",
+        "section": "network_app",
+        "type": "readonly",
+        "default": "0.0.0.0",
+        "hint": "0.0.0.0 = il server ascolta su tutte le interfacce (corretto per LAN)",
+    },
+    {
         "key": "API_KEY",
         "label": "API Key",
-        "section": "network",
+        "section": "network_app",
         "type": "password",
         "default": "",
         "hint": "Opzionale in LAN chiusa; lasciare vuoto per non cambiare",
@@ -135,14 +192,14 @@ SETTINGS_FIELDS: list[dict[str, Any]] = [
     {
         "key": "SYNC_INTERVAL_SEC",
         "label": "Intervallo sync anagrafica (sec)",
-        "section": "network",
+        "section": "network_app",
         "type": "int",
         "default": "30",
     },
     {
         "key": "HEARTBEAT_INTERVAL_SEC",
         "label": "Intervallo heartbeat (sec)",
-        "section": "network",
+        "section": "network_app",
         "type": "int",
         "default": "120",
     },
@@ -181,10 +238,13 @@ SETTINGS_FIELDS: list[dict[str, Any]] = [
 
 SECTION_LABELS = {
     "kiosk": "Kiosk / Timbratrice",
-    "network": "Rete e sincronizzazione",
+    "network_lan": "Rete LAN (Raspberry Pi)",
+    "network_app": "Dashboard e sincronizzazione",
     "system": "Sistema e sicurezza",
     "backup": "Backup",
 }
+
+NETWORK_KEYS = frozenset({"NETWORK_MODE", "LAN_IP", "LAN_SUBNET", "LAN_GATEWAY", "LAN_DNS"})
 
 
 def _unquote_env_value(val: str) -> str:
@@ -232,6 +292,35 @@ def read_settings() -> dict[str, str]:
         elif field["type"] in ("int", "text", "choice", "readonly"):
             merged[key] = str(merged[key]).strip()
 
+    return enrich_settings(merged)
+
+
+def enrich_settings(merged: dict[str, str]) -> dict[str, str]:
+    """Aggiunge IP rilevato, URL dashboard e valori derivati."""
+    from server.app.services.network_config import detect_lan
+
+    lan = detect_lan()
+    mode = str(merged.get("NETWORK_MODE", "")).strip().lower()
+    if mode not in ("dhcp", "manual"):
+        mode = lan.get("mode", "dhcp") or "dhcp"
+    merged["NETWORK_MODE"] = mode
+
+    if mode == "manual":
+        if not merged.get("LAN_SUBNET"):
+            merged["LAN_SUBNET"] = "255.255.255.0"
+    else:
+        merged["LAN_IP"] = lan.get("ip", merged.get("LAN_IP", ""))
+        merged["LAN_SUBNET"] = lan.get("subnet", merged.get("LAN_SUBNET", "255.255.255.0"))
+        merged["LAN_GATEWAY"] = lan.get("gateway", merged.get("LAN_GATEWAY", ""))
+        if not merged.get("LAN_DNS"):
+            merged["LAN_DNS"] = lan.get("dns", merged.get("LAN_GATEWAY", ""))
+
+    port = merged.get("SERVER_PORT", "8080")
+    ip = merged.get("LAN_IP") or lan.get("ip") or "127.0.0.1"
+    merged["DASHBOARD_URL"] = f"http://{ip}:{port}"
+    merged["LAN_INTERFACE"] = lan.get("interface", "")
+    merged["SERVER_HOST"] = merged.get("SERVER_HOST") or "0.0.0.0"
+    merged["SERVER_URL"] = f"http://127.0.0.1:{port}"
     return merged
 
 
@@ -242,7 +331,7 @@ def apply_env_to_process(updates: dict[str, str]) -> None:
 
 
 def localized_fields(lang: str | None = None) -> list[dict[str, Any]]:
-    from shared.kiosk_i18n import field_hint, field_label, lang_label, normalize_lang
+    from shared.kiosk_i18n import field_hint, field_label, lang_label, normalize_lang, t
 
     code = normalize_lang(lang)
     out: list[dict[str, Any]] = []
@@ -253,6 +342,10 @@ def localized_fields(lang: str | None = None) -> list[dict[str, Any]]:
             fc["hint"] = field_hint(field["key"], field["hint"], code)
         if field["type"] == "choice" and field["key"] == "KIOSK_LANG":
             fc["choices"] = [(v, lang_label(v)) for v, _ in field["choices"]]
+        elif field["type"] == "choice" and field["key"] == "NETWORK_MODE":
+            fc["choices"] = [(v, t(f"network_mode_{v}", code)) for v, _ in field["choices"]]
+        if field["key"] in NETWORK_KEYS and field["key"] != "NETWORK_MODE":
+            fc["network_manual"] = True
         out.append(fc)
     return out
 
@@ -318,9 +411,11 @@ def update_env_file(updates: dict[str, str], path: Path | None = None) -> None:
     path.write_text("".join(new_lines), encoding="utf-8")
 
 
-def save_settings(form: dict[str, str]) -> dict[str, str]:
+def save_settings(form: dict[str, str]) -> tuple[dict[str, str], tuple[bool, str] | None]:
     """Salva impostazioni dal form; password vuote = non modificare."""
-    current = parse_env_file()
+    from server.app.services.network_config import apply_lan_network, validate_manual_network
+
+    current = read_settings()
     updates: dict[str, str] = {}
 
     for field in SETTINGS_FIELDS:
@@ -339,10 +434,24 @@ def save_settings(form: dict[str, str]) -> dict[str, str]:
         elif raw or key not in current:
             updates[key] = raw if raw else str(field.get("default", ""))
 
+    merged = {**current, **updates}
+    if "SERVER_PORT" in updates:
+        updates["SERVER_URL"] = f"http://127.0.0.1:{updates['SERVER_PORT']}"
+        merged["SERVER_URL"] = updates["SERVER_URL"]
+
+    err = validate_manual_network(merged)
+    if err:
+        raise ValueError(err)
+
     if updates:
         update_env_file(updates)
         apply_env_to_process(updates)
-    return updates
+
+    network_result: tuple[bool, str] | None = None
+    if updates.keys() & NETWORK_KEYS:
+        network_result = apply_lan_network(enrich_settings({**current, **updates}))
+
+    return updates, network_result
 
 
 def kiosk_background_path() -> Path:

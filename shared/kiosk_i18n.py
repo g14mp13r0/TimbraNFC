@@ -187,10 +187,15 @@ _STRINGS: dict[str, dict[Lang, str]] = {
         "fr": "Kiosk / Pointeuse",
         "en": "Kiosk / Clock terminal",
     },
-    "section_network": {
-        "it": "Rete e sincronizzazione",
-        "fr": "Réseau et synchronisation",
-        "en": "Network and sync",
+    "section_network_lan": {
+        "it": "Rete LAN (Raspberry Pi)",
+        "fr": "Réseau LAN (Raspberry Pi)",
+        "en": "LAN network (Raspberry Pi)",
+    },
+    "section_network_app": {
+        "it": "Dashboard e sincronizzazione",
+        "fr": "Tableau de bord et synchronisation",
+        "en": "Dashboard and sync",
     },
     "section_system": {
         "it": "Sistema e sicurezza",
@@ -251,18 +256,107 @@ _STRINGS: dict[str, dict[Lang, str]] = {
         "fr": "Mode mock GPIO (test)",
         "en": "GPIO mock mode (test)",
     },
-    "setting_SERVER_URL": {
-        "it": "URL server (kiosk → API)",
-        "fr": "URL serveur (kiosk → API)",
-        "en": "Server URL (kiosk → API)",
+    "setting_NETWORK_MODE": {
+        "it": "Configurazione IP",
+        "fr": "Configuration IP",
+        "en": "IP configuration",
     },
-    "setting_SERVER_HOST": {"it": "Host dashboard", "fr": "Hôte dashboard", "en": "Dashboard host"},
-    "hint_SERVER_HOST": {
-        "it": "0.0.0.0 = accessibile da altri PC in LAN",
-        "fr": "0.0.0.0 = accessible depuis le réseau local",
-        "en": "0.0.0.0 = reachable from other PCs on LAN",
+    "hint_NETWORK_MODE": {
+        "it": "DHCP: indirizzo dal router. Manuale: IP, maschera e gateway fissi.",
+        "fr": "DHCP : adresse du routeur. Manuel : IP, masque et passerelle fixes.",
+        "en": "DHCP: address from router. Manual: fixed IP, subnet and gateway.",
+    },
+    "setting_LAN_IP": {
+        "it": "Indirizzo IP (LAN)",
+        "fr": "Adresse IP (LAN)",
+        "en": "IP address (LAN)",
+    },
+    "hint_LAN_IP": {
+        "it": "Es. 192.168.178.124 — indirizzo nel browser da altri PC",
+        "fr": "Ex. 192.168.178.124 — adresse dans le navigateur depuis d'autres PC",
+        "en": "E.g. 192.168.178.124 — browser address from other PCs",
+    },
+    "setting_LAN_SUBNET": {
+        "it": "Maschera di sottorete",
+        "fr": "Masque de sous-réseau",
+        "en": "Subnet mask",
+    },
+    "setting_LAN_GATEWAY": {
+        "it": "Gateway (router)",
+        "fr": "Passerelle (routeur)",
+        "en": "Gateway (router)",
+    },
+    "hint_LAN_GATEWAY": {
+        "it": "Es. 192.168.178.1",
+        "fr": "Ex. 192.168.178.1",
+        "en": "E.g. 192.168.178.1",
+    },
+    "setting_LAN_DNS": {
+        "it": "DNS (opzionale)",
+        "fr": "DNS (optionnel)",
+        "en": "DNS (optional)",
+    },
+    "hint_LAN_DNS": {
+        "it": "Lasciare vuoto per usare il gateway come DNS",
+        "fr": "Laisser vide pour utiliser la passerelle comme DNS",
+        "en": "Leave empty to use gateway as DNS",
+    },
+    "setting_DASHBOARD_URL": {
+        "it": "URL dashboard (da altri PC)",
+        "fr": "URL tableau de bord (depuis d'autres PC)",
+        "en": "Dashboard URL (from other PCs)",
+    },
+    "hint_DASHBOARD_URL": {
+        "it": "Aprire questo indirizzo dal browser su PC/tablet in rete locale",
+        "fr": "Ouvrir cette adresse dans le navigateur depuis un PC/tablette sur le LAN",
+        "en": "Open this address in a browser from PCs/tablets on the LAN",
+    },
+    "setting_LAN_INTERFACE": {
+        "it": "Interfaccia di rete",
+        "fr": "Interface réseau",
+        "en": "Network interface",
     },
     "setting_SERVER_PORT": {"it": "Porta dashboard", "fr": "Port dashboard", "en": "Dashboard port"},
+    "setting_SERVER_URL": {
+        "it": "URL API kiosk (locale)",
+        "fr": "URL API kiosk (local)",
+        "en": "Kiosk API URL (local)",
+    },
+    "hint_SERVER_URL": {
+        "it": "Il kiosk sulla stessa Pi usa 127.0.0.1 — non è l'IP LAN",
+        "fr": "Le kiosk sur la même Pi utilise 127.0.0.1 — ce n'est pas l'IP LAN",
+        "en": "Kiosk on the same Pi uses 127.0.0.1 — not the LAN IP",
+    },
+    "setting_SERVER_HOST": {
+        "it": "Bind server (tecnico)",
+        "fr": "Écoute serveur (technique)",
+        "en": "Server bind (technical)",
+    },
+    "hint_SERVER_HOST": {
+        "it": "0.0.0.0 = il server ascolta su tutte le interfacce (corretto per LAN)",
+        "fr": "0.0.0.0 = le serveur écoute sur toutes les interfaces (correct pour le LAN)",
+        "en": "0.0.0.0 = server listens on all interfaces (correct for LAN)",
+    },
+    "settings_saved_network": {
+        "it": "Impostazioni e configurazione rete salvate.",
+        "fr": "Paramètres et configuration réseau enregistrés.",
+        "en": "Settings and network configuration saved.",
+    },
+    "settings_network_warn": {
+        "it": "Impostazioni salvate, ma la rete non è stata applicata:",
+        "fr": "Paramètres enregistrés, mais le réseau n'a pas été appliqué :",
+        "en": "Settings saved, but network was not applied:",
+    },
+    "network_mode_dhcp": {
+        "it": "DHCP (automatico)",
+        "fr": "DHCP (automatique)",
+        "en": "DHCP (automatic)",
+    },
+    "network_mode_manual": {
+        "it": "IP statico (manuale)",
+        "fr": "IP statique (manuel)",
+        "en": "Static IP (manual)",
+    },
     "setting_API_KEY": {"it": "API Key", "fr": "Clé API", "en": "API Key"},
     "hint_API_KEY": {
         "it": "Opzionale in LAN chiusa; lasciare vuoto per non cambiare",

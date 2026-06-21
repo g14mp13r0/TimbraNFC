@@ -431,7 +431,7 @@ def export_report_csv(
 
 # --- Impostazioni ---
 
-def _settings_page_context(db: Session, *, msg: str = "", error: str = "", restart_error: str = ""):
+def _settings_page_context(db: Session, *, msg: str = "", error: str = "", restart_error: str = "", network_warn: str = ""):
     from server.app.services.settings_env import (
         ENV_PATH,
         kiosk_background_path,
@@ -462,6 +462,7 @@ def _settings_page_context(db: Session, *, msg: str = "", error: str = "", resta
         "msg": msg,
         "error": error,
         "restart_error": restart_error,
+        "network_warn": network_warn,
         "active_page": "impostazioni",
         **_sidebar_counts(db),
     }
@@ -474,11 +475,12 @@ def page_impostazioni(
     msg: str = "",
     error: str = "",
     restart_error: str = "",
+    network_warn: str = "",
 ):
     return templates.TemplateResponse(
         request,
         "impostazioni.html",
-        _settings_page_context(db, msg=msg, error=error, restart_error=restart_error),
+        _settings_page_context(db, msg=msg, error=error, restart_error=restart_error, network_warn=network_warn),
     )
 
 
@@ -491,7 +493,7 @@ async def salva_impostazioni(request: Request, db: Session = Depends(get_db)):
     restart = action == "save_restart"
 
     try:
-        save_settings(form)
+        _, network_result = save_settings(form)
     except Exception as exc:
         return templates.TemplateResponse(
             request,
@@ -500,16 +502,28 @@ async def salva_impostazioni(request: Request, db: Session = Depends(get_db)):
             status_code=400,
         )
 
+    network_warn = ""
+    if network_result:
+        ok, detail = network_result
+        if not ok:
+            network_warn = detail
+
+    def _redirect(query: str) -> RedirectResponse:
+        if network_warn:
+            from urllib.parse import quote
+
+            query = f"{query}&network_warn={quote(network_warn[:240])}"
+        return RedirectResponse(f"/impostazioni?{query}", status_code=303)
+
     if restart:
         ok, detail = restart_kiosk()
         if ok:
-            return RedirectResponse("/impostazioni?msg=saved_restart", status_code=303)
-        return RedirectResponse(
-            f"/impostazioni?msg=saved&restart_error={detail.replace(' ', '+')[:120]}",
-            status_code=303,
-        )
+            return _redirect("msg=saved_restart")
+        return _redirect(f"msg=saved&restart_error={detail.replace(' ', '+')[:120]}")
 
-    return RedirectResponse("/impostazioni?msg=saved", status_code=303)
+    if network_result and network_result[0]:
+        return _redirect("msg=saved_network")
+    return _redirect("msg=saved")
 
 
 @app.post("/impostazioni/sfondo")

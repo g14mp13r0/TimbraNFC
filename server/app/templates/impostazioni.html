@@ -19,6 +19,11 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
     {{ t('settings_saved_restart') }}
 </div>
+{% elif msg == 'saved_network' %}
+<div class="alert alert-success">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+    {{ t('settings_saved_network') }}
+</div>
 {% elif msg == 'background' %}
 <div class="alert alert-success">{{ t('settings_bg_updated') }}</div>
 {% elif msg == 'background_error' %}
@@ -27,6 +32,9 @@
 
 {% if restart_error %}
 <div class="alert alert-error">{{ t('settings_restart_failed') }} {{ restart_error }}</div>
+{% endif %}
+{% if network_warn %}
+<div class="alert alert-error">{{ t('settings_network_warn') }} {{ network_warn }}</div>
 {% endif %}
 {% if error %}
 <div class="alert alert-error">{{ error }}</div>
@@ -75,10 +83,10 @@
         <div class="card-body">
             <div class="form-grid settings-grid">
                 {% for field in fields if field.section == section_id %}
-                <label class="{% if field.type == 'bool' %}label-check{% endif %}">
+                <label class="{% if field.type == 'bool' %}label-check{% endif %}{% if field.network_manual %} network-manual-field{% endif %}">
                     {{ field.label }}
                     {% if field.type == 'choice' %}
-                    <select name="{{ field.key }}">
+                    <select name="{{ field.key }}"{% if field.key == 'NETWORK_MODE' %} id="network-mode"{% endif %}>
                         {% for val, lbl in field.choices %}
                         <option value="{{ val }}" {% if settings[field.key]|lower == val|lower %}selected{% endif %}>{{ lbl }}</option>
                         {% endfor %}
@@ -129,5 +137,21 @@
         </div>
     </div>
 </div>
+
+<script>
+(function () {
+    var mode = document.getElementById('network-mode');
+    if (!mode) return;
+    function syncNetworkFields() {
+        var manual = mode.value === 'manual';
+        document.querySelectorAll('.network-manual-field input[type="text"]').forEach(function (el) {
+            el.readOnly = !manual;
+            el.classList.toggle('input-dimmed', !manual);
+        });
+    }
+    mode.addEventListener('change', syncNetworkFields);
+    syncNetworkFields();
+})();
+</script>
 
 {% endblock %}
