@@ -1,6 +1,5 @@
 """Kiosk UI 480×320 — timbratura NFC (auto IT/FT) o pulsanti touch."""
 
-import locale
 import logging
 import sys
 import tkinter as tk
@@ -11,7 +10,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import terminal.config as config
 from terminal import timbratura as timb_logic
-from shared.kiosk_i18n import action_label, locale_name, stato_label, t
+from shared.dates import format_kiosk_date
+from shared.kiosk_i18n import action_label, stato_label, t
 
 log = logging.getLogger("kiosk_ui")
 
@@ -203,11 +203,7 @@ class KioskUI:
         if hasattr(self, "lbl_ora") and self.lbl_ora.winfo_exists():
             self.lbl_ora.config(text=now.strftime("%H:%M"))
         if hasattr(self, "lbl_data") and self.lbl_data.winfo_exists():
-            try:
-                locale.setlocale(locale.LC_TIME, locale_name())
-            except locale.Error:
-                pass
-            self.lbl_data.config(text=now.strftime("%a %d/%m/%Y"))
+            self.lbl_data.config(text=format_kiosk_date(now))
         self.root.after(1000, self._aggiorna_ora)
 
     def run(self):
