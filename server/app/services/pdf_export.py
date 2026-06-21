@@ -11,6 +11,7 @@ from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
 from reportlab.platypus import Image, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
+from shared.dates import format_date, format_datetime
 from shared.kiosk_i18n import normalize_lang, t
 
 
@@ -128,8 +129,8 @@ def _build_pdf(
 def _period_subtitle(da: str, a: str, lang: str | None = None) -> str:
     code = normalize_lang(lang)
     period = t("period_label", code).rstrip(":").rstrip("：")
-    generated = datetime.now().strftime("%Y-%m-%d %H:%M")
-    return f"{period}: {da} → {a} · {generated}"
+    generated = format_datetime(datetime.now(), seconds=False)
+    return f"{period}: {format_date(da)} → {format_date(a)} · {generated}"
 
 
 def sort_timbrature_rows(rows: list[dict]) -> list[dict]:
@@ -151,14 +152,14 @@ def timbrature_pdf(rows: list[dict], da: str, a: str, lang: str | None = None) -
     ]
     table_rows = [
         [
-            r["data"],
+            format_date(r["data"]),
             r["ora"],
             r["dipendente"],
             r["badge_uid"],
             r["reparto"],
             r["azione_label"],
             r["dispositivo"],
-            r["ricevuto_il"],
+            format_datetime(r["ricevuto_il"]) if r["ricevuto_il"] != "—" else "—",
         ]
         for r in ordered
     ]
@@ -204,7 +205,7 @@ def report_turni_pdf(data: dict, da: str, a: str, lang: str | None = None) -> by
             fine = row.get("ora_fine") or "—"
         detail_rows.append([
             row["dipendente"],
-            row["data"],
+            format_date(row["data"]),
             row["ora_inizio"],
             fine,
             row["durata"],

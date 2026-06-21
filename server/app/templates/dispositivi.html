@@ -64,7 +64,7 @@
                     <div class="dc-meta">
                         <div class="dc-meta-item"><div class="k">UUID</div><div class="v">{{ (d.device_uuid or '')[:8] }}{% if d.device_uuid %}…{% else %}—{% endif %}</div></div>
                         <div class="dc-meta-item"><div class="k">{{ t('dev_sw_version') }}</div><div class="v">{{ d.versione_sw or '—' }}</div></div>
-                        <div class="dc-meta-item"><div class="k">{{ t('dev_last_hb') }}</div><div class="v">{{ d.ultimo_heartbeat or '—' }}</div></div>
+                        <div class="dc-meta-item"><div class="k">{{ t('dev_last_hb') }}</div><div class="v">{{ d.ultimo_heartbeat | fmt_datetime if d.ultimo_heartbeat else '—' }}</div></div>
                     </div>
                     <div class="dc-actions">
                         <form method="post" action="/dispositivi/{{ d.id }}/restart-kiosk">

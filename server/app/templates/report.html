@@ -37,7 +37,7 @@
             </form>
         </div>
         <div class="card-body" style="padding-top:0;padding-bottom:10px;">
-            <p class="hint">{{ t('period_label') }} <strong style="color:var(--text);">{{ da }}</strong> → <strong style="color:var(--text);">{{ a }}</strong></p>
+            <p class="hint">{{ t('period_label') }} <strong style="color:var(--text);">{{ da | fmt_date }}</strong> → <strong style="color:var(--text);">{{ a | fmt_date }}</strong></p>
         </div>
         <div class="card-body" style="padding-bottom:0;">
             <h2 class="card-subhead">{{ t('report_summary') }}</h2>
@@ -86,7 +86,7 @@
                         {% for turno in turni %}
                         <tr{% if turno.aperto %} class="turno-aperto"{% endif %}>
                             <td class="cell-strong">{{ turno.dipendente }}</td>
-                            <td>{{ turno.data }}</td>
+                            <td>{{ turno.data | fmt_date }}</td>
                             <td>
                                 {% if turno.aperto %}
                                 <div class="shift-line">

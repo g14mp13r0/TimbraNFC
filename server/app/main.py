@@ -39,6 +39,8 @@ templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 from shared.kiosk_i18n import current_lang as _current_lang
 from shared.kiosk_i18n import enrollment_js_strings
 from shared.kiosk_i18n import t as _translate
+from shared.dates import format_date as _format_date
+from shared.dates import format_datetime as _format_datetime
 
 from markupsafe import Markup
 
@@ -58,6 +60,8 @@ def _tojson_filter(value) -> Markup:
 
 
 templates.env.filters["tojson"] = _tojson_filter
+templates.env.filters["fmt_date"] = _format_date
+templates.env.filters["fmt_datetime"] = _format_datetime
 
 if STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
@@ -383,8 +387,9 @@ def export_timbrature_csv(
     ])
     for t in rows:
         writer.writerow([
-            t["id"], t["data"], t["ora"], t["dipendente"], t["badge_uid"],
-            t["reparto"], t["azione_label"], t["azione"], t["dispositivo"], t["ricevuto_il"],
+            t["id"], _format_date(t["data"]), t["ora"], t["dipendente"], t["badge_uid"],
+            t["reparto"], t["azione_label"], t["azione"], t["dispositivo"],
+            _format_datetime(t["ricevuto_il"]) if t["ricevuto_il"] != "—" else "—",
         ])
     buf.seek(0)
     filename = f"timbrature_{da}_{a}.csv"
@@ -464,7 +469,7 @@ def export_report_csv(
     writer = csv.writer(buf)
     writer.writerow(["Dipendente", "Data", "Ora inizio", "Ora fine", "Tempo totale"])
     for t in data["turni"]:
-        writer.writerow([t["dipendente"], t["data"], t["ora_inizio"], t["ora_fine"] or "", t["durata"]])
+        writer.writerow([t["dipendente"], _format_date(t["data"]), t["ora_inizio"], t["ora_fine"] or "", t["durata"]])
     writer.writerow([])
     writer.writerow(["Riepilogo", "Giorni", "N. turni", "Tempo totale"])
     for r in data["riepilogo"]:

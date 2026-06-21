@@ -70,7 +70,7 @@
                 <tbody>
                 {% for ev in recenti %}
                     <tr>
-                        <td class="cell-mono">{{ ev.ricevuto_il.strftime('%Y-%m-%d %H:%M:%S') if ev.ricevuto_il else '—' }}</td>
+                        <td class="cell-mono">{{ ev.ricevuto_il | fmt_datetime if ev.ricevuto_il else '—' }}</td>
                         <td class="cell-strong">
                             {% if ev.dipendente %}
                             {{ ev.dipendente.cognome }} {{ ev.dipendente.nome }}
