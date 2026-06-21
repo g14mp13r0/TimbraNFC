@@ -46,7 +46,7 @@
                     await startEnrollment();
                     return;
                 }
-                setStatus("Badge registrato: " + data.badge_uid, "success");
+                setStatus("Badge registrato: " + data.badge_uid, "ok");
                 clearInterval(pollTimer);
                 pollTimer = null;
             } else if (data.status === "expired" || data.status === "invalid") {

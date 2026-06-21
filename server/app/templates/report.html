@@ -1,79 +1,115 @@
 {% extends "base.html" %}
 {% block title %}Report turni — TimbraNFC{% endblock %}
+{% block breadcrumb %}Presenze / <b>Report turni</b>{% endblock %}
 {% block content %}
-    <h1>Report turni</h1>
-    <p class="subtitle">Turni calcolati dalle timbrature (IT/FT). Elenco eventi in <a href="/timbrature">Timbrature</a>.</p>
+    <div class="page-head">
+        <h1>Report turni</h1>
+        <p class="subtitle">Turni calcolati dalle timbrature (entrata/uscita). Elenco eventi grezzi in <a href="/timbrature">Timbrature →</a></p>
+    </div>
 
-    <form method="get" class="filters">
-        <label>Mese
-            <input type="month" name="mese" value="{{ mese }}">
-        </label>
-        <label>Dipendente
-            <select name="dipendente_id">
-                <option value="">Tutti</option>
-                {% for d in dipendenti %}
-                <option value="{{ d.id }}" {{ 'selected' if dipendente_id == d.id }}>{{ d.cognome }} {{ d.nome }}</option>
-                {% endfor %}
-            </select>
-        </label>
-        <span class="filter-sep">oppure periodo:</span>
-        <label>Da <input type="date" name="da" value="{{ da }}"></label>
-        <label>A <input type="date" name="a" value="{{ a }}"></label>
-        <button type="submit">Filtra</button>
-        <a href="/report/export.csv?da={{ da }}&amp;a={{ a }}{% if dipendente_id %}&amp;dipendente_id={{ dipendente_id }}{% endif %}{% if mese %}&amp;mese={{ mese }}{% endif %}" class="btn-export">Export CSV</a>
-    </form>
+    <div class="card">
+        <div class="card-body" style="padding-bottom:0;">
+            <form method="get" class="filters">
+                <label>Mese
+                    <input type="month" name="mese" value="{{ mese }}">
+                </label>
+                <label>Dipendente
+                    <select name="dipendente_id">
+                        <option value="">Tutti</option>
+                        {% for d in dipendenti %}
+                        <option value="{{ d.id }}" {{ 'selected' if dipendente_id == d.id }}>{{ d.cognome }} {{ d.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <span class="filter-sep">oppure periodo:</span>
+                <label>Da <input type="date" name="da" value="{{ da }}"></label>
+                <label>A <input type="date" name="a" value="{{ a }}"></label>
+                <button type="submit">Filtra</button>
+                <a href="/report/export.csv?da={{ da }}&amp;a={{ a }}{% if dipendente_id %}&amp;dipendente_id={{ dipendente_id }}{% endif %}{% if mese %}&amp;mese={{ mese }}{% endif %}" class="btn-export">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4"/><path d="M5 19h14"/></svg>
+                    Export CSV
+                </a>
+            </form>
+        </div>
 
-    <p class="hint">Periodo: <strong>{{ da }}</strong> → <strong>{{ a }}</strong></p>
+        <div class="card-body" style="padding-top:0;padding-bottom:10px;">
+            <p class="hint">Periodo: <strong style="color:var(--text);">{{ da }}</strong> → <strong style="color:var(--text);">{{ a }}</strong></p>
+        </div>
 
-    <h2>Riepilogo periodo</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>Dipendente</th>
-                <th>Giorni</th>
-                <th>N. turni</th>
-                <th>Ore totali</th>
-                <th>Tempo totale</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for r in riepilogo %}
-            <tr>
-                <td>{{ r.dipendente }}</td>
-                <td>{{ r.giorni }}</td>
-                <td>{{ r.n_turni }}</td>
-                <td><strong>{{ r.ore }} h</strong></td>
-                <td>{{ r.durata_totale }}</td>
-            </tr>
-            {% else %}
-            <tr><td colspan="5" class="empty">Nessun turno nel periodo selezionato</td></tr>
-            {% endfor %}
-        </tbody>
-    </table>
+        <div class="card-body" style="padding-bottom:0;">
+            <h2 class="card-subhead">Riepilogo periodo</h2>
+        </div>
+        <div class="card-body flush" style="border-bottom:1px solid var(--line);">
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Dipendente</th>
+                            <th>Giorni</th>
+                            <th>N. turni</th>
+                            <th>Ore totali</th>
+                            <th>Tempo totale</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in riepilogo %}
+                        <tr>
+                            <td class="cell-strong">{{ r.dipendente }}</td>
+                            <td>{{ r.giorni }}</td>
+                            <td>{{ r.n_turni }}</td>
+                            <td><strong style="color:var(--navy-950);">{{ r.ore }} h</strong></td>
+                            <td class="cell-mute">{{ r.durata_totale }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="5" class="empty">Nessun turno nel periodo selezionato</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
 
-    <h2>Dettaglio turni</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>Dipendente</th>
-                <th>Data</th>
-                <th>Ora inizio</th>
-                <th>Ora fine</th>
-                <th>Tempo totale</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for t in turni %}
-            <tr{% if t.aperto %} class="turno-aperto"{% endif %}>
-                <td>{{ t.dipendente }}</td>
-                <td>{{ t.data }}</td>
-                <td>{{ t.ora_inizio }}</td>
-                <td>{% if t.ora_fine %}{{ t.ora_fine }}{% else %}<em>in corso</em>{% endif %}</td>
-                <td><strong>{{ t.durata }}</strong></td>
-            </tr>
-            {% else %}
-            <tr><td colspan="5" class="empty">Nessun turno completato nel periodo</td></tr>
-            {% endfor %}
-        </tbody>
-    </table>
+        <div class="card-body" style="padding-bottom:0;">
+            <h2 class="card-subhead">Dettaglio turni</h2>
+        </div>
+        <div class="card-body flush">
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Dipendente</th>
+                            <th>Data</th>
+                            <th>Timeline turno</th>
+                            <th>Tempo totale</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for t in turni %}
+                        <tr{% if t.aperto %} class="turno-aperto"{% endif %}>
+                            <td class="cell-strong">{{ t.dipendente }}</td>
+                            <td>{{ t.data }}</td>
+                            <td>
+                                {% if t.aperto %}
+                                <div class="shift-line">
+                                    <div class="pt"><div class="dot in"></div>{{ t.ora_inizio }}</div>
+                                    <div class="bar open-bar"></div>
+                                    <div class="pt"><div class="dot open"></div><span style="color:var(--amber);">in corso</span></div>
+                                </div>
+                                {% else %}
+                                <div class="shift-line">
+                                    <div class="pt"><div class="dot in"></div>{{ t.ora_inizio }}</div>
+                                    <div class="bar filled"></div>
+                                    <div class="pt"><div class="dot out"></div>{{ t.ora_fine }}</div>
+                                </div>
+                                {% endif %}
+                            </td>
+                            <td><strong style="color:{{ 'var(--amber)' if t.aperto else 'var(--navy-950)' }};">{{ t.durata }}</strong></td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="4" class="empty">Nessun turno completato nel periodo</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 {% endblock %}

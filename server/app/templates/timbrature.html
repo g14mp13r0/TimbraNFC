@@ -1,8 +1,11 @@
 {% extends "base.html" %}
 {% block title %}Timbrature — TimbraNFC{% endblock %}
+{% block breadcrumb %}Presenze / <b>Timbrature</b>{% endblock %}
 {% block content %}
-    <h1>Timbrature</h1>
-    <p class="subtitle">Elenco completo delle timbrature registrate. Per ore e turni usa <a href="/report">Report turni</a>.</p>
+    <div class="page-head">
+        <h1>Timbrature</h1>
+        <p class="subtitle">Elenco completo delle timbrature registrate. Per ore e turni usa <a href="/report">Report turni →</a></p>
+    </div>
 
     {% if msg == 'azzerate' %}
     <div class="alert alert-success">Timbrature azzerate: {{ request.query_params.get('n', '0') }} dal server{% if request.query_params.get('nl') %}, {{ request.query_params.get('nl') }} dalla coda locale{% endif %}.</div>
@@ -11,73 +14,121 @@
     <div class="alert alert-error">Conferma non valida — digita esattamente <strong>AZZERA</strong>.</div>
     {% endif %}
 
-    <form method="get" class="filters">
-        <label>Mese
-            <input type="month" name="mese" value="{{ mese }}">
-        </label>
-        <label>Dipendente
-            <select name="dipendente_id">
-                <option value="">Tutti</option>
-                {% for d in dipendenti %}
-                <option value="{{ d.id }}" {{ 'selected' if dipendente_id == d.id }}>{{ d.cognome }} {{ d.nome }}</option>
+    <div class="card">
+        <div class="card-body" style="padding-bottom:0;">
+            <form method="get" class="filters">
+                <label>Mese
+                    <input type="month" name="mese" value="{{ mese }}">
+                </label>
+                <label>Dipendente
+                    <select name="dipendente_id">
+                        <option value="">Tutti</option>
+                        {% for d in dipendenti %}
+                        <option value="{{ d.id }}" {{ 'selected' if dipendente_id == d.id }}>{{ d.cognome }} {{ d.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <span class="filter-sep">oppure periodo:</span>
+                <label>Da <input type="date" name="da" value="{{ da }}"></label>
+                <label>A <input type="date" name="a" value="{{ a }}"></label>
+                <button type="submit">Filtra</button>
+                <a href="/timbrature/export.csv?da={{ da }}&amp;a={{ a }}{% if dipendente_id %}&amp;dipendente_id={{ dipendente_id }}{% endif %}{% if mese %}&amp;mese={{ mese }}{% endif %}" class="btn-export">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4"/><path d="M5 19h14"/></svg>
+                    Export CSV
+                </a>
+            </form>
+
+            <div class="chip-row" id="reparto-chips" style="padding:0 0 16px 0;">
+                <button type="button" class="chip active" data-reparto="">Tutti i reparti</button>
+                {% for r in timbrature|map(attribute='reparto')|select|unique|sort %}
+                <button type="button" class="chip" data-reparto="{{ r }}">{{ r }}</button>
                 {% endfor %}
-            </select>
-        </label>
-        <span class="filter-sep">oppure periodo:</span>
-        <label>Da <input type="date" name="da" value="{{ da }}"></label>
-        <label>A <input type="date" name="a" value="{{ a }}"></label>
-        <button type="submit">Filtra</button>
-        <a href="/timbrature/export.csv?da={{ da }}&amp;a={{ a }}{% if dipendente_id %}&amp;dipendente_id={{ dipendente_id }}{% endif %}{% if mese %}&amp;mese={{ mese }}{% endif %}" class="btn-export">Export CSV</a>
-    </form>
+            </div>
+        </div>
 
-    <p class="hint">
-        Periodo: <strong>{{ da }}</strong> → <strong>{{ a }}</strong>
-        · {{ timbrature|length }} timbrature
-        {% if dipendente_id %} · filtro dipendente attivo{% endif %}
-    </p>
+        <div class="card-body" style="padding-top:0;padding-bottom:10px;">
+            <p class="hint">
+                Periodo: <strong style="color:var(--text);">{{ da }}</strong> → <strong style="color:var(--text);">{{ a }}</strong>
+                · <span id="timb-count-label">{{ timbrature|length }} timbrature</span>
+                {% if dipendente_id %} · filtro dipendente attivo{% endif %}
+            </p>
+        </div>
 
-    <table>
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Data</th>
-                <th>Ora</th>
-                <th>Dipendente</th>
-                <th>Badge</th>
-                <th>Reparto</th>
-                <th>Azione</th>
-                <th>Terminale</th>
-                <th>Ricevuto server</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for t in timbrature %}
-            <tr>
-                <td>{{ t.id }}</td>
-                <td>{{ t.data }}</td>
-                <td>{{ t.ora }}</td>
-                <td>{{ t.dipendente }}</td>
-                <td><code>{{ t.badge_uid }}</code></td>
-                <td>{{ t.reparto }}</td>
-                <td><span class="badge badge-{{ t.azione }}">{{ t.azione_label }}</span></td>
-                <td>{{ t.dispositivo }}</td>
-                <td>{{ t.ricevuto_il }}</td>
-            </tr>
-            {% else %}
-            <tr><td colspan="9" class="empty">Nessuna timbratura nel periodo selezionato</td></tr>
-            {% endfor %}
-        </tbody>
-    </table>
+        <div class="card-body flush">
+            <div class="table-wrap">
+                <table id="tabella-timbrature">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Data</th>
+                            <th>Ora</th>
+                            <th>Dipendente</th>
+                            <th>Badge</th>
+                            <th>Reparto</th>
+                            <th>Azione</th>
+                            <th>Terminale</th>
+                            <th>Ricevuto server</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for t in timbrature %}
+                        <tr data-reparto="{{ t.reparto or '' }}" data-azione="{{ t.azione }}" data-terminale="{{ t.dispositivo or '' }}">
+                            <td class="cell-mono cell-mute">#{{ t.id }}</td>
+                            <td class="cell-strong">{{ t.data }}</td>
+                            <td class="cell-mono">{{ t.ora }}</td>
+                            <td>{{ t.dipendente }}</td>
+                            <td class="cell-mono">{{ t.badge_uid }}</td>
+                            <td class="cell-mute">{{ t.reparto }}</td>
+                            <td><span class="badge badge-{{ t.azione }}">{{ t.azione_label }}</span></td>
+                            <td class="cell-mute">{{ t.dispositivo }}</td>
+                            <td class="cell-mono cell-mute">{{ t.ricevuto_il }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="9" class="empty">Nessuna timbratura nel periodo selezionato</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 
-    <section class="danger-panel">
-        <h2>Azzera timbrature</h2>
-        <p class="hint">Elimina <strong>tutte</strong> le timbrature di tutti i dipendenti ({{ n_totale }} nel database). I dipendenti e i badge restano invariati. Operazione irreversibile.</p>
-        <form method="post" action="/timbrature/azzera" class="filters"
-              onsubmit="return confirm('Eliminare TUTTE le timbrature?');">
-            <label>Digita AZZERA per confermare
-                <input type="text" name="confirm" autocomplete="off" placeholder="AZZERA" required>
-            </label>
-            <button type="submit" class="btn-danger">Azzera tutte le timbrature</button>
-        </form>
-    </section>
+    <div class="card">
+        <div class="card-body">
+            <div class="danger-panel">
+                <h2>Azzera timbrature</h2>
+                <p>Elimina <strong>tutte</strong> le timbrature di tutti i dipendenti ({{ n_totale }} nel database). I dipendenti e i badge restano invariati. Operazione irreversibile.</p>
+                <form method="post" action="/timbrature/azzera" class="filters" style="background:transparent;border:none;padding:0;margin:0;"
+                      onsubmit="return confirm('Eliminare TUTTE le timbrature?');">
+                    <label>Digita AZZERA per confermare
+                        <input type="text" name="confirm" autocomplete="off" placeholder="AZZERA" required>
+                    </label>
+                    <button type="submit" class="btn-danger solid" style="background:var(--red);border-color:var(--red);">Azzera tutte le timbrature</button>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+{% block scripts %}
+<script>
+(function(){
+    const chips = document.querySelectorAll('#reparto-chips .chip');
+    const rows = Array.from(document.querySelectorAll('#tabella-timbrature tbody tr[data-reparto]'));
+    const countLabel = document.getElementById('timb-count-label');
+
+    chips.forEach(chip => {
+        chip.addEventListener('click', () => {
+            chips.forEach(c => c.classList.remove('active'));
+            chip.classList.add('active');
+            const reparto = chip.dataset.reparto;
+            let visible = 0;
+            rows.forEach(tr => {
+                const show = !reparto || tr.dataset.reparto === reparto;
+                tr.style.display = show ? '' : 'none';
+                if(show) visible++;
+            });
+            if(countLabel) countLabel.textContent = `${visible} timbrature (filtro reparto: ${reparto || 'tutti'})`;
+        });
+    });
+})();
+</script>
 {% endblock %}

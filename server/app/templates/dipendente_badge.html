@@ -1,9 +1,12 @@
 {% extends "base.html" %}
 {% block title %}Riassegna badge — TimbraNFC{% endblock %}
+{% block breadcrumb %}<a href="/dipendenti">Dipendenti</a> / <b>Riassegna badge</b>{% endblock %}
 {% block content %}
-    <p class="breadcrumb"><a href="/dipendenti">← Dipendenti</a></p>
-    <h1>Riassegna badge NFC</h1>
-    <p class="subtitle">{{ dipendente.cognome }} {{ dipendente.nome }} · badge attuale <code>{{ dipendente.badge_uid }}</code></p>
+    <p class="breadcrumb-link"><a href="/dipendenti">← Torna a Dipendenti</a></p>
+    <div class="page-head">
+        <h1>Riassegna badge NFC</h1>
+        <p class="subtitle">{{ dipendente.cognome }} {{ dipendente.nome }} · badge attuale <code>{{ dipendente.badge_uid }}</code></p>
+    </div>
 
     {% if error == 'badge_duplicato' %}
     <div class="alert alert-error">Badge già associato a un altro dipendente.</div>
@@ -11,25 +14,31 @@
     <div class="alert alert-error">Leggi prima un badge NFC.</div>
     {% endif %}
 
-    <section class="enrollment-panel">
-        <form method="post" action="/dipendenti/{{ dipendente.id }}/badge" id="form-dipendente" class="enrollment-form">
-            <div class="badge-enroll">
-                <label class="badge-enroll-label">Nuovo badge NFC</label>
-                <div class="badge-enroll-row">
-                    <input name="badge_uid" id="badge_uid" readonly required
-                           placeholder="In attesa lettura badge…">
-                    <button type="button" id="btn-enroll" class="btn-secondary">Rileggi badge</button>
+    <div class="card" style="max-width:680px;">
+        <div class="card-body">
+            <div class="alert alert-info">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-5M12 8h.01"/></svg>
+                Il vecchio badge verrà disattivato non appena il nuovo viene salvato.
+            </div>
+            <form method="post" action="/dipendenti/{{ dipendente.id }}/badge" id="form-dipendente" class="enrollment-form">
+                <div class="badge-enroll">
+                    <label class="badge-enroll-label">Nuovo badge NFC</label>
+                    <div class="badge-enroll-row">
+                        <input name="badge_uid" id="badge_uid" readonly required
+                               placeholder="In attesa lettura badge…">
+                        <button type="button" id="btn-enroll" class="btn-secondary">Rileggi badge</button>
+                    </div>
+                    <p id="enroll-status" class="enroll-status waiting">
+                        Clicca «Rileggi badge» e avvicina il nuovo badge al lettore NFC del Raspberry Pi.
+                    </p>
                 </div>
-                <p id="enroll-status" class="enroll-status waiting">
-                    Clicca «Rileggi badge» e avvicina il nuovo badge al lettore NFC del Raspberry Pi.
-                </p>
-            </div>
-            <div class="form-actions">
-                <button type="submit" id="btn-submit" disabled>Salva nuovo badge</button>
-                <a href="/dipendenti" class="btn-export">Annulla</a>
-            </div>
-        </form>
-    </section>
+                <div class="form-actions">
+                    <button type="submit" id="btn-submit" disabled>Salva nuovo badge</button>
+                    <a href="/dipendenti" class="btn-export">Annulla</a>
+                </div>
+            </form>
+        </div>
+    </div>
 {% endblock %}
 {% block scripts %}
 <script>

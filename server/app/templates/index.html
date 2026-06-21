@@ -1,27 +1,108 @@
 {% extends "base.html" %}
-{% block title %}TimbraNFC Server{% endblock %}
+{% block title %}Dashboard — TimbraNFC{% endblock %}
+{% block breadcrumb %}<b>Dashboard</b>{% endblock %}
 {% block content %}
-    <h1>Panoramica sede</h1>
-    <div class="cards">
-        <div class="card"><div class="card-value">{{ n_dip }}</div><div class="card-label">Dipendenti</div></div>
-        <div class="card"><div class="card-value">{{ n_timb }}</div><div class="card-label">Timbrature oggi</div></div>
-        <div class="card"><div class="card-value">{{ n_dev }}</div><div class="card-label">Terminali</div></div>
+
+<div class="page-head">
+    <h1>Buongiorno, Amministratore</h1>
+    <p class="subtitle">Riepilogo di Sede Principale — aggiornato in tempo reale</p>
+</div>
+
+<div class="kpi-row">
+    <div class="kpi-card">
+        <div class="kpi-top">
+            <div class="kpi-icon navy">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20c0-3.6 2.5-6 5.5-6s5.5 2.4 5.5 6"/><circle cx="18" cy="9" r="2.4"/><path d="M15.8 14c2.6.2 4.7 2.3 4.7 6"/></svg>
+            </div>
+        </div>
+        <div class="kpi-value">{{ n_dip }}</div>
+        <div class="kpi-label">Dipendenti attivi</div>
     </div>
-    <h2>Timbrature recenti <a href="/timbrature" class="btn-export btn-sm">Vedi tutte</a></h2>
-    <table>
-        <thead>
-            <tr><th>Data/Ora</th><th>Azione</th><th>Ricevuto server</th></tr>
-        </thead>
-        <tbody>
-        {% for t in recenti %}
-        <tr>
-            <td>{{ t.timestamp_terminale.strftime('%Y-%m-%d %H:%M:%S') if t.timestamp_terminale else '—' }}</td>
-            <td><span class="badge badge-{{ t.azione }}">{{ t.azione }}</span></td>
-            <td>{{ t.ricevuto_il.strftime('%Y-%m-%d %H:%M:%S') if t.ricevuto_il else '—' }}</td>
-        </tr>
-        {% else %}
-        <tr><td colspan="3" class="empty">Nessuna timbratura — <a href="/timbrature">apri elenco</a></td></tr>
-        {% endfor %}
-        </tbody>
-    </table>
+    <div class="kpi-card">
+        <div class="kpi-top">
+            <div class="kpi-icon blue">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+            </div>
+            <span class="kpi-trend flat">oggi</span>
+        </div>
+        <div class="kpi-value">{{ n_timb }}</div>
+        <div class="kpi-label">Timbrature registrate oggi</div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-top">
+            <div class="kpi-icon amber">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10.5 18.5h3"/></svg>
+            </div>
+        </div>
+        <div class="kpi-value">{{ n_dev }}</div>
+        <div class="kpi-label">Terminali registrati</div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-top">
+            <div class="kpi-icon green">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+            </div>
+        </div>
+        <div class="kpi-value">{{ recenti|length }}</div>
+        <div class="kpi-label">Eventi recenti mostrati</div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-head">
+        <div>
+            <h2>Ultime timbrature</h2>
+            <div class="card-sub">Le 10 timbrature più recenti ricevute dal server</div>
+        </div>
+        <a href="/timbrature" class="btn btn-ghost btn-sm">Vedi tutte →</a>
+    </div>
+    <div class="card-body flush">
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Ricevuto il</th>
+                        <th>Dipendente</th>
+                        <th>Azione</th>
+                        <th>Dispositivo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for t in recenti %}
+                    <tr>
+                        <td class="cell-mono">{{ t.ricevuto_il.strftime('%Y-%m-%d %H:%M:%S') if t.ricevuto_il else '—' }}</td>
+                        <td class="cell-strong">{{ t.dipendente.cognome }} {{ t.dipendente.nome }}</td>
+                        <td>
+                            {% if t.azione in ['IT', 'FP'] %}
+                            <span class="badge badge-in"><span class="pill-dot"></span>Inizio</span>
+                            {% elif t.azione in ['FT', 'IP'] %}
+                            <span class="badge badge-out"><span class="pill-dot"></span>Fine</span>
+                            {% else %}
+                            <span class="badge badge-in"><span class="pill-dot"></span>{{ t.azione }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="cell-mute">{{ t.dispositivo.nome if t.dispositivo else '—' }}</td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="4" class="empty">Nessuna timbratura registrata</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-head">
+        <div>
+            <h2>Stato dispositivi</h2>
+            <div class="card-sub">{{ n_dev }} terminali registrati in flotta</div>
+        </div>
+        <a href="/dispositivi" class="btn btn-ghost btn-sm">Gestisci →</a>
+    </div>
+    <div class="card-body">
+        <p class="hint">Vai alla pagina <a href="/dispositivi" style="color:var(--blue-accent);font-weight:600;">Dispositivi</a> per il dettaglio di ogni terminale e le azioni remote.</p>
+    </div>
+</div>
+
 {% endblock %}

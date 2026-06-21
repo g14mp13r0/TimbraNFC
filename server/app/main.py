@@ -11,7 +11,7 @@ from fastapi import Depends, FastAPI, Form, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from server.app.api import dashboard as dashboard_api
@@ -85,6 +85,7 @@ def home(request: Request, db: Session = Depends(get_db)):
     n_dev = db.query(Dispositivo).count()
     recenti = (
         db.query(Timbratura)
+        .options(joinedload(Timbratura.dipendente), joinedload(Timbratura.dispositivo))
         .order_by(Timbratura.ricevuto_il.desc())
         .limit(10)
         .all()
@@ -92,7 +93,15 @@ def home(request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse(
         request,
         "index.html",
-        {"n_dip": n_dip, "n_timb": n_timb, "n_dev": n_dev, "recenti": recenti},
+        {
+            "n_dip": n_dip,
+            "n_timb": n_timb,
+            "n_dev": n_dev,
+            "recenti": recenti,
+            "active_page": "home",
+            "sidebar_n_dip": n_dip,
+            "sidebar_n_dev": n_dev,
+        },
     )
 
 
@@ -103,7 +112,11 @@ def page_dispositivi(request: Request, db: Session = Depends(get_db)):
     for d in db.query(Dispositivo).all():
         online = d.ultimo_heartbeat and (now - d.ultimo_heartbeat) < timedelta(minutes=3)
         devices.append({**d.__dict__, "online": online})
-    return templates.TemplateResponse(request, "dispositivi.html", {"devices": devices})
+    return templates.TemplateResponse(
+        request,
+        "dispositivi.html",
+        {"devices": devices, "active_page": "dispositivi", "sidebar_n_dev": len(devices)},
+    )
 
 
 @app.post("/dispositivi/{device_id}/restart-kiosk")
@@ -121,7 +134,13 @@ def page_dipendenti(request: Request, db: Session = Depends(get_db), msg: str = 
     return templates.TemplateResponse(
         request,
         "dipendenti.html",
-        {"dipendenti": dips, "msg": msg, "error": error},
+        {
+            "dipendenti": dips,
+            "msg": msg,
+            "error": error,
+            "active_page": "dipendenti",
+            "sidebar_n_dip": len(dips),
+        },
     )
 
 
@@ -154,7 +173,7 @@ def page_modifica_dipendente(dip_id: int, request: Request, db: Session = Depend
     if not dip:
         return RedirectResponse("/dipendenti?error=non_trovato", status_code=303)
     return templates.TemplateResponse(
-        request, "dipendente_modifica.html", {"dipendente": dip, "error": error}
+        request, "dipendente_modifica.html", {"dipendente": dip, "error": error, "active_page": "dipendenti"}
     )
 
 
@@ -184,7 +203,7 @@ def page_badge_dipendente(dip_id: int, request: Request, db: Session = Depends(g
     if not dip:
         return RedirectResponse("/dipendenti?error=non_trovato", status_code=303)
     return templates.TemplateResponse(
-        request, "dipendente_badge.html", {"dipendente": dip, "error": error}
+        request, "dipendente_badge.html", {"dipendente": dip, "error": error, "active_page": "dipendenti"}
     )
 
 
@@ -260,6 +279,8 @@ def page_timbrature(
             "n_totale": n_totale,
             "msg": msg,
             "error": error,
+            "active_page": "timbrature",
+            "sidebar_n_timb": n_totale,
         },
     )
 
@@ -343,6 +364,7 @@ def page_report(
             "a": a,
             "mese": mese,
             "dipendente_id": dipendente_id,
+            "active_page": "report",
         },
     )
 

@@ -1,22 +1,120 @@
 {% extends "base.html" %}
 {% block title %}Dispositivi — TimbraNFC{% endblock %}
+{% block breadcrumb %}<b>Dispositivi</b>{% endblock %}
 {% block content %}
-    <h1>Flotta terminali</h1>
-    <table>
-        <tr><th>Nome</th><th>UUID</th><th>Stato</th><th>Versione</th><th>Ultimo HB</th><th>Azioni</th></tr>
-        {% for d in devices %}
-        <tr>
-            <td>{{ d.nome }}</td>
-            <td><code>{{ d.device_uuid[:8] }}…</code></td>
-            <td>{{ 'online' if d.online else 'offline' }}</td>
-            <td>{{ d.versione_sw or '—' }}</td>
-            <td>{{ d.ultimo_heartbeat or '—' }}</td>
-            <td>
-                <form method="post" action="/dispositivi/{{ d.id }}/restart-kiosk">
-                    <button type="submit">Restart kiosk</button>
-                </form>
-            </td>
-        </tr>
-        {% endfor %}
-    </table>
+    <div class="page-head">
+        <h1>Flotta terminali</h1>
+        <p class="subtitle">Stato in tempo reale dei terminali NFC collegati e azioni remote.</p>
+    </div>
+
+    <div class="kpi-row kpi-row-3">
+        <div class="kpi-card">
+            <div class="kpi-top">
+                <div class="kpi-icon green">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                </div>
+            </div>
+            <div class="kpi-value">{{ devices|selectattr('online')|list|length }}</div>
+            <div class="kpi-label">Terminali online</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-top">
+                <div class="kpi-icon amber">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+                </div>
+            </div>
+            <div class="kpi-value">{{ devices|rejectattr('online')|list|length }}</div>
+            <div class="kpi-label">Terminali offline</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-top">
+                <div class="kpi-icon navy">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10.5 18.5h3"/></svg>
+                </div>
+            </div>
+            <div class="kpi-value">{{ devices|length }}</div>
+            <div class="kpi-label">Totale registrati</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="filterbar">
+            <div class="f-group f-search">
+                <label>Cerca</label>
+                <div style="position:relative;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+                    <input class="f-control" id="dev-search" placeholder="Nome o UUID terminale…">
+                </div>
+            </div>
+            <div class="f-group">
+                <label>Stato</label>
+                <select class="f-control" id="dev-filter-stato">
+                    <option value="">Tutti</option>
+                    <option value="online">Solo online</option>
+                    <option value="offline">Solo offline</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="card-body">
+            {% if devices|length == 0 %}
+            <div class="empty-state">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v5"/></svg>
+                <h3>Nessun terminale registrato</h3>
+                <p>I terminali appariranno qui non appena effettuano il primo heartbeat verso il server.</p>
+            </div>
+            {% else %}
+            <div class="device-grid" id="device-grid">
+                {% for d in devices %}
+                <div class="device-card" data-online="{{ '1' if d.online else '0' }}">
+                    <div class="dc-head">
+                        <div class="dc-name">
+                            <span class="dc-status-dot {{ 'online' if d.online else 'offline' }}"></span>
+                            {{ d.nome }}
+                        </div>
+                        <span class="pill {{ 'pill-green' if d.online else 'pill-gray' }}">{{ 'Online' if d.online else 'Offline' }}</span>
+                    </div>
+                    <div class="dc-meta">
+                        <div class="dc-meta-item"><div class="k">UUID</div><div class="v">{{ d.device_uuid[:8] }}…</div></div>
+                        <div class="dc-meta-item"><div class="k">Versione SW</div><div class="v">{{ d.versione_sw or '—' }}</div></div>
+                        <div class="dc-meta-item"><div class="k">Ultimo heartbeat</div><div class="v">{{ d.ultimo_heartbeat or '—' }}</div></div>
+                    </div>
+                    <div class="dc-actions">
+                        <form method="post" action="/dispositivi/{{ d.id }}/restart-kiosk">
+                            <button type="submit">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.3-6.4L21 8M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.3 6.4L3 16m0 5v-5h5"/></svg>
+                                Restart kiosk
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}
+{% block scripts %}
+<script>
+(function(){
+    const search = document.getElementById('dev-search');
+    const stato = document.getElementById('dev-filter-stato');
+    const cards = Array.from(document.querySelectorAll('#device-grid .device-card'));
+    if(!search || !stato) return;
+
+    function applyFilters(){
+        const term = (search.value || '').trim().toLowerCase();
+        const filtro = stato.value;
+        cards.forEach(card => {
+            let show = true;
+            if(term && !card.textContent.toLowerCase().includes(term)) show = false;
+            if(filtro === 'online' && card.dataset.online !== '1') show = false;
+            if(filtro === 'offline' && card.dataset.online !== '0') show = false;
+            card.style.display = show ? '' : 'none';
+        });
+    }
+    search.addEventListener('input', applyFilters);
+    stato.addEventListener('change', applyFilters);
+})();
+</script>
 {% endblock %}
