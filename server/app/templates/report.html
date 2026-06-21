@@ -2,7 +2,10 @@
 {% block title %}{{ t('nav_report') }} — TimbraNFC{% endblock %}
 {% block breadcrumb %}{{ t('breadcrumb_presences') }} / <b>{{ t('nav_report') }}</b>{% endblock %}
 {% block content %}
-    <div class="page-head">
+    <div class="page-head page-head-report">
+        <div class="page-head-logo">
+            <img src="/impostazioni/sfondo-preview" alt="TimbraNFC">
+        </div>
         <h1>{{ t('nav_report') }}</h1>
         <p class="subtitle">{{ t('report_subtitle_pre') }} <a href="/timbrature">{{ t('report_subtitle_link') }}</a></p>
     </div>

@@ -168,6 +168,15 @@ button{font-family:inherit;}
 .content{padding:26px 28px 60px 28px;max-width:1320px;width:100%;}
 
 .page-head{margin-bottom:22px;}
+.page-head-report{text-align:center;}
+.page-head-report .page-head-logo{
+  display:flex;justify-content:center;align-items:center;
+  margin-bottom:16px;
+}
+.page-head-report .page-head-logo img{
+  max-height:72px;max-width:min(280px,70vw);width:auto;height:auto;object-fit:contain;
+}
+.page-head-report h1{margin-top:0;}
 .page-head h1{
   font-family:var(--font-display);font-size:26px;font-weight:600;
   margin:0 0 5px 0;color:var(--navy-950);letter-spacing:-0.2px;

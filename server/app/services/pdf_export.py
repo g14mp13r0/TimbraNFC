@@ -9,7 +9,7 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
-from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.platypus import Image, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 from shared.kiosk_i18n import normalize_lang, t
 
@@ -38,6 +38,23 @@ def _pdf_table(headers: list[str], rows: list[list[str]]) -> Table:
         )
     )
     return table
+
+
+def _kiosk_logo_image(max_height: float = 22 * mm) -> Image | None:
+    from server.app.services.settings_env import kiosk_background_path
+
+    path = kiosk_background_path()
+    if not path.is_file():
+        return None
+    img = Image(str(path))
+    iw, ih = float(img.imageWidth), float(img.imageHeight)
+    if ih <= 0:
+        return None
+    scale = min(1.0, max_height / ih)
+    img.drawHeight = ih * scale
+    img.drawWidth = iw * scale
+    img.hAlign = "CENTER"
+    return img
 
 
 def _build_pdf(
@@ -85,10 +102,15 @@ def _build_pdf(
         spaceAfter=6,
     )
 
-    story: list = [
+    story: list = []
+    logo = _kiosk_logo_image()
+    if logo:
+        story.append(logo)
+        story.append(Spacer(1, 10))
+    story.extend([
         Paragraph(title, title_style),
         Paragraph(subtitle, sub_style),
-    ]
+    ])
     for section_title, headers, rows in sections:
         story.append(Paragraph(section_title, section_style))
         if rows:
