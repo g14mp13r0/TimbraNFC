@@ -54,6 +54,8 @@ def _kiosk_logo_image(max_height: float = 22 * mm) -> Image | None:
     img.drawHeight = ih * scale
     img.drawWidth = iw * scale
     img.hAlign = "CENTER"
+    img.spaceBefore = 0
+    img.spaceAfter = 0
     return img
 
 
@@ -66,12 +68,13 @@ def _build_pdf(
 ) -> bytes:
     buf = io.BytesIO()
     page_size = landscape(A4) if landscape_page else A4
+    logo = _kiosk_logo_image()
     doc = SimpleDocTemplate(
         buf,
         pagesize=page_size,
         leftMargin=14 * mm,
         rightMargin=14 * mm,
-        topMargin=14 * mm,
+        topMargin=5 * mm if logo else 14 * mm,
         bottomMargin=14 * mm,
         title=title,
     )
@@ -103,10 +106,9 @@ def _build_pdf(
     )
 
     story: list = []
-    logo = _kiosk_logo_image()
     if logo:
         story.append(logo)
-        story.append(Spacer(1, 10))
+        story.append(Spacer(1, 8))
     story.extend([
         Paragraph(title, title_style),
         Paragraph(subtitle, sub_style),
