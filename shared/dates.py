@@ -17,10 +17,10 @@ _WEEKDAY_SHORT: dict[str, list[str]] = {
 
 def format_kiosk_date(value: datetime | None = None, *, lang: str | None = None) -> str:
     """Data kiosk con giorno della settimana nella lingua selezionata (no locale OS)."""
-    from shared.kiosk_i18n import current_lang, normalize_lang
+    from shared.kiosk_i18n import kiosk_lang_code, normalize_lang
 
     dt = value or datetime.now()
-    code = normalize_lang(lang) if lang else current_lang()
+    code = normalize_lang(lang) if lang else kiosk_lang_code()
     days = _WEEKDAY_SHORT.get(code, _WEEKDAY_SHORT["it"])
     return f"{days[dt.weekday()]} {dt.strftime(_DATE_FMT)}"
 

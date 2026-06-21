@@ -1012,13 +1012,26 @@ def normalize_lang(lang: str | None) -> Lang:
 
 
 def current_lang() -> Lang:
-    """Lingua da .env (dashboard) o variabile d'ambiente (kiosk)."""
-    try:
-        from server.app.services.settings_env import read_settings
+    """Lingua dashboard + kiosk — legge KIOSK_LANG dal file .env (fonte autorevole)."""
+    return kiosk_lang_code()
 
-        return normalize_lang(read_settings().get("KIOSK_LANG"))
+
+def kiosk_lang_code() -> Lang:
+    """Codice lingua it|fr|en. Rilegge .env ad ogni chiamata (kiosk aggiorna data/ora)."""
+    try:
+        from server.app.services.settings_env import parse_env_file
+
+        val = parse_env_file().get("KIOSK_LANG", "").strip()
+        if val:
+            return normalize_lang(val)
     except Exception:
-        return normalize_lang(os.environ.get("KIOSK_LANG", _DEFAULT_LANG))
+        pass
+
+    val = os.environ.get("KIOSK_LANG", "").strip()
+    if val:
+        return normalize_lang(val)
+
+    return _DEFAULT_LANG
 
 
 def t(key: str, lang: Lang | None = None) -> str:
