@@ -83,10 +83,10 @@
         <div class="card-body">
             <div class="form-grid settings-grid">
                 {% for field in fields if field.section == section_id %}
-                <label class="{% if field.type == 'bool' %}label-check{% endif %}{% if field.network_manual %} network-manual-field{% endif %}">
+                <label class="{% if field.type == 'bool' %}label-check{% endif %}{% if field.network_manual %} network-manual-field{% endif %}{% if field.network_wlan %} network-wlan-field{% endif %}">
                     {{ field.label }}
                     {% if field.type == 'choice' %}
-                    <select name="{{ field.key }}"{% if field.key == 'NETWORK_MODE' %} id="network-mode"{% endif %}>
+                    <select name="{{ field.key }}"{% if field.key == 'NETWORK_MODE' %} id="network-mode"{% elif field.key == 'NETWORK_LINK' %} id="network-link"{% endif %}>
                         {% for val, lbl in field.choices %}
                         <option value="{{ val }}" {% if settings[field.key]|lower == val|lower %}selected{% endif %}>{{ lbl }}</option>
                         {% endfor %}
@@ -141,15 +141,25 @@
 <script>
 (function () {
     var mode = document.getElementById('network-mode');
+    var link = document.getElementById('network-link');
     if (!mode) return;
+
     function syncNetworkFields() {
         var manual = mode.value === 'manual';
         document.querySelectorAll('.network-manual-field input[type="text"]').forEach(function (el) {
             el.readOnly = !manual;
             el.classList.toggle('input-dimmed', !manual);
         });
+
+        var wlan = link && link.value === 'wlan';
+        document.querySelectorAll('.network-wlan-field input').forEach(function (el) {
+            el.disabled = !wlan;
+            el.classList.toggle('input-dimmed', !wlan);
+        });
     }
+
     mode.addEventListener('change', syncNetworkFields);
+    if (link) link.addEventListener('change', syncNetworkFields);
     syncNetworkFields();
 })();
 </script>

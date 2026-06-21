@@ -188,9 +188,9 @@ _STRINGS: dict[str, dict[Lang, str]] = {
         "en": "Kiosk / Clock terminal",
     },
     "section_network_lan": {
-        "it": "Rete LAN (Raspberry Pi)",
-        "fr": "Réseau LAN (Raspberry Pi)",
-        "en": "LAN network (Raspberry Pi)",
+        "it": "Rete (LAN / WiFi)",
+        "fr": "Réseau (LAN / WiFi)",
+        "en": "Network (LAN / WiFi)",
     },
     "section_network_app": {
         "it": "Dashboard e sincronizzazione",
@@ -256,6 +256,46 @@ _STRINGS: dict[str, dict[Lang, str]] = {
         "fr": "Mode mock GPIO (test)",
         "en": "GPIO mock mode (test)",
     },
+    "setting_NETWORK_LINK": {
+        "it": "Tipo connessione",
+        "fr": "Type de connexion",
+        "en": "Connection type",
+    },
+    "hint_NETWORK_LINK": {
+        "it": "Cavo Ethernet (LAN) oppure rete wireless (WiFi)",
+        "fr": "Câble Ethernet (LAN) ou réseau sans fil (WiFi)",
+        "en": "Ethernet cable (LAN) or wireless network (WiFi)",
+    },
+    "network_link_lan": {
+        "it": "Ethernet (LAN)",
+        "fr": "Ethernet (LAN)",
+        "en": "Ethernet (LAN)",
+    },
+    "network_link_wlan": {
+        "it": "WiFi (WLAN)",
+        "fr": "WiFi (WLAN)",
+        "en": "WiFi (WLAN)",
+    },
+    "setting_WLAN_SSID": {
+        "it": "Nome rete WiFi (SSID)",
+        "fr": "Nom du réseau WiFi (SSID)",
+        "en": "WiFi network name (SSID)",
+    },
+    "hint_WLAN_SSID": {
+        "it": "Solo se connessione WiFi",
+        "fr": "Uniquement en connexion WiFi",
+        "en": "Only when using WiFi",
+    },
+    "setting_WLAN_PASSWORD": {
+        "it": "Password WiFi",
+        "fr": "Mot de passe WiFi",
+        "en": "WiFi password",
+    },
+    "hint_WLAN_PASSWORD": {
+        "it": "Lasciare vuoto per non modificare la password salvata",
+        "fr": "Laisser vide pour conserver le mot de passe enregistré",
+        "en": "Leave empty to keep the saved password",
+    },
     "setting_NETWORK_MODE": {
         "it": "Configurazione IP",
         "fr": "Configuration IP",
@@ -267,9 +307,9 @@ _STRINGS: dict[str, dict[Lang, str]] = {
         "en": "DHCP: address from router. Manual: fixed IP, subnet and gateway.",
     },
     "setting_LAN_IP": {
-        "it": "Indirizzo IP (LAN)",
-        "fr": "Adresse IP (LAN)",
-        "en": "IP address (LAN)",
+        "it": "Indirizzo IP",
+        "fr": "Adresse IP",
+        "en": "IP address",
     },
     "hint_LAN_IP": {
         "it": "Es. 192.168.178.124 — indirizzo nel browser da altri PC",

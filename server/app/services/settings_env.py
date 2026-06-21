@@ -101,7 +101,32 @@ SETTINGS_FIELDS: list[dict[str, Any]] = [
         "type": "bool",
         "default": "0",
     },
-    # --- Rete LAN (IP del Raspberry) ---
+    # --- Rete (LAN / WiFi) ---
+    {
+        "key": "NETWORK_LINK",
+        "label": "Tipo connessione",
+        "section": "network_lan",
+        "type": "choice",
+        "choices": [("lan", "Ethernet (LAN)"), ("wlan", "WiFi (WLAN)")],
+        "default": "lan",
+        "hint": "Cavo di rete oppure rete wireless",
+    },
+    {
+        "key": "WLAN_SSID",
+        "label": "Nome rete WiFi (SSID)",
+        "section": "network_lan",
+        "type": "text",
+        "default": "",
+        "hint": "Solo se connessione WiFi",
+    },
+    {
+        "key": "WLAN_PASSWORD",
+        "label": "Password WiFi",
+        "section": "network_lan",
+        "type": "password",
+        "default": "",
+        "hint": "Lasciare vuoto per non modificare la password salvata",
+    },
     {
         "key": "NETWORK_MODE",
         "label": "Configurazione IP",
@@ -113,7 +138,7 @@ SETTINGS_FIELDS: list[dict[str, Any]] = [
     },
     {
         "key": "LAN_IP",
-        "label": "Indirizzo IP (LAN)",
+        "label": "Indirizzo IP",
         "section": "network_lan",
         "type": "text",
         "default": "",
@@ -238,13 +263,24 @@ SETTINGS_FIELDS: list[dict[str, Any]] = [
 
 SECTION_LABELS = {
     "kiosk": "Kiosk / Timbratrice",
-    "network_lan": "Rete LAN (Raspberry Pi)",
+    "network_lan": "Rete (LAN / WiFi)",
     "network_app": "Dashboard e sincronizzazione",
     "system": "Sistema e sicurezza",
     "backup": "Backup",
 }
 
-NETWORK_KEYS = frozenset({"NETWORK_MODE", "LAN_IP", "LAN_SUBNET", "LAN_GATEWAY", "LAN_DNS"})
+NETWORK_KEYS = frozenset({
+    "NETWORK_LINK",
+    "NETWORK_MODE",
+    "LAN_IP",
+    "LAN_SUBNET",
+    "LAN_GATEWAY",
+    "LAN_DNS",
+    "WLAN_SSID",
+    "WLAN_PASSWORD",
+})
+NETWORK_MANUAL_KEYS = frozenset({"LAN_IP", "LAN_SUBNET", "LAN_GATEWAY", "LAN_DNS"})
+NETWORK_WLAN_KEYS = frozenset({"WLAN_SSID", "WLAN_PASSWORD"})
 
 
 def _unquote_env_value(val: str) -> str:
@@ -305,6 +341,14 @@ def enrich_settings(merged: dict[str, str]) -> dict[str, str]:
     from server.app.services.network_config import detect_lan
 
     lan = detect_lan()
+    link = str(merged.get("NETWORK_LINK", "")).strip().lower()
+    if link not in ("lan", "wlan"):
+        link = lan.get("link", "lan") or "lan"
+    merged["NETWORK_LINK"] = link
+
+    if link == "wlan" and not merged.get("WLAN_SSID") and lan.get("ssid"):
+        merged["WLAN_SSID"] = lan["ssid"]
+
     mode = str(merged.get("NETWORK_MODE", "")).strip().lower()
     if mode not in ("dhcp", "manual"):
         mode = lan.get("mode", "dhcp") or "dhcp"
@@ -349,8 +393,12 @@ def localized_fields(lang: str | None = None) -> list[dict[str, Any]]:
             fc["choices"] = [(v, lang_label(v)) for v, _ in field["choices"]]
         elif field["type"] == "choice" and field["key"] == "NETWORK_MODE":
             fc["choices"] = [(v, t(f"network_mode_{v}", code)) for v, _ in field["choices"]]
-        if field["key"] in NETWORK_KEYS and field["key"] != "NETWORK_MODE":
+        elif field["type"] == "choice" and field["key"] == "NETWORK_LINK":
+            fc["choices"] = [(v, t(f"network_link_{v}", code)) for v, _ in field["choices"]]
+        elif field["key"] in NETWORK_MANUAL_KEYS:
             fc["network_manual"] = True
+        elif field["key"] in NETWORK_WLAN_KEYS:
+            fc["network_wlan"] = True
         out.append(fc)
     return out
 
@@ -447,8 +495,9 @@ def update_env_file(updates: dict[str, str], path: Path | None = None) -> None:
 
 def save_settings(form: dict[str, str]) -> tuple[dict[str, str], tuple[bool, str] | None]:
     """Salva impostazioni dal form; password vuote = non modificare."""
-    from server.app.services.network_config import apply_lan_network, validate_manual_network
+    from server.app.services.network_config import apply_lan_network, validate_network_settings
 
+    env_raw = parse_env_file()
     current = read_settings(with_network=True)
     updates: dict[str, str] = {}
 
@@ -473,7 +522,7 @@ def save_settings(form: dict[str, str]) -> tuple[dict[str, str], tuple[bool, str
         updates["SERVER_URL"] = f"http://127.0.0.1:{updates['SERVER_PORT']}"
         merged["SERVER_URL"] = updates["SERVER_URL"]
 
-    err = validate_manual_network(merged)
+    err = validate_network_settings(merged, env_raw)
     if err:
         raise ValueError(err)
 
@@ -483,7 +532,7 @@ def save_settings(form: dict[str, str]) -> tuple[dict[str, str], tuple[bool, str
 
     network_result: tuple[bool, str] | None = None
     if updates.keys() & NETWORK_KEYS:
-        network_result = apply_lan_network(enrich_settings({**current, **updates}))
+        network_result = apply_lan_network(enrich_settings({**current, **updates}), env_raw)
 
     return updates, network_result
 
