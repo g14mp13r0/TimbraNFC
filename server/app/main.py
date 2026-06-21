@@ -171,11 +171,18 @@ def _device_dict(d: Dispositivo, online: bool) -> dict:
     }
 
 
-def _render_page(request: Request, db: Session, template: str, **ctx):
-    ctx.update(user_template_context(get_session_user(request)))
-    if "sidebar_n_timb" not in ctx:
-        ctx.update(_sidebar_counts(db))
-    return templates.TemplateResponse(request, template, ctx)
+def _render_page(
+    request: Request,
+    db: Session,
+    template: str,
+    ctx: dict | None = None,
+    **extra,
+):
+    merged = {**(ctx or {}), **extra}
+    merged.update(user_template_context(get_session_user(request)))
+    if "sidebar_n_timb" not in merged:
+        merged.update(_sidebar_counts(db))
+    return templates.TemplateResponse(request, template, merged)
 
 
 @app.get("/login", response_class=HTMLResponse)
