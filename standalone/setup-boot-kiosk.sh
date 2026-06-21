@@ -4,8 +4,8 @@
 #
 # Configura:
 #   - boot su desktop con autologin utente
-#   - autostart kiosk alla sessione grafica
-#   - server systemd già attivo prima del desktop
+#   - servizio systemd utente (kiosk alla sessione grafica)
+#   - autostart desktop come fallback
 
 set -euo pipefail
 
@@ -56,50 +56,84 @@ EOF
     echo "  sessione desktop: $session"
 }
 
-_install_autostart() {
-    echo "→ Autostart kiosk UI"
+_install_autostart_fallback() {
+    echo "→ Autostart desktop (fallback)"
 
     chmod +x "$APP_DIR/standalone/launch_kiosk.sh"
 
     local autostart="/home/${APP_USER}/.config/autostart"
     mkdir -p "$autostart"
 
-    cat > "$autostart/timbranfc-kiosk.desktop" <<EOF
-[Desktop Entry]
-Type=Application
-Name=TimbraNFC Kiosk
-Comment=Timbratrice presenze NFC — avvio automatico
-Exec=${APP_DIR}/standalone/launch_kiosk.sh
-Terminal=false
-Hidden=false
-NoDisplay=false
-X-GNOME-Autostart-enabled=true
-X-GNOME-Autostart-Delay=15
-EOF
+    sed "s|@APP_DIR@|${APP_DIR}|g" \
+        "$APP_DIR/standalone/autostart/timbranfc-kiosk.desktop" \
+        > "$autostart/timbranfc-kiosk.desktop"
 
     chown -R "${APP_USER}:${APP_USER}" "/home/${APP_USER}/.config"
 }
 
+_install_user_kiosk_service() {
+    echo "→ Servizio systemd utente (avvio kiosk alla sessione grafica)"
+
+    local uid user_unit="/home/${APP_USER}/.config/systemd/user"
+    uid="$(id -u "$APP_USER")"
+    mkdir -p "$user_unit"
+
+    sed -e "s|@APP_DIR@|${APP_DIR}|g" -e "s|@APP_USER@|${APP_USER}|g" \
+        "$APP_DIR/standalone/systemd/timbranfc-kiosk.user.service" \
+        > "$user_unit/timbranfc-kiosk.service"
+
+    chown -R "${APP_USER}:${APP_USER}" "/home/${APP_USER}/.config/systemd"
+
+    loginctl enable-linger "$APP_USER" 2>/dev/null || true
+
+    _userctl() {
+        sudo -u "$APP_USER" \
+            XDG_RUNTIME_DIR="/run/user/${uid}" \
+            DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/${uid}/bus" \
+            systemctl --user "$@"
+    }
+
+    _userctl daemon-reload
+    _userctl enable timbranfc-kiosk.service
+
+    if [ -d "/run/user/${uid}" ] && [ -S "/run/user/${uid}/bus" ]; then
+        _userctl restart timbranfc-kiosk.service 2>/dev/null || \
+            _userctl start timbranfc-kiosk.service 2>/dev/null || true
+    fi
+}
+
 _disable_kiosk_systemd() {
-    # Il kiosk richiede DISPLAY: autostart desktop è il metodo affidabile
+    # Il servizio di sistema non ha DISPLAY: usiamo systemd --user + autostart
     systemctl disable --now timbranfc-kiosk.service 2>/dev/null || true
 }
 
 _show_status() {
+    local uid
+    uid="$(id -u "$APP_USER" 2>/dev/null || echo '?')"
     echo ""
     echo "=== Stato avvio automatico ==="
     systemctl get-default 2>/dev/null | sed 's/^/  target boot: /' || true
     if [ -f /etc/lightdm/lightdm.conf.d/50-timbranfc-autologin.conf ]; then
         grep -E '^autologin-' /etc/lightdm/lightdm.conf.d/50-timbranfc-autologin.conf | sed 's/^/  /'
+    else
+        echo "  autologin: NON configurato"
     fi
     if [ -f "/home/${APP_USER}/.config/autostart/timbranfc-kiosk.desktop" ]; then
         echo "  autostart: ~/.config/autostart/timbranfc-kiosk.desktop"
     fi
+    if [ -f "/home/${APP_USER}/.config/systemd/user/timbranfc-kiosk.service" ]; then
+        echo "  user service: ~/.config/systemd/user/timbranfc-kiosk.service"
+        sudo -u "$APP_USER" \
+            XDG_RUNTIME_DIR="/run/user/${uid}" \
+            DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/${uid}/bus" \
+            systemctl --user is-enabled timbranfc-kiosk.service 2>/dev/null \
+            | sed 's/^/  timbranfc-kiosk (user): /' || true
+    fi
     systemctl is-enabled timbranfc-server.service 2>/dev/null | sed 's/^/  timbranfc-server: /' || true
-    systemctl is-enabled timbranfc-kiosk.service 2>/dev/null | sed 's/^/  timbranfc-kiosk: /' || true
+    systemctl is-enabled timbranfc-kiosk.service 2>/dev/null | sed 's/^/  timbranfc-kiosk (system, disabilitato): /' || true
     echo ""
     echo "Riavvia il Pi: sudo reboot"
-    echo "Dopo il boot il kiosk parte da solo (attendi ~30s)."
+    echo "Dopo il boot il kiosk parte da solo (attendi ~30–60s)."
     echo "Log: tail -f /tmp/timbranfc-kiosk.log"
     echo "Verifica: bash ${APP_DIR}/standalone/verify-kiosk.sh"
 }
@@ -110,6 +144,7 @@ echo "Cartella: $APP_DIR"
 echo ""
 
 _enable_autologin
-_install_autostart
+_install_user_kiosk_service
+_install_autostart_fallback
 _disable_kiosk_systemd
 _show_status

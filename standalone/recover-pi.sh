@@ -126,7 +126,21 @@ else
 fi
 echo ""
 
-echo "--- 7) Riavvio kiosk ---"
+echo "--- 7) Avvio automatico kiosk ---"
+if [ ! -f "/home/${APP_USER}/.config/systemd/user/timbranfc-kiosk.service" ] \
+    && [ ! -f "/home/${APP_USER}/.config/autostart/timbranfc-kiosk.desktop" ]; then
+    echo "Autostart kiosk non configurato."
+    if [ "$(id -u)" -eq 0 ]; then
+        bash "$APP_DIR/standalone/setup-boot-kiosk.sh"
+    else
+        echo "  Esegui: sudo bash $APP_DIR/standalone/setup-boot-kiosk.sh"
+    fi
+else
+    bash "$APP_DIR/standalone/verify-kiosk.sh" 2>/dev/null || true
+fi
+echo ""
+
+echo "--- 8) Riavvio kiosk ---"
 if [ -x "$APP_DIR/standalone/restart-kiosk.sh" ]; then
     bash "$APP_DIR/standalone/restart-kiosk.sh" || true
 else

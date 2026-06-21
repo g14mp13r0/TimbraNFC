@@ -101,7 +101,7 @@ chmod +x "$APP_DIR/standalone/launch_kiosk.sh"
 # Autostart al login desktop (metodo più affidabile del solo systemd)
 AUTOSTART_DIR="/home/${APP_USER}/.config/autostart"
 mkdir -p "$AUTOSTART_DIR"
-sed "s|/home/gpastorino/TimbraNFC|${APP_DIR}|g" \
+sed "s|@APP_DIR@|${APP_DIR}|g" \
     "$APP_DIR/standalone/autostart/timbranfc-kiosk.desktop" \
     > "$AUTOSTART_DIR/timbranfc-kiosk.desktop"
 chown "$APP_USER:$APP_GROUP" "$AUTOSTART_DIR/timbranfc-kiosk.desktop"

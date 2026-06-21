@@ -1,0 +1,23 @@
+[Unit]
+Description=TimbraNFC — Kiosk timbratrice NFC
+After=graphical-session.target network-online.target
+Wants=network-online.target
+PartOf=graphical-session.target
+
+[Service]
+Type=simple
+Environment=APP_DIR=@APP_DIR@
+Environment=APP_USER=@APP_USER@
+Environment=STANDALONE=1
+Environment=TIMBRANFC_DATA=@APP_DIR@/data
+Environment=SERVER_URL=http://127.0.0.1:8080
+EnvironmentFile=-@APP_DIR@/.env
+WorkingDirectory=@APP_DIR@
+# Attendi desktop + server al boot
+ExecStartPre=/bin/sleep 10
+ExecStart=@APP_DIR@/standalone/launch_kiosk.sh
+Restart=on-failure
+RestartSec=15
+
+[Install]
+WantedBy=graphical-session.target default.target
