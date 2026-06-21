@@ -25,5 +25,7 @@ API_KEY = os.environ.get("API_KEY", "")
 SECRET_KEY = os.environ.get("SECRET_KEY", "cambia-in-produzione")
 ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "admin@local")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin")
+CONTABILE_EMAIL = os.environ.get("CONTABILE_EMAIL", "contabile@local")
+CONTABILE_PASSWORD = os.environ.get("CONTABILE_PASSWORD", "contabile")
 DEFAULT_SEDE_ID = int(os.environ.get("DEFAULT_SEDE_ID", "1"))
 VERSION = "2.0.0"

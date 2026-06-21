@@ -15,14 +15,36 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
-from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.security import generate_password_hash
+from starlette.middleware.sessions import SessionMiddleware
 
 from server.app.api import dashboard as dashboard_api
 from server.app.api import devices as devices_api
 from server.app.api import enrollment as enrollment_api
 from server.app.api import timbrature as timbrature_api
-from server.app.config import VERSION
+from server.app.config import (
+    ADMIN_EMAIL,
+    ADMIN_PASSWORD,
+    CONTABILE_EMAIL,
+    CONTABILE_PASSWORD,
+    SECRET_KEY,
+    VERSION,
+)
 from server.app.db import Base, engine, get_db
+from server.app.web_auth import (
+    ROLE_ADMIN,
+    ROLE_CONTABILE,
+    access_denied_redirect,
+    authenticate,
+    can_access,
+    get_session_user,
+    is_public_path,
+    login_redirect,
+    login_user,
+    logout_user,
+    user_template_context,
+)
+
 from server.app.models import Dipendente, Dispositivo, Sede, Timbratura, UtenteAdmin
 
 app = FastAPI(title="TimbraNFC Server", version=VERSION)
@@ -67,6 +89,22 @@ if STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 
+@app.middleware("http")
+async def web_auth_middleware(request: Request, call_next):
+    path = request.url.path
+    if is_public_path(path):
+        return await call_next(request)
+    user = get_session_user(request)
+    if not user:
+        return login_redirect(path)
+    if not can_access(user, path, request.method):
+        return access_denied_redirect()
+    return await call_next(request)
+
+
+app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY, max_age=60 * 60 * 24 * 7)
+
+
 def _init_db():
     Base.metadata.create_all(bind=engine)
     from server.app.db import SessionLocal
@@ -75,16 +113,19 @@ def _init_db():
     try:
         if not db.query(Sede).first():
             db.add(Sede(id=1, nome="Sede Principale"))
-        if not db.query(UtenteAdmin).first():
-            from server.app.config import ADMIN_EMAIL, ADMIN_PASSWORD
 
-            db.add(
-                UtenteAdmin(
-                    email=ADMIN_EMAIL,
-                    password_hash=generate_password_hash(ADMIN_PASSWORD),
-                    ruolo="admin",
+        def _ensure_user(email: str, password: str, ruolo: str) -> None:
+            if not db.query(UtenteAdmin).filter(func.lower(UtenteAdmin.email) == email.lower()).first():
+                db.add(
+                    UtenteAdmin(
+                        email=email,
+                        password_hash=generate_password_hash(password),
+                        ruolo=ruolo,
+                    )
                 )
-            )
+
+        _ensure_user(ADMIN_EMAIL, ADMIN_PASSWORD, ROLE_ADMIN)
+        _ensure_user(CONTABILE_EMAIL, CONTABILE_PASSWORD, ROLE_CONTABILE)
         db.commit()
     finally:
         db.close()
@@ -120,6 +161,52 @@ def _device_dict(d: Dispositivo, online: bool) -> dict:
     }
 
 
+def _render_page(request: Request, db: Session, template: str, **ctx):
+    ctx.update(user_template_context(get_session_user(request)))
+    if "sidebar_n_timb" not in ctx:
+        ctx.update(_sidebar_counts(db))
+    return templates.TemplateResponse(request, template, ctx)
+
+
+@app.get("/login", response_class=HTMLResponse)
+def page_login(request: Request, next: str = "/", error: str = ""):
+    if get_session_user(request):
+        safe = next if next.startswith("/") and not next.startswith("//") else "/"
+        return RedirectResponse(safe, status_code=303)
+    return templates.TemplateResponse(
+        request,
+        "login.html",
+        {"next": next, "error": error},
+    )
+
+
+@app.post("/login")
+def login_submit(
+    request: Request,
+    email: str = Form(...),
+    password: str = Form(...),
+    next: str = Form("/"),
+    db: Session = Depends(get_db),
+):
+    user = authenticate(db, email, password)
+    if not user:
+        from urllib.parse import quote
+
+        q = quote(next if next.startswith("/") and not next.startswith("//") else "/")
+        return RedirectResponse(f"/login?error=credentials&next={q}", status_code=303)
+    login_user(request, user)
+    safe = next if next.startswith("/") and not next.startswith("//") else "/"
+    if not can_access(get_session_user(request), safe, "GET"):
+        safe = "/"
+    return RedirectResponse(safe, status_code=303)
+
+
+@app.get("/logout")
+def logout(request: Request):
+    logout_user(request)
+    return RedirectResponse("/login", status_code=303)
+
+
 @app.get("/health")
 def health():
     return {"status": "ok", "version": VERSION}
@@ -138,7 +225,7 @@ def favicon():
 # --- Dashboard web (Jinja2) ---
 
 @app.get("/", response_class=HTMLResponse)
-def home(request: Request, db: Session = Depends(get_db)):
+def home(request: Request, db: Session = Depends(get_db), error: str = ""):
     counts = _sidebar_counts(db)
     recenti = (
         db.query(Timbratura)
@@ -153,9 +240,10 @@ def home(request: Request, db: Session = Depends(get_db)):
         "n_dev": counts["sidebar_n_dev"],
         "recenti": recenti,
         "active_page": "home",
+        "error": error,
         **counts,
     }
-    return templates.TemplateResponse(request, "index.html", ctx)
+    return _render_page(request, db, "index.html", **ctx)
 
 
 @app.get("/dispositivi", response_class=HTMLResponse)
@@ -165,8 +253,9 @@ def page_dispositivi(request: Request, db: Session = Depends(get_db)):
     for d in db.query(Dispositivo).all():
         online = d.ultimo_heartbeat and (now - d.ultimo_heartbeat) < timedelta(minutes=3)
         devices.append(_device_dict(d, bool(online)))
-    return templates.TemplateResponse(
+    return _render_page(
         request,
+        db,
         "dispositivi.html",
         {"devices": devices, "active_page": "dispositivi", **_sidebar_counts(db)},
     )
@@ -192,7 +281,7 @@ def page_dipendenti(request: Request, db: Session = Depends(get_db), msg: str = 
         **_sidebar_counts(db),
     }
     ctx["sidebar_n_dip"] = sum(1 for d in dips if d.attivo)
-    return templates.TemplateResponse(request, "dipendenti.html", ctx)
+    return _render_page(request, db, "dipendenti.html", **ctx)
 
 
 @app.get("/dipendenti/export.csv")
@@ -239,10 +328,11 @@ def page_modifica_dipendente(dip_id: int, request: Request, db: Session = Depend
     dip = db.query(Dipendente).filter(Dipendente.id == dip_id).first()
     if not dip:
         return RedirectResponse("/dipendenti?error=non_trovato", status_code=303)
-    return templates.TemplateResponse(
+    return _render_page(
         request,
+        db,
         "dipendente_modifica.html",
-        {"dipendente": dip, "error": error, "active_page": "dipendenti", **_sidebar_counts(db)},
+        {"dipendente": dip, "error": error, "active_page": "dipendenti"},
     )
 
 
@@ -271,10 +361,11 @@ def page_badge_dipendente(dip_id: int, request: Request, db: Session = Depends(g
     dip = db.query(Dipendente).filter(Dipendente.id == dip_id).first()
     if not dip:
         return RedirectResponse("/dipendenti?error=non_trovato", status_code=303)
-    return templates.TemplateResponse(
+    return _render_page(
         request,
+        db,
         "dipendente_badge.html",
-        {"dipendente": dip, "error": error, "active_page": "dipendenti", **_sidebar_counts(db)},
+        {"dipendente": dip, "error": error, "active_page": "dipendenti"},
     )
 
 
@@ -350,7 +441,7 @@ def page_timbrature(
         "active_page": "timbrature",
         **_sidebar_counts(db, n_timb=n_totale),
     }
-    return templates.TemplateResponse(request, "timbrature.html", ctx)
+    return _render_page(request, db, "timbrature.html", **ctx)
 
 
 @app.post("/timbrature/azzera")
@@ -444,8 +535,9 @@ def page_report(
     da, a, mese = resolve_period(da, a, mese)
     data = report_turni(db, da, a, dipendente_id)
     dipendenti = db.query(Dipendente).filter(Dipendente.attivo == True).order_by(Dipendente.cognome).all()
-    return templates.TemplateResponse(
+    return _render_page(
         request,
+        db,
         "report.html",
         {
             "turni": data["turni"],
@@ -456,7 +548,6 @@ def page_report(
             "mese": mese,
             "dipendente_id": dipendente_id,
             "active_page": "report",
-            **_sidebar_counts(db),
         },
     )
 
@@ -563,8 +654,9 @@ def page_impostazioni(
     network_warn: str = "",
     section: str = "",
 ):
-    return templates.TemplateResponse(
+    return _render_page(
         request,
+        db,
         "impostazioni.html",
         _settings_page_context(db, msg=msg, error=error, restart_error=restart_error, network_warn=network_warn, section=section),
     )
@@ -580,21 +672,21 @@ async def salva_impostazioni(request: Request, db: Session = Depends(get_db)):
     restart = action == "save_restart"
 
     if not section:
-        return templates.TemplateResponse(
+        return _render_page(
             request,
+            db,
             "impostazioni.html",
             _settings_page_context(db, error="Sezione mancante"),
-            status_code=400,
         )
 
     try:
         _, network_result = save_settings(form, section)
     except Exception as exc:
-        return templates.TemplateResponse(
+        return _render_page(
             request,
+            db,
             "impostazioni.html",
             _settings_page_context(db, error=f"Errore salvataggio: {exc}"),
-            status_code=400,
         )
 
     network_warn = ""

@@ -27,6 +27,32 @@ _STRINGS: dict[str, dict[Lang, str]] = {
     "nav_dispositivi": {"it": "Dispositivi", "fr": "Terminaux", "en": "Devices"},
     "nav_impostazioni": {"it": "Impostazioni", "fr": "Paramètres", "en": "Settings"},
     "role_admin": {"it": "Amministratore", "fr": "Administrateur", "en": "Administrator"},
+    "role_contabile": {"it": "Contabile", "fr": "Comptable", "en": "Accountant"},
+    "login_title": {"it": "Accesso", "fr": "Connexion", "en": "Sign in"},
+    "login_subtitle": {
+        "it": "Accedi alla dashboard TimbraNFC",
+        "fr": "Connectez-vous au tableau de bord TimbraNFC",
+        "en": "Sign in to the TimbraNFC dashboard",
+    },
+    "login_email": {"it": "Email", "fr": "E-mail", "en": "Email"},
+    "login_password": {"it": "Password", "fr": "Mot de passe", "en": "Password"},
+    "login_submit": {"it": "Accedi", "fr": "Se connecter", "en": "Sign in"},
+    "login_error_credentials": {
+        "it": "Email o password non validi.",
+        "fr": "E-mail ou mot de passe incorrect.",
+        "en": "Invalid email or password.",
+    },
+    "login_error_access": {
+        "it": "Non hai i permessi per accedere a quella pagina.",
+        "fr": "Vous n'avez pas accès à cette page.",
+        "en": "You do not have access to that page.",
+    },
+    "logout": {"it": "Esci", "fr": "Déconnexion", "en": "Sign out"},
+    "error_access_denied": {
+        "it": "Accesso negato: permessi insufficienti.",
+        "fr": "Accès refusé : permissions insuffisantes.",
+        "en": "Access denied: insufficient permissions.",
+    },
     "devices_online_title": {
         "it": "Stato dispositivi in linea",
         "fr": "État des terminaux en ligne",

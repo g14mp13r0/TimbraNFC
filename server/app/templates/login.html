@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="{{ lang() }}">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ t('login_title') }} — TimbraNFC</title>
+<link rel="icon" href="/favicon.ico" type="image/jpeg">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="login-body">
+
+<div class="login-shell">
+    <div class="login-card">
+        <div class="login-brand">
+            <img src="/favicon.ico" alt="TimbraNFC" class="login-logo">
+            <h1>TimbraNFC</h1>
+            <p>{{ t('login_subtitle') }}</p>
+        </div>
+
+        {% if error == 'credentials' %}
+        <div class="alert alert-error">{{ t('login_error_credentials') }}</div>
+        {% elif error == 'access_denied' %}
+        <div class="alert alert-error">{{ t('login_error_access') }}</div>
+        {% endif %}
+
+        <form method="post" action="/login" class="login-form">
+            <input type="hidden" name="next" value="{{ next or '/' }}">
+            <label>{{ t('login_email') }}
+                <input type="email" name="email" required autocomplete="username" autofocus>
+            </label>
+            <label>{{ t('login_password') }}
+                <input type="password" name="password" required autocomplete="current-password">
+            </label>
+            <button type="submit" class="btn btn-primary login-submit">{{ t('login_submit') }}</button>
+        </form>
+    </div>
+</div>
+
+</body>
+</html>

@@ -51,13 +51,16 @@
         {{ t('nav_dipendenti') }}
         {% if sidebar_n_dip is defined %}<span class="nav-badge">{{ sidebar_n_dip }}</span>{% endif %}
       </a>
+      {% if user_is_admin %}
       <a href="/dispositivi" class="nav-item {{ 'active' if active_page == 'dispositivi' }}">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10.5 18.5h3"/></svg>
         {{ t('nav_dispositivi') }}
         {% if sidebar_n_dev is defined %}<span class="nav-badge">{{ sidebar_n_dev }}</span>{% endif %}
       </a>
+      {% endif %}
     </div>
 
+    {% if user_is_admin %}
     <div class="nav-group">
       <div class="nav-label">{{ t('nav_system') }}</div>
       <a href="/impostazioni" class="nav-item {{ 'active' if active_page == 'impostazioni' }}">
@@ -65,13 +68,17 @@
         {{ t('nav_impostazioni') }}
       </a>
     </div>
+    {% endif %}
 
     <div class="sidebar-foot">
-      <div class="user-avatar">{{ (current_user_initials if current_user_initials is defined else 'AD') }}</div>
+      <div class="user-avatar">{{ current_user_initials or 'AD' }}</div>
       <div class="user-meta">
-        <div class="u-name">{{ current_user_email if current_user_email is defined else 'admin@timbranfc.local' }}</div>
-        <div class="u-role">{{ t('role_admin') }}</div>
+        <div class="u-name">{{ current_user_email or 'admin@local' }}</div>
+        <div class="u-role">{{ t('role_admin') if user_is_admin else t('role_contabile') }}</div>
       </div>
+      <a href="/logout" class="sidebar-logout" title="{{ t('logout') }}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+      </a>
     </div>
   </aside>
 
@@ -84,8 +91,10 @@
           <a href="/timbrature">{{ t('nav_timbrature') }}</a>
           <a href="/report">{{ t('nav_report') }}</a>
           <a href="/dipendenti">{{ t('nav_dipendenti') }}</a>
+          {% if user_is_admin %}
           <a href="/dispositivi">{{ t('nav_dispositivi') }}</a>
           <a href="/impostazioni">{{ t('nav_impostazioni') }}</a>
+          {% endif %}
         </nav>
       </div>
     </div>

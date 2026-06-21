@@ -8,6 +8,10 @@
     <p class="subtitle">{{ t('home_subtitle') }}</p>
 </div>
 
+{% if error == 'access_denied' %}
+<div class="alert alert-error">{{ t('error_access_denied') }}</div>
+{% endif %}
+
 <div class="kpi-row">
     <div class="kpi-card">
         <div class="kpi-top">
