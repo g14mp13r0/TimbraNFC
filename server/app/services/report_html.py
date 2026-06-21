@@ -21,7 +21,6 @@ from shared.report_anomalies import (
     nota_anomalie,
     riepilogo_tempo,
     short_name,
-    totale_per_reparto,
 )
 
 _TPL_DIR = Path(__file__).resolve().parent.parent / "templates"
@@ -106,7 +105,6 @@ def build_report_context(
     turni = annota_anomalie_turni(list(data.get("turni", [])))
     riepilogo = sorted(data.get("riepilogo", []), key=lambda r: r["dipendente"].lower())
     stats = riepilogo_tempo(turni)
-    reparti = totale_per_reparto(turni)
     n_anomalie = conta_anomalie(turni)
     brand = _report_brand()
 
@@ -166,7 +164,6 @@ def build_report_context(
         "hint_aperti": hint_aperti,
         "n_turni": stats["n_turni"],
         "n_anomalie": n_anomalie,
-        "reparti": reparti,
         "dipendenti_ore": [
             {
                 "dipendente": r["dipendente"],
@@ -189,10 +186,7 @@ def build_report_context(
             "anomalies": t("report_anomalies", code),
             "in_period": t("report_in_period", code),
             "suspicious": t("report_suspicious", code),
-            "dept_totals": t("report_dept_totals", code),
             "department": t("col_department", code),
-            "employees": t("report_employees_count", code),
-            "dept_hours": t("report_dept_hours", code),
             "detail": t("report_detail", code),
             "legend_open": t("report_legend_open", code),
             "legend_warn": t("report_legend_warn", code),

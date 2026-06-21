@@ -337,28 +337,6 @@
     </div>
   </div>
 
-  {% if reparti %}
-  <table class="dept-table">
-    <caption>{{ labels.dept_totals }}</caption>
-    <thead>
-      <tr>
-        <th>{{ labels.department }}</th>
-        <th>{{ labels.employees }}</th>
-        <th style="text-align:right;">{{ labels.dept_hours }}</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for r in reparti %}
-      <tr>
-        <td>{{ r.reparto }}</td>
-        <td>{{ r.n_dipendenti }}</td>
-        <td>{{ r.durata_totale }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-  {% endif %}
-
   {% if dipendenti_ore %}
   <table class="dept-table">
     <caption>{{ labels.employee_hours }}</caption>
