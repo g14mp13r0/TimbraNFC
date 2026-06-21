@@ -70,6 +70,7 @@ def _build_pdf(
     buf = io.BytesIO()
     page_size = landscape(A4) if landscape_page else A4
     logo = _kiosk_logo_image()
+    generated_at = format_datetime(datetime.now(), seconds=False)
     doc = SimpleDocTemplate(
         buf,
         pagesize=page_size,
@@ -122,15 +123,23 @@ def _build_pdf(
             story.append(Paragraph("—", sub_style))
         story.append(Spacer(1, 8))
 
-    doc.build(story)
+    def _draw_generated_at(canvas, doc_obj):
+        canvas.saveState()
+        canvas.setFont("Helvetica", 9)
+        canvas.setFillColor(colors.HexColor("#5C6675"))
+        x = doc_obj.pagesize[0] - doc_obj.rightMargin
+        y = doc_obj.pagesize[1] - 8 * mm
+        canvas.drawRightString(x, y, generated_at)
+        canvas.restoreState()
+
+    doc.build(story, onFirstPage=_draw_generated_at, onLaterPages=_draw_generated_at)
     return buf.getvalue()
 
 
 def _period_subtitle(da: str, a: str, lang: str | None = None) -> str:
     code = normalize_lang(lang)
     period = t("period_label", code).rstrip(":").rstrip("：")
-    generated = format_datetime(datetime.now(), seconds=False)
-    return f"{period}: {format_date(da)} → {format_date(a)} · {generated}"
+    return f"{period}: {format_date(da)} → {format_date(a)}"
 
 
 def sort_timbrature_rows(rows: list[dict]) -> list[dict]:
