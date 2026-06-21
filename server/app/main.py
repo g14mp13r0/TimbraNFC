@@ -40,10 +40,18 @@ from shared.kiosk_i18n import current_lang as _current_lang
 from shared.kiosk_i18n import enrollment_js_strings
 from shared.kiosk_i18n import t as _translate
 
+from markupsafe import Markup
+
 templates.env.globals["t"] = lambda key: _translate(key, _current_lang())
 templates.env.globals["lang"] = lambda: _current_lang()
 templates.env.globals["enrollment_js_strings"] = enrollment_js_strings
-templates.env.filters["tojson"] = lambda v: json.dumps(v, ensure_ascii=False)
+
+
+def _tojson_filter(value) -> Markup:
+    return Markup(json.dumps(value, ensure_ascii=False))
+
+
+templates.env.filters["tojson"] = _tojson_filter
 
 if STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")

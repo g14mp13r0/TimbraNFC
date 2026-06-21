@@ -164,7 +164,7 @@
         syncNetworkFields();
     }
 
-    var section = {{ saved_section|tojson }};
+    var section = {{ (saved_section or '')|tojson }};
     if (section) {
         var el = document.getElementById('settings-section-' + section);
         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
