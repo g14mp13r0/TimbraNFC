@@ -18,6 +18,19 @@ def _normalizza_badge(badge_uid: str) -> str:
     return badge_uid.strip().upper()
 
 
+def _purge_cache_locale(badge_uid: str) -> None:
+    """Rimuove il badge dalla cache del kiosk (standalone sullo stesso Pi)."""
+    try:
+        from terminal import local_queue
+
+        if local_queue.remove_dipendente(badge_uid):
+            import logging
+
+            logging.getLogger("dipendenti").info("Cache kiosk aggiornata: rimosso %s", badge_uid)
+    except Exception:
+        pass
+
+
 def badge_gia_usato(db: Session, badge_uid: str, escludi_id: int | None = None) -> bool:
     uid = _normalizza_badge(badge_uid)
     q = db.query(Dipendente).filter(Dipendente.badge_uid == uid)
@@ -102,6 +115,8 @@ def toggle_attivo(db: Session, dip_id: int) -> Dipendente:
     dip.attivo = not dip.attivo
     db.commit()
     db.refresh(dip)
+    if not dip.attivo:
+        _purge_cache_locale(dip.badge_uid)
     return dip
 
 
@@ -111,12 +126,15 @@ def elimina_dipendente(db: Session, dip_id: int) -> str:
     if not dip:
         raise DipendenteError("non_trovato")
 
+    badge_uid = dip.badge_uid
     ha_timbrature = db.query(Timbratura).filter(Timbratura.dipendente_id == dip_id).first() is not None
     if ha_timbrature:
         dip.attivo = False
         db.commit()
+        _purge_cache_locale(badge_uid)
         return "disattivato_per_timbrature"
 
     db.delete(dip)
     db.commit()
+    _purge_cache_locale(badge_uid)
     return "eliminato"

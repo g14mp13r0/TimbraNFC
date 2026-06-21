@@ -57,10 +57,28 @@ def get_dipendente(badge_uid: str) -> dict | None:
         return dict(row) if row else None
 
 
+def remove_dipendente(badge_uid: str) -> bool:
+    uid = badge_uid.strip().upper()
+    with get_db() as con:
+        cur = con.execute("DELETE FROM dipendenti_cache WHERE badge_uid=?", (uid,))
+        return cur.rowcount > 0
+
+
 def upsert_dipendenti(dipendenti: list[dict]) -> int:
+    """Sincronizza la cache locale con l'elenco server (rimuove badge eliminati/disattivati)."""
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    badges_server = [d["badge_uid"].upper() for d in dipendenti]
     n = 0
     with get_db() as con:
+        if badges_server:
+            placeholders = ",".join("?" * len(badges_server))
+            con.execute(
+                f"DELETE FROM dipendenti_cache WHERE badge_uid NOT IN ({placeholders})",
+                badges_server,
+            )
+        else:
+            con.execute("DELETE FROM dipendenti_cache")
+
         for d in dipendenti:
             con.execute(
                 """

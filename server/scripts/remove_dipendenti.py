@@ -38,6 +38,13 @@ def main() -> int:
             nome = f"{dip.nome} {dip.cognome}"
             db.delete(dip)
             print(f"Eliminato {nome} ({uid}) — {n_t} timbrature")
+            try:
+                from terminal import local_queue
+
+                if local_queue.remove_dipendente(uid):
+                    print(f"  Cache kiosk: rimosso {uid}")
+            except Exception:
+                pass
         db.commit()
     finally:
         db.close()
