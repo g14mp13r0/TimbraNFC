@@ -389,6 +389,28 @@ def export_timbrature_csv(
     )
 
 
+@app.get("/timbrature/export.pdf")
+def export_timbrature_pdf(
+    db: Session = Depends(get_db),
+    da: str | None = None,
+    a: str | None = None,
+    mese: str | None = None,
+    dipendente_id: int | None = None,
+):
+    from server.app.services.pdf_export import timbrature_pdf
+    from server.app.services.report import lista_timbrature, resolve_period
+
+    da, a, _mese = resolve_period(da, a, mese)
+    rows = lista_timbrature(db, da, a, dipendente_id)
+    pdf = timbrature_pdf(rows, da, a, _current_lang())
+    filename = f"timbrature_{da}_{a}.pdf"
+    return StreamingResponse(
+        iter([pdf]),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
 @app.get("/report", response_class=HTMLResponse)
 def page_report(
     request: Request,
@@ -447,6 +469,28 @@ def export_report_csv(
     return StreamingResponse(
         iter([buf.getvalue()]),
         media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@app.get("/report/export.pdf")
+def export_report_pdf(
+    db: Session = Depends(get_db),
+    da: str | None = None,
+    a: str | None = None,
+    mese: str | None = None,
+    dipendente_id: int | None = None,
+):
+    from server.app.services.pdf_export import report_turni_pdf
+    from server.app.services.report import report_turni, resolve_period
+
+    da, a, _mese = resolve_period(da, a, mese)
+    data = report_turni(db, da, a, dipendente_id)
+    pdf = report_turni_pdf(data, da, a, _current_lang())
+    filename = f"report_turni_{da}_{a}.pdf"
+    return StreamingResponse(
+        iter([pdf]),
+        media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 

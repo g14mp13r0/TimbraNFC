@@ -447,6 +447,7 @@ _STRINGS: dict[str, dict[Lang, str]] = {
     "lbl_or_period": {"it": "oppure periodo:", "fr": "ou période :", "en": "or period:"},
     "btn_filter": {"it": "Filtra", "fr": "Filtrer", "en": "Filter"},
     "btn_export_csv": {"it": "Export CSV", "fr": "Export CSV", "en": "Export CSV"},
+    "btn_export_pdf": {"it": "Export PDF", "fr": "Export PDF", "en": "Export PDF"},
     "btn_export_list": {"it": "Esporta elenco", "fr": "Exporter la liste", "en": "Export list"},
     "btn_manage": {"it": "Gestisci →", "fr": "Gérer →", "en": "Manage →"},
     "btn_save": {"it": "Salva", "fr": "Enregistrer", "en": "Save"},

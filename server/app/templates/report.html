@@ -27,6 +27,10 @@
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4"/><path d="M5 19h14"/></svg>
                     {{ t('btn_export_csv') }}
                 </a>
+                <a href="/report/export.pdf?da={{ da }}&amp;a={{ a }}{% if dipendente_id %}&amp;dipendente_id={{ dipendente_id }}{% endif %}{% if mese %}&amp;mese={{ mese }}{% endif %}" class="btn-export">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6M9 13h6M9 17h4"/></svg>
+                    {{ t('btn_export_pdf') }}
+                </a>
             </form>
         </div>
         <div class="card-body" style="padding-top:0;padding-bottom:10px;">
