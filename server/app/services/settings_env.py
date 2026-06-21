@@ -417,6 +417,24 @@ def localized_sections(lang: str | None = None) -> list[tuple[str, str, bool]]:
     ]
 
 
+def _parse_restart_log_error(log_text: str) -> str:
+    """Estrae un messaggio utile dall'ultimo blocco di kiosk-restart.log."""
+    lines = [ln.strip() for ln in log_text.splitlines() if ln.strip()]
+    for ln in reversed(lines):
+        if ln.startswith("=== ") and "TimbraNFC" not in ln and re.match(r"^=== \d{4}-", ln):
+            continue
+        if "ERRORE" in ln:
+            return ln
+        if ln.startswith("OK —"):
+            return ln
+        if ln.startswith("Avviso:"):
+            continue
+    for ln in reversed(lines):
+        if not (ln.startswith("===") and ln.endswith("===")):
+            return ln[:200]
+    return "Riavvio kiosk fallito — vedi data/kiosk-restart.log"
+
+
 def restart_kiosk() -> tuple[bool, str]:
     import pwd
     from datetime import datetime
@@ -435,9 +453,12 @@ def restart_kiosk() -> tuple[bool, str]:
     except (ImportError, KeyError, OSError):
         env.setdefault("APP_USER", "gpastorino")
 
+    block_start = log_path.stat().st_size if log_path.is_file() else 0
+
     try:
         with open(log_path, "a", encoding="utf-8") as logf:
             logf.write(f"\n=== {datetime.now().isoformat()} ===\n")
+            logf.flush()
             result = subprocess.run(
                 ["bash", str(script)],
                 cwd=str(ROOT),
@@ -449,16 +470,14 @@ def restart_kiosk() -> tuple[bool, str]:
             )
     except subprocess.TimeoutExpired:
         return False, "Timeout riavvio kiosk (120s)"
-    except OSError as exc:
-        return False, str(exc)
 
     if result.returncode != 0:
         try:
-            tail = log_path.read_text(encoding="utf-8")[-1200:]
-            last = [ln for ln in tail.splitlines() if ln.strip()][-1]
+            full = log_path.read_text(encoding="utf-8")
+            block = full[block_start:] if block_start < len(full) else full[-4000:]
+            return False, _parse_restart_log_error(block)
         except OSError:
-            last = "restart-kiosk fallito"
-        return False, last
+            return False, "Riavvio kiosk fallito"
 
     return True, "Kiosk in riavvio"
 
