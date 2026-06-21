@@ -26,6 +26,10 @@
                 <label>{{ t('lbl_from') }} <input type="date" name="da" value="{{ da }}"></label>
                 <label>{{ t('lbl_to') }} <input type="date" name="a" value="{{ a }}"></label>
                 <button type="submit">{{ t('btn_filter') }}</button>
+                <label class="export-opt" title="{{ t('report_export_include_detail_hint') }}">
+                    <input type="checkbox" id="export-dettaglio">
+                    {{ t('report_export_include_detail') }}
+                </label>
                 <a href="/report/export.csv?da={{ da }}&amp;a={{ a }}{% if dipendente_id %}&amp;dipendente_id={{ dipendente_id }}{% endif %}{% if mese %}&amp;mese={{ mese }}{% endif %}" class="btn-export">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4"/><path d="M5 19h14"/></svg>
                     {{ t('btn_export_csv') }}
@@ -112,4 +116,20 @@
             </div>
         </div>
     </div>
+    <script>
+    (function () {
+        var cb = document.getElementById('export-dettaglio');
+        if (!cb) return;
+        function syncExportLinks() {
+            document.querySelectorAll('a.btn-export').forEach(function (a) {
+                var url = new URL(a.getAttribute('href'), window.location.origin);
+                if (cb.checked) url.searchParams.set('dettaglio', '1');
+                else url.searchParams.delete('dettaglio');
+                a.setAttribute('href', url.pathname + url.search);
+            });
+        }
+        cb.addEventListener('change', syncExportLinks);
+        syncExportLinks();
+    })();
+    </script>
 {% endblock %}

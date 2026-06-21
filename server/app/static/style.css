@@ -496,6 +496,12 @@ code{font-family:var(--font-mono);background:var(--surface);padding:2px 7px;bord
   border:1px solid var(--navy-700);background:var(--navy-700);color:#fff;cursor:pointer;
 }
 .filters button:hover{background:var(--navy-600);}
+.filters label.export-opt{
+  flex-direction:row;align-items:center;gap:8px;align-self:center;
+  text-transform:none;font-size:12px;font-weight:500;color:var(--text);
+  cursor:pointer;margin-bottom:6px;
+}
+.filters label.export-opt input[type=checkbox]{width:auto;min-width:auto;margin:0;cursor:pointer;}
 .filter-sep{align-self:center;font-size:12px;color:var(--text-faint);margin:0 2px 8px 2px;}
 
 .inline-form{display:inline;}

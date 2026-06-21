@@ -180,7 +180,7 @@ def timbrature_pdf(rows: list[dict], da: str, a: str, lang: str | None = None) -
     )
 
 
-def report_turni_pdf(data: dict, da: str, a: str, lang: str | None = None, dipendente_id: int | None = None) -> bytes:
+def report_turni_pdf(data: dict, da: str, a: str, lang: str | None = None, dipendente_id: int | None = None, *, include_detail: bool = False) -> bytes:
     from server.app.services.report_html import report_turni_pdf as html_report_pdf
 
-    return html_report_pdf(data, da, a, lang=lang, dipendente_id=dipendente_id)
+    return html_report_pdf(data, da, a, lang=lang, dipendente_id=dipendente_id, include_detail=include_detail)

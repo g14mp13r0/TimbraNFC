@@ -100,6 +100,7 @@ def build_report_context(
     *,
     lang: str | None = None,
     dipendente_id: int | None = None,
+    include_detail: bool = False,
 ) -> dict:
     code = normalize_lang(lang)
     turni = annota_anomalie_turni(list(data.get("turni", [])))
@@ -166,8 +167,20 @@ def build_report_context(
         "n_turni": stats["n_turni"],
         "n_anomalie": n_anomalie,
         "reparti": reparti,
-        "turni": detail_rows,
-        "anomaly_note": nota_anomalie(turni, lang=code),
+        "dipendenti_ore": [
+            {
+                "dipendente": r["dipendente"],
+                "reparto": r.get("reparto") or "—",
+                "durata_totale": r["durata_totale"],
+                "n_turni": r.get("n_turni", 0),
+            }
+            for r in riepilogo
+        ]
+        if not dipendente_id
+        else [],
+        "include_detail": include_detail,
+        "turni": detail_rows if include_detail else [],
+        "anomaly_note": nota_anomalie(turni, lang=code) if include_detail else None,
         "labels": {
             "summary": t("report_html_summary", code),
             "employee": t("lbl_employee", code),
@@ -191,12 +204,23 @@ def build_report_context(
             "anomaly_title": t("report_anomaly_title", code),
             "generated": t("report_generated", code),
             "period": t("report_period_label", code),
+            "employee_hours": t("report_employee_hours", code),
         },
     }
 
 
-def report_turni_html(data: dict, da: str, a: str, lang: str | None = None, dipendente_id: int | None = None) -> str:
-    ctx = build_report_context(data, da, a, lang=lang, dipendente_id=dipendente_id)
+def report_turni_html(
+    data: dict,
+    da: str,
+    a: str,
+    lang: str | None = None,
+    dipendente_id: int | None = None,
+    *,
+    include_detail: bool = False,
+) -> str:
+    ctx = build_report_context(
+        data, da, a, lang=lang, dipendente_id=dipendente_id, include_detail=include_detail
+    )
     return _JINJA.get_template("report_export.html").render(**ctx)
 
 
@@ -206,9 +230,13 @@ def report_turni_pdf(
     a: str,
     lang: str | None = None,
     dipendente_id: int | None = None,
+    *,
+    include_detail: bool = False,
 ) -> bytes:
     """Genera PDF dal template HTML del report (WeasyPrint)."""
-    ctx = build_report_context(data, da, a, lang=lang, dipendente_id=dipendente_id)
+    ctx = build_report_context(
+        data, da, a, lang=lang, dipendente_id=dipendente_id, include_detail=include_detail
+    )
     ctx["for_pdf"] = True
     html = _JINJA.get_template("report_export.html").render(**ctx)
     try:

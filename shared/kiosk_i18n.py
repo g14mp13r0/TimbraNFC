@@ -883,6 +883,21 @@ _STRINGS: dict[str, dict[Lang, str]] = {
     },
     "report_employees_count": {"it": "Dipendenti", "fr": "Employés", "en": "Employees"},
     "report_dept_hours": {"it": "Ore totali", "fr": "Heures totales", "en": "Total hours"},
+    "report_employee_hours": {
+        "it": "Ore per dipendente",
+        "fr": "Heures par employé",
+        "en": "Hours per employee",
+    },
+    "report_export_include_detail": {
+        "it": "Includi dettaglio turni",
+        "fr": "Inclure le détail des postes",
+        "en": "Include shift details",
+    },
+    "report_export_include_detail_hint": {
+        "it": "Aggiunge l'elenco completo dei singoli turni nel PDF/CSV",
+        "fr": "Ajoute la liste complète des postes au PDF/CSV",
+        "en": "Adds the full shift list to the PDF/CSV export",
+    },
     "report_legend_open": {"it": "Turno in corso", "fr": "Poste en cours", "en": "Open shift"},
     "report_legend_warn": {"it": "Possibile anomalia", "fr": "Anomalie possible", "en": "Possible anomaly"},
     "report_html_footer": {

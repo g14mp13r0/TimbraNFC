@@ -359,6 +359,29 @@
   </table>
   {% endif %}
 
+  {% if dipendenti_ore %}
+  <table class="dept-table">
+    <caption>{{ labels.employee_hours }}</caption>
+    <thead>
+      <tr>
+        <th>{{ labels.employee }}</th>
+        <th>{{ labels.department }}</th>
+        <th style="text-align:right;">{{ labels.total_time }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in dipendenti_ore %}
+      <tr>
+        <td>{{ r.dipendente }}</td>
+        <td>{{ r.reparto }}</td>
+        <td>{{ r.durata_totale }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  {% if include_detail %}
   <p class="section-title">
     <span>{{ labels.detail }}</span>
     <span class="legend">
@@ -407,6 +430,7 @@
   <div class="anomaly-box">
     <strong>{{ labels.anomaly_title }}</strong> {{ anomaly_note }}
   </div>
+  {% endif %}
   {% endif %}
 
   <div class="doc-footer">

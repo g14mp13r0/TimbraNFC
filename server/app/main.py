@@ -100,6 +100,12 @@ def optional_int_query(dipendente_id: str | None = Query(default=None)) -> int |
     return int(dipendente_id)
 
 
+def optional_bool_query(value: str | None = Query(default=None, alias="dettaglio")) -> bool:
+    if value is None or str(value).strip() == "":
+        return False
+    return str(value).strip().lower() in ("1", "true", "yes", "on", "si", "sì")
+
+
 def _tojson_filter(value) -> Markup:
     return Markup(json.dumps(value, ensure_ascii=False))
 
@@ -724,6 +730,7 @@ def export_report_csv(
     a: str | None = None,
     mese: str | None = None,
     dipendente_id: int | None = Depends(optional_int_query),
+    dettaglio: bool = Depends(optional_bool_query),
 ):
     from server.app.services.report import report_turni, resolve_period
 
@@ -731,17 +738,18 @@ def export_report_csv(
     data = report_turni(db, da, a, dipendente_id)
     buf = io.StringIO()
     writer = csv.writer(buf)
-    writer.writerow(["Dipendente", "Reparto", "Data", "Ora inizio", "Ora fine", "Tempo totale"])
-    for t in data["turni"]:
-        writer.writerow([
-            t["dipendente"],
-            t.get("reparto") or "",
-            _format_date(t["data"]),
-            t["ora_inizio"] or "",
-            t["ora_fine"] or "",
-            t["durata"],
-        ])
-    writer.writerow([])
+    if dettaglio:
+        writer.writerow(["Dipendente", "Reparto", "Data", "Ora inizio", "Ora fine", "Tempo totale"])
+        for t in data["turni"]:
+            writer.writerow([
+                t["dipendente"],
+                t.get("reparto") or "",
+                _format_date(t["data"]),
+                t["ora_inizio"] or "",
+                t["ora_fine"] or "",
+                t["durata"],
+            ])
+        writer.writerow([])
     writer.writerow(["Riepilogo", "Reparto", "Giorni", "N. turni", "Tempo totale"])
     for r in data["riepilogo"]:
         writer.writerow([
@@ -767,6 +775,7 @@ def export_report_pdf(
     a: str | None = None,
     mese: str | None = None,
     dipendente_id: int | None = Depends(optional_int_query),
+    dettaglio: bool = Depends(optional_bool_query),
 ):
     from fastapi import HTTPException
 
@@ -776,7 +785,9 @@ def export_report_pdf(
     da, a, _mese = resolve_period(da, a, mese)
     data = report_turni(db, da, a, dipendente_id)
     try:
-        pdf = report_turni_pdf(data, da, a, _current_lang(), dipendente_id=dipendente_id)
+        pdf = report_turni_pdf(
+            data, da, a, _current_lang(), dipendente_id=dipendente_id, include_detail=dettaglio
+        )
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     filename = f"report_turni_{da}_{a}.pdf"
@@ -794,13 +805,16 @@ def export_report_html(
     a: str | None = None,
     mese: str | None = None,
     dipendente_id: int | None = Depends(optional_int_query),
+    dettaglio: bool = Depends(optional_bool_query),
 ):
     from server.app.services.report import report_turni, resolve_period
     from server.app.services.report_html import report_turni_html
 
     da, a, _mese = resolve_period(da, a, mese)
     data = report_turni(db, da, a, dipendente_id)
-    html = report_turni_html(data, da, a, _current_lang(), dipendente_id=dipendente_id)
+    html = report_turni_html(
+        data, da, a, _current_lang(), dipendente_id=dipendente_id, include_detail=dettaglio
+    )
     return HTMLResponse(content=html)
 
 
