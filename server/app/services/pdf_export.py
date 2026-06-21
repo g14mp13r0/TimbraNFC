@@ -190,15 +190,17 @@ def report_turni_pdf(data: dict, da: str, a: str, lang: str | None = None) -> by
 
     summary_headers = [
         t("lbl_employee", code),
+        t("col_department", code),
         t("col_total_time", code),
     ]
     summary_rows = [
-        [r["dipendente"], r["durata_totale"]]
+        [r["dipendente"], r.get("reparto") or "—", r["durata_totale"]]
         for r in riepilogo
     ]
 
     detail_headers = [
         t("lbl_employee", code),
+        t("col_department", code),
         t("col_date", code),
         t("shift_start", code),
         t("shift_end", code),
@@ -212,6 +214,7 @@ def report_turni_pdf(data: dict, da: str, a: str, lang: str | None = None) -> by
             fine = row.get("ora_fine") or "—"
         detail_rows.append([
             row["dipendente"],
+            row.get("reparto") or "—",
             format_date(row["data"]),
             row["ora_inizio"] or "—",
             fine,

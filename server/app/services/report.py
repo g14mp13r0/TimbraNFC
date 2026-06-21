@@ -92,6 +92,7 @@ def report_turni(
             continue
 
         nome = f"{dip.cognome} {dip.nome}"
+        reparto = dip.reparto or "—"
         prior = (
             db.query(Timbratura)
             .filter(
@@ -115,6 +116,7 @@ def report_turni(
                     **t,
                     "dipendente_id": did,
                     "dipendente": nome,
+                    "reparto": reparto,
                 }
             )
 
@@ -123,6 +125,7 @@ def report_turni(
             {
                 "dipendente_id": did,
                 "dipendente": nome,
+                "reparto": reparto,
                 **stats,
             }
         )
