@@ -155,6 +155,7 @@ def build_report_context(
         "brand_tagline": brand["tagline"],
         "logo_letter": brand["logo_letter"],
         "logo_uri": brand["logo_uri"],
+        "for_pdf": False,
         "generated_at": format_datetime(datetime.now(), seconds=False),
         "period_da": format_date(da),
         "period_a": format_date(a),
@@ -207,12 +208,14 @@ def report_turni_pdf(
     dipendente_id: int | None = None,
 ) -> bytes:
     """Genera PDF dal template HTML del report (WeasyPrint)."""
-    html = report_turni_html(data, da, a, lang=lang, dipendente_id=dipendente_id)
+    ctx = build_report_context(data, da, a, lang=lang, dipendente_id=dipendente_id)
+    ctx["for_pdf"] = True
+    html = _JINJA.get_template("report_export.html").render(**ctx)
     try:
         from weasyprint import HTML
     except ImportError as exc:
         raise RuntimeError(
             "WeasyPrint non installato: pip install weasyprint "
-            "(su Raspberry Pi servono anche libpango e libgdk-pixbuf)"
+            "(su Raspberry Pi: apt install libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf-2.0-0)"
         ) from exc
     return HTML(string=html, base_url=str(_TPL_DIR)).write_pdf()

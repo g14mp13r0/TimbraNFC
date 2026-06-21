@@ -768,12 +768,17 @@ def export_report_pdf(
     mese: str | None = None,
     dipendente_id: int | None = Depends(optional_int_query),
 ):
-    from server.app.services.pdf_export import report_turni_pdf
+    from fastapi import HTTPException
+
     from server.app.services.report import report_turni, resolve_period
+    from server.app.services.report_html import report_turni_pdf
 
     da, a, _mese = resolve_period(da, a, mese)
     data = report_turni(db, da, a, dipendente_id)
-    pdf = report_turni_pdf(data, da, a, _current_lang(), dipendente_id=dipendente_id)
+    try:
+        pdf = report_turni_pdf(data, da, a, _current_lang(), dipendente_id=dipendente_id)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
     filename = f"report_turni_{da}_{a}.pdf"
     return StreamingResponse(
         iter([pdf]),

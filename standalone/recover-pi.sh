@@ -73,7 +73,8 @@ fi
 if ! "$VENV" -c "import weasyprint" 2>/dev/null; then
     echo "→ Installo weasyprint (report turni PDF da HTML)"
     if command -v apt-get >/dev/null 2>&1; then
-        echo "  (su Debian/Raspberry Pi: apt install libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf-2.0-0)"
+        apt-get install -y libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf-2.0-0 shared-mime-info 2>/dev/null || \
+            echo "  Avviso: apt install libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf-2.0-0 shared-mime-info"
     fi
     "$APP_DIR/.venv/bin/pip" install 'weasyprint>=62.0'
 fi
