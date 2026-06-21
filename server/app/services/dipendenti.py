@@ -115,7 +115,7 @@ def elimina_dipendente(db: Session, dip_id: int) -> str:
     if ha_timbrature:
         dip.attivo = False
         db.commit()
-    return "disattivato_per_timbrature"
+        return "disattivato_per_timbrature"
 
     db.delete(dip)
     db.commit()
