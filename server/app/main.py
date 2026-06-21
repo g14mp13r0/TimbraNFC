@@ -47,6 +47,12 @@ templates.env.globals["lang"] = lambda: _current_lang()
 templates.env.globals["enrollment_js_strings"] = enrollment_js_strings
 
 
+def optional_int_query(dipendente_id: str | None = Query(default=None)) -> int | None:
+    if dipendente_id is None or dipendente_id.strip() == "":
+        return None
+    return int(dipendente_id)
+
+
 def _tojson_filter(value) -> Markup:
     return Markup(json.dumps(value, ensure_ascii=False))
 
@@ -309,7 +315,7 @@ def page_timbrature(
     da: str | None = None,
     a: str | None = None,
     mese: str | None = None,
-    dipendente_id: int | None = None,
+    dipendente_id: int | None = Depends(optional_int_query),
     msg: str = "",
     error: str = "",
 ):
@@ -363,7 +369,7 @@ def export_timbrature_csv(
     da: str | None = None,
     a: str | None = None,
     mese: str | None = None,
-    dipendente_id: int | None = None,
+    dipendente_id: int | None = Depends(optional_int_query),
 ):
     from server.app.services.report import lista_timbrature, resolve_period
 
@@ -395,7 +401,7 @@ def export_timbrature_pdf(
     da: str | None = None,
     a: str | None = None,
     mese: str | None = None,
-    dipendente_id: int | None = None,
+    dipendente_id: int | None = Depends(optional_int_query),
 ):
     from server.app.services.pdf_export import timbrature_pdf
     from server.app.services.report import lista_timbrature, resolve_period
@@ -418,7 +424,7 @@ def page_report(
     da: str | None = None,
     a: str | None = None,
     mese: str | None = None,
-    dipendente_id: int | None = None,
+    dipendente_id: int | None = Depends(optional_int_query),
 ):
     from server.app.services.report import report_turni, resolve_period
 
@@ -448,7 +454,7 @@ def export_report_csv(
     da: str | None = None,
     a: str | None = None,
     mese: str | None = None,
-    dipendente_id: int | None = None,
+    dipendente_id: int | None = Depends(optional_int_query),
 ):
     from server.app.services.report import report_turni, resolve_period
 
@@ -478,7 +484,7 @@ def export_report_pdf(
     da: str | None = None,
     a: str | None = None,
     mese: str | None = None,
-    dipendente_id: int | None = None,
+    dipendente_id: int | None = Depends(optional_int_query),
 ):
     from server.app.services.pdf_export import report_turni_pdf
     from server.app.services.report import report_turni, resolve_period
