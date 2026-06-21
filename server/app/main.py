@@ -15,8 +15,9 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
-from werkzeug.security import generate_password_hash
+from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.sessions import SessionMiddleware
+from werkzeug.security import generate_password_hash
 
 from server.app.api import dashboard as dashboard_api
 from server.app.api import devices as devices_api
@@ -42,6 +43,7 @@ from server.app.web_auth import (
     login_redirect,
     login_user,
     logout_user,
+    normalize_ruolo,
     user_template_context,
 )
 
@@ -53,6 +55,26 @@ app.include_router(devices_api.router)
 app.include_router(timbrature_api.router)
 app.include_router(dashboard_api.router)
 app.include_router(enrollment_api.router)
+
+
+class WebAuthMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        path = request.url.path
+        if path == "/logout":
+            logout_user(request)
+            return RedirectResponse("/login", status_code=303)
+        if is_public_path(path):
+            return await call_next(request)
+        user = get_session_user(request)
+        if not user:
+            return login_redirect(path)
+        if not can_access(user, path, request.method):
+            return access_denied_redirect()
+        return await call_next(request)
+
+
+app.add_middleware(WebAuthMiddleware)
+app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY, max_age=60 * 60 * 24 * 7)
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 STATIC_DIR = Path(__file__).parent / "static"
@@ -89,22 +111,6 @@ if STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 
-@app.middleware("http")
-async def web_auth_middleware(request: Request, call_next):
-    path = request.url.path
-    if is_public_path(path):
-        return await call_next(request)
-    user = get_session_user(request)
-    if not user:
-        return login_redirect(path)
-    if not can_access(user, path, request.method):
-        return access_denied_redirect()
-    return await call_next(request)
-
-
-app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY, max_age=60 * 60 * 24 * 7)
-
-
 def _init_db():
     Base.metadata.create_all(bind=engine)
     from server.app.db import SessionLocal
@@ -115,7 +121,8 @@ def _init_db():
             db.add(Sede(id=1, nome="Sede Principale"))
 
         def _ensure_user(email: str, password: str, ruolo: str) -> None:
-            if not db.query(UtenteAdmin).filter(func.lower(UtenteAdmin.email) == email.lower()).first():
+            row = db.query(UtenteAdmin).filter(func.lower(UtenteAdmin.email) == email.lower()).first()
+            if not row:
                 db.add(
                     UtenteAdmin(
                         email=email,
@@ -123,6 +130,9 @@ def _init_db():
                         ruolo=ruolo,
                     )
                 )
+                return
+            if normalize_ruolo(row.ruolo) != ruolo:
+                row.ruolo = ruolo
 
         _ensure_user(ADMIN_EMAIL, ADMIN_PASSWORD, ROLE_ADMIN)
         _ensure_user(CONTABILE_EMAIL, CONTABILE_PASSWORD, ROLE_CONTABILE)
@@ -202,8 +212,7 @@ def login_submit(
 
 
 @app.get("/logout")
-def logout(request: Request):
-    logout_user(request)
+def logout(_request: Request):
     return RedirectResponse("/login", status_code=303)
 
 

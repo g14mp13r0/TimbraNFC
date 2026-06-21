@@ -16,8 +16,38 @@ ROLE_ADMIN = "admin"
 ROLE_CONTABILE = "contabile"
 ROLES = {ROLE_ADMIN, ROLE_CONTABILE}
 
-PUBLIC_EXACT = {"/login", "/health", "/favicon.ico"}
+ROLE_ALIASES = {
+    "admin": ROLE_ADMIN,
+    "amministratore": ROLE_ADMIN,
+    "administrator": ROLE_ADMIN,
+    "contabile": ROLE_CONTABILE,
+    "accountant": ROLE_CONTABILE,
+    "comptable": ROLE_CONTABILE,
+}
+
+PUBLIC_EXACT = {"/login", "/health", "/favicon.ico", "/logout"}
 PUBLIC_PREFIXES = ("/static/", "/api/")
+
+CONTABILE_EXACT = {
+    "/",
+    "/timbrature",
+    "/report",
+    "/dipendenti",
+    "/timbrature/export.csv",
+    "/timbrature/export.pdf",
+    "/report/export.csv",
+    "/report/export.pdf",
+    "/dipendenti/export.csv",
+    "/impostazioni/sfondo-preview",
+}
+CONTABILE_PREFIXES = ("/dipendenti/", "/timbrature/", "/report/")
+
+
+def normalize_ruolo(ruolo: str | None) -> str | None:
+    if not ruolo:
+        return None
+    key = ruolo.strip().lower()
+    return ROLE_ALIASES.get(key, key if key in ROLES else None)
 
 
 def _initials(email: str) -> str:
@@ -32,7 +62,7 @@ def get_session_user(request: Request) -> dict | None:
     user_id = request.session.get("user_id")
     if not user_id:
         return None
-    ruolo = request.session.get("ruolo")
+    ruolo = normalize_ruolo(request.session.get("ruolo"))
     if ruolo not in ROLES:
         return None
     return {
@@ -46,7 +76,7 @@ def login_user(request: Request, user: UtenteAdmin) -> None:
     request.session.clear()
     request.session["user_id"] = user.id
     request.session["email"] = user.email
-    request.session["ruolo"] = user.ruolo
+    request.session["ruolo"] = normalize_ruolo(user.ruolo) or ROLE_ADMIN
 
 
 def logout_user(request: Request) -> None:
@@ -55,7 +85,7 @@ def logout_user(request: Request) -> None:
 
 def authenticate(db: Session, email: str, password: str) -> UtenteAdmin | None:
     user = db.query(UtenteAdmin).filter(func.lower(UtenteAdmin.email) == email.strip().lower()).first()
-    if not user or user.ruolo not in ROLES:
+    if not user or normalize_ruolo(user.ruolo) not in ROLES:
         return None
     if not check_password_hash(user.password_hash, password):
         return None
@@ -71,24 +101,23 @@ def is_public_path(path: str) -> bool:
 def can_access(user: dict | None, path: str, method: str) -> bool:
     if user is None:
         return False
-    if user["ruolo"] == ROLE_ADMIN:
+    ruolo = normalize_ruolo(user.get("ruolo"))
+    if ruolo == ROLE_ADMIN:
         return True
-    if user["ruolo"] != ROLE_CONTABILE:
+    if ruolo != ROLE_CONTABILE:
         return False
 
-    if path == "/impostazioni/sfondo-preview" and method.upper() == "GET":
+    if path in CONTABILE_EXACT:
         return True
-
-    blocked_prefixes = ("/dispositivi", "/impostazioni")
-    if any(path.startswith(p) for p in blocked_prefixes):
-        return False
+    if any(path.startswith(prefix) for prefix in CONTABILE_PREFIXES):
+        return True
     if method.upper() == "POST" and path == "/timbrature/azzera":
         return False
     if method.upper() == "POST" and "/restart-kiosk" in path:
         return False
-
-    allowed_prefixes = ("/", "/timbrature", "/report", "/dipendenti", "/logout")
-    return any(path == p or path.startswith(f"{p}/") for p in allowed_prefixes)
+    if path.startswith("/dispositivi") or path.startswith("/impostazioni"):
+        return False
+    return False
 
 
 def user_template_context(user: dict | None) -> dict:
@@ -99,11 +128,12 @@ def user_template_context(user: dict | None) -> dict:
             "current_user_role": "",
             "user_is_admin": False,
         }
+    ruolo = normalize_ruolo(user.get("ruolo")) or ""
     return {
         "current_user_email": user["email"],
         "current_user_initials": _initials(user["email"]),
-        "current_user_role": user["ruolo"],
-        "user_is_admin": user["ruolo"] == ROLE_ADMIN,
+        "current_user_role": ruolo,
+        "user_is_admin": ruolo == ROLE_ADMIN,
     }
 
 
