@@ -3,7 +3,7 @@
 set -uo pipefail
 
 APP_DIR="${APP_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
-APP_USER="${APP_USER:-$(whoami)}"
+APP_USER="${APP_USER:-$(stat -c '%U' "$APP_DIR" 2>/dev/null || whoami)}"
 LOG="${TIMBRANFC_KIOSK_LOG:-/tmp/timbranfc-kiosk.log}"
 LOCK="/tmp/timbranfc-kiosk.lock"
 
@@ -16,30 +16,7 @@ export STANDALONE="${STANDALONE:-1}"
 export TIMBRANFC_DATA="${TIMBRANFC_DATA:-$APP_DIR/data}"
 export SERVER_URL="${SERVER_URL:-http://127.0.0.1:8080}"
 export NFC_AUTO_TIMBRATURA="${NFC_AUTO_TIMBRATURA:-1}"
-
-# Un solo kiosk (lock file)
-if [ -f "$LOCK" ]; then
-    _old_pid="$(cat "$LOCK" 2>/dev/null || true)"
-    if [ -n "$_old_pid" ] && kill -0 "$_old_pid" 2>/dev/null; then
-        echo "$(date -Iseconds) Kiosk già attivo (pid $_old_pid)"
-        exit 0
-    fi
-fi
-
-for i in $(seq 1 90); do
-    if [ -S /tmp/.X11-unix/X0 ] || [ -S /tmp/.X11-unix/X1 ]; then
-        break
-    fi
-    sleep 2
-done
-
-# shellcheck source=standalone/x-session-env.sh
-source "$APP_DIR/standalone/x-session-env.sh"
-
-if ! x_socket_ok; then
-    echo "$(date -Iseconds) ERRORE: socket X assente"
-    exit 1
-fi
+export APP_DIR APP_USER
 
 # pcscd si configura con sudo (fix-services / pcscd-on.sh) — mai systemctl start/stop
 # come utente normale: polkit chiede la password e blocca l'autostart del kiosk.
@@ -66,7 +43,27 @@ _check_pcscd() {
         fi
     fi
 }
-_check_pcscd
+
+_wait_for_x() {
+    local i
+    for i in $(seq 1 90); do
+        if [ -S /tmp/.X11-unix/X0 ] || [ -S /tmp/.X11-unix/X1 ]; then
+            return 0
+        fi
+        sleep 2
+    done
+    return 1
+}
+
+_prepare_display() {
+    # shellcheck source=standalone/x-session-env.sh
+    source "$APP_DIR/standalone/x-session-env.sh"
+    import_graphical_session_env "$APP_USER" || true
+    if x_socket_ok; then
+        return 0
+    fi
+    return 1
+}
 
 PY="$APP_DIR/.venv/bin/python"
 KIOSK="$APP_DIR/standalone/run_kiosk.py"
@@ -74,6 +71,10 @@ KIOSK="$APP_DIR/standalone/run_kiosk.py"
 _start_python() {
     export DISPLAY XAUTHORITY WAYLAND_DISPLAY XDG_RUNTIME_DIR DBUS_SESSION_BUS_ADDRESS
     echo "$(date -Iseconds) Avvio kiosk DISPLAY=$DISPLAY NFC_BACKEND=${NFC_BACKEND:-?}"
+    if [ ! -x "$PY" ]; then
+        echo "$(date -Iseconds) ERRORE: Python venv assente: $PY"
+        return 127
+    fi
     if [ "${NFC_BACKEND:-auto}" = "pcsc" ] && getent group scard >/dev/null 2>&1 \
         && id -nG "$APP_USER" 2>/dev/null | grep -qw scard \
         && ! id -nG 2>/dev/null | grep -qw scard; then
@@ -85,7 +86,31 @@ _start_python() {
 
 while true; do
     echo ""
-    echo "=== $(date -Iseconds) launch_kiosk.sh (user=$APP_USER) ==="
+    echo "=== $(date -Iseconds) launch_kiosk.sh (user=$APP_USER pid=$$) ==="
+
+    if [ -f "$LOCK" ]; then
+        _old_pid="$(cat "$LOCK" 2>/dev/null || true)"
+        if [ -n "$_old_pid" ] && kill -0 "$_old_pid" 2>/dev/null; then
+            echo "$(date -Iseconds) Kiosk già attivo (pid $_old_pid)"
+            sleep 30
+            continue
+        fi
+        rm -f "$LOCK"
+    fi
+
+    if ! _wait_for_x; then
+        echo "$(date -Iseconds) Attendo socket X (desktop non pronto)..."
+        sleep 10
+        continue
+    fi
+
+    if ! _prepare_display; then
+        echo "$(date -Iseconds) Attendo sessione grafica (DISPLAY/XAUTHORITY)..."
+        sleep 10
+        continue
+    fi
+
+    _check_pcscd
 
     for i in $(seq 1 30); do
         if curl -sf "${SERVER_URL}/health" >/dev/null 2>&1; then

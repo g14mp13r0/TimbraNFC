@@ -367,20 +367,49 @@ def localized_sections(lang: str | None = None) -> list[tuple[str, str]]:
 
 
 def restart_kiosk() -> tuple[bool, str]:
+    import pwd
+    from datetime import datetime
+
     script = ROOT / "standalone" / "restart-kiosk.sh"
     if not script.is_file():
         return False, f"Script non trovato: {script}"
+
+    log_path = DATA_DIR / "kiosk-restart.log"
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+
+    env = os.environ.copy()
+    env["APP_DIR"] = str(ROOT)
     try:
-        subprocess.Popen(
-            ["bash", str(script)],
-            cwd=str(ROOT),
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            start_new_session=True,
-        )
-        return True, "Kiosk in riavvio"
+        env["APP_USER"] = pwd.getpwuid(ROOT.stat().st_uid).pw_name
+    except (ImportError, KeyError, OSError):
+        env.setdefault("APP_USER", "gpastorino")
+
+    try:
+        with open(log_path, "a", encoding="utf-8") as logf:
+            logf.write(f"\n=== {datetime.now().isoformat()} ===\n")
+            result = subprocess.run(
+                ["bash", str(script)],
+                cwd=str(ROOT),
+                env=env,
+                stdout=logf,
+                stderr=subprocess.STDOUT,
+                timeout=120,
+                check=False,
+            )
+    except subprocess.TimeoutExpired:
+        return False, "Timeout riavvio kiosk (120s)"
     except OSError as exc:
         return False, str(exc)
+
+    if result.returncode != 0:
+        try:
+            tail = log_path.read_text(encoding="utf-8")[-1200:]
+            last = [ln for ln in tail.splitlines() if ln.strip()][-1]
+        except OSError:
+            last = "restart-kiosk fallito"
+        return False, last
+
+    return True, "Kiosk in riavvio"
 
 
 def _env_quote(value: str) -> str:
