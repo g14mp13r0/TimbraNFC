@@ -773,7 +773,7 @@ def export_report_pdf(
 
     da, a, _mese = resolve_period(da, a, mese)
     data = report_turni(db, da, a, dipendente_id)
-    pdf = report_turni_pdf(data, da, a, _current_lang())
+    pdf = report_turni_pdf(data, da, a, _current_lang(), dipendente_id=dipendente_id)
     filename = f"report_turni_{da}_{a}.pdf"
     return StreamingResponse(
         iter([pdf]),

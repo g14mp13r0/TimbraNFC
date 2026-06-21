@@ -70,6 +70,13 @@ if ! "$VENV" -c "import reportlab" 2>/dev/null; then
     echo "→ Installo reportlab (export PDF)"
     "$APP_DIR/.venv/bin/pip" install 'reportlab>=4.0.0'
 fi
+if ! "$VENV" -c "import weasyprint" 2>/dev/null; then
+    echo "→ Installo weasyprint (report turni PDF da HTML)"
+    if command -v apt-get >/dev/null 2>&1; then
+        echo "  (su Debian/Raspberry Pi: apt install libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf-2.0-0)"
+    fi
+    "$APP_DIR/.venv/bin/pip" install 'weasyprint>=62.0'
+fi
 if ! "$VENV" -c "from server.app.main import app" 2>/dev/null; then
     echo "ERRORE: server non importabile:"
     cd "$APP_DIR" && "$VENV" -c "from server.app.main import app" 2>&1 || true

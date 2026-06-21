@@ -180,53 +180,7 @@ def timbrature_pdf(rows: list[dict], da: str, a: str, lang: str | None = None) -
     )
 
 
-def report_turni_pdf(data: dict, da: str, a: str, lang: str | None = None) -> bytes:
-    code = normalize_lang(lang)
-    riepilogo = sorted(data.get("riepilogo", []), key=lambda r: r["dipendente"].lower())
-    turni = sorted(
-        data.get("turni", []),
-        key=lambda r: (r["dipendente"].lower(), r["data"], r["ora_inizio"] or ""),
-    )
+def report_turni_pdf(data: dict, da: str, a: str, lang: str | None = None, dipendente_id: int | None = None) -> bytes:
+    from server.app.services.report_html import report_turni_pdf as html_report_pdf
 
-    summary_headers = [
-        t("lbl_employee", code),
-        t("col_department", code),
-        t("col_total_time", code),
-    ]
-    summary_rows = [
-        [r["dipendente"], r.get("reparto") or "—", r["durata_totale"]]
-        for r in riepilogo
-    ]
-
-    detail_headers = [
-        t("lbl_employee", code),
-        t("col_department", code),
-        t("col_date", code),
-        t("shift_start", code),
-        t("shift_end", code),
-        t("col_total_time", code),
-    ]
-    detail_rows = []
-    for row in turni:
-        if row.get("aperto"):
-            fine = t("shift_in_progress", code)
-        else:
-            fine = row.get("ora_fine") or "—"
-        detail_rows.append([
-            row["dipendente"],
-            row.get("reparto") or "—",
-            format_date(row["data"]),
-            row["ora_inizio"] or "—",
-            fine,
-            row["durata"],
-        ])
-
-    return _build_pdf(
-        title=f"TimbraNFC — {t('nav_report', code)}",
-        subtitle=_period_subtitle(da, a, code),
-        sections=[
-            (t("report_summary", code), summary_headers, summary_rows),
-            (t("report_detail", code), detail_headers, detail_rows),
-        ],
-        landscape_page=False,
-    )
+    return html_report_pdf(data, da, a, lang=lang, dipendente_id=dipendente_id)

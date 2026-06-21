@@ -42,7 +42,6 @@ class KioskUI:
         self._badge_corrente: str | None = None
         self._btn_refs: dict[str, tk.Button] = {}
         self._bg_photo = None
-        self._last_event_text = ""
         self._confirm_after_id: str | None = None
         self._build_standby()
         self._aggiorna_ora()
@@ -107,18 +106,6 @@ class KioskUI:
         for w in (self.lbl_ora, self.lbl_data):
             w.lift()
 
-        self.lbl_ultima = tk.Label(
-            self.root,
-            text=self._last_event_text,
-            font=("Helvetica", 9),
-            fg=COLOR_TEXT_MUTED,
-            bg=COLOR_BG,
-            wraplength=W - 20,
-            justify="left",
-        )
-        self.lbl_ultima.place(x=10, y=H - 28, anchor="sw")
-        self.lbl_ultima.lift()
-
     def _annulla_conferma_timer(self) -> None:
         if self._confirm_after_id is not None:
             try:
@@ -126,10 +113,6 @@ class KioskUI:
             except Exception:
                 pass
             self._confirm_after_id = None
-
-    def _aggiorna_ultima_label(self) -> None:
-        if hasattr(self, "lbl_ultima") and self.lbl_ultima.winfo_exists():
-            self.lbl_ultima.config(text=self._last_event_text)
 
     def _mostra_lettura(self) -> None:
         self._annulla_conferma_timer()
@@ -200,16 +183,10 @@ class KioskUI:
 
         if ok:
             testo = f"✓ {result['nome']}\n{result['label']}\n{result['ora']}"
-            self._last_event_text = t("kiosk_last_ok").format(
-                nome=result.get("nome", ""),
-                azione=result.get("label", ""),
-                ora=result.get("ora", ""),
-            )
         else:
             msg = result.get("msg", t("error_generic"))
             nome = result.get("nome")
             testo = f"✗ {nome}\n{msg}" if nome else f"✗ {msg}"
-            self._last_event_text = t("kiosk_last_err").format(msg=msg)
 
         frame = tk.Frame(self.root, bg=bg, padx=20, pady=15)
         tk.Label(frame, text=testo, font=("Helvetica", 16, "bold"), fg="white", bg=bg, justify="center").pack()
@@ -228,7 +205,6 @@ class KioskUI:
         self._clear()
         bg = COLOR_OK if ok else COLOR_ERR
         testo = f"{titolo}\n{uid[:16]}{'…' if len(uid) > 16 else ''}"
-        self._last_event_text = titolo
         frame = tk.Frame(self.root, bg=bg, padx=20, pady=15)
         tk.Label(frame, text=testo, font=("Helvetica", 14, "bold"), fg="white", bg=bg, justify="center").pack()
         frame.place(relx=0.5, rely=0.5, anchor="center")

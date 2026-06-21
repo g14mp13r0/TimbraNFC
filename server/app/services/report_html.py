@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import base64
+import mimetypes
 from datetime import datetime
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
+from server.app.config import ROOT
 from shared.dates import format_date, format_datetime
 from shared.kiosk_i18n import normalize_lang, t
 from shared.report_anomalies import (
@@ -26,6 +29,59 @@ _JINJA = Environment(
     loader=FileSystemLoader(str(_TPL_DIR)),
     autoescape=select_autoescape(["html", "xml"]),
 )
+_IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp"}
+
+
+def _path_to_data_uri(path: Path) -> str | None:
+    if not path.is_file():
+        return None
+    mime, _ = mimetypes.guess_type(str(path))
+    if not mime:
+        mime = "image/png"
+    try:
+        data = base64.b64encode(path.read_bytes()).decode("ascii")
+    except OSError:
+        return None
+    return f"data:{mime};base64,{data}"
+
+
+def _resolve_logo_path(raw: str) -> Path | None:
+    if not raw:
+        return None
+    p = Path(raw)
+    if not p.is_file():
+        p = ROOT / raw
+    if p.is_file() and p.suffix.lower() in _IMAGE_SUFFIXES:
+        return p
+    return None
+
+
+def _report_brand() -> dict:
+    try:
+        from server.app.services.settings_env import kiosk_background_path, parse_env_file
+
+        env = parse_env_file()
+        name = (env.get("REPORT_BRAND_NAME") or env.get("SEDE_NOME") or "TimbraNFC").strip()
+        tagline = (env.get("REPORT_BRAND_TAGLINE") or t("report_brand_tagline_default")).strip()
+        custom = (env.get("REPORT_BRAND_LOGO") or "").strip()
+
+        logo_path = _resolve_logo_path(custom)
+        if not logo_path:
+            bg = kiosk_background_path()
+            if bg.is_file():
+                logo_path = bg
+
+        logo_uri = _path_to_data_uri(logo_path) if logo_path else None
+        if logo_uri:
+            logo_letter = ""
+        elif custom and len(custom) <= 2:
+            logo_letter = custom[:1].upper()
+        else:
+            logo_letter = (name[:1] or "T").upper()
+
+        return {"name": name, "tagline": tagline, "logo_letter": logo_letter, "logo_uri": logo_uri}
+    except Exception:
+        return {"name": "TimbraNFC", "tagline": t("report_brand_tagline_default"), "logo_letter": "T", "logo_uri": None}
 
 
 def _anomaly_label(code: str, lang: str) -> str:
@@ -35,19 +91,6 @@ def _anomaly_label(code: str, lang: str) -> str:
         ANOMALY_APERTO: "report_flag_aperto",
     }.get(code, code)
     return t(key, lang)
-
-
-def _report_brand() -> dict:
-    try:
-        from server.app.services.settings_env import parse_env_file
-
-        env = parse_env_file()
-        name = (env.get("REPORT_BRAND_NAME") or env.get("SEDE_NOME") or "TimbraNFC").strip()
-        tagline = (env.get("REPORT_BRAND_TAGLINE") or t("report_brand_tagline_default")).strip()
-        logo = (env.get("REPORT_BRAND_LOGO") or name[:1] or "T").strip()[:1].upper()
-        return {"name": name, "tagline": tagline, "logo_letter": logo}
-    except Exception:
-        return {"name": "TimbraNFC", "tagline": t("report_brand_tagline_default"), "logo_letter": "T"}
 
 
 def build_report_context(
@@ -111,6 +154,7 @@ def build_report_context(
         "brand_name": brand["name"],
         "brand_tagline": brand["tagline"],
         "logo_letter": brand["logo_letter"],
+        "logo_uri": brand["logo_uri"],
         "generated_at": format_datetime(datetime.now(), seconds=False),
         "period_da": format_date(da),
         "period_a": format_date(a),
@@ -153,3 +197,22 @@ def build_report_context(
 def report_turni_html(data: dict, da: str, a: str, lang: str | None = None, dipendente_id: int | None = None) -> str:
     ctx = build_report_context(data, da, a, lang=lang, dipendente_id=dipendente_id)
     return _JINJA.get_template("report_export.html").render(**ctx)
+
+
+def report_turni_pdf(
+    data: dict,
+    da: str,
+    a: str,
+    lang: str | None = None,
+    dipendente_id: int | None = None,
+) -> bytes:
+    """Genera PDF dal template HTML del report (WeasyPrint)."""
+    html = report_turni_html(data, da, a, lang=lang, dipendente_id=dipendente_id)
+    try:
+        from weasyprint import HTML
+    except ImportError as exc:
+        raise RuntimeError(
+            "WeasyPrint non installato: pip install weasyprint "
+            "(su Raspberry Pi servono anche libpango e libgdk-pixbuf)"
+        ) from exc
+    return HTML(string=html, base_url=str(_TPL_DIR)).write_pdf()

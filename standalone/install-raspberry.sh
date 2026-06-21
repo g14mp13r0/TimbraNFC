@@ -26,7 +26,8 @@ apt-get update
 apt-get install -y \
     python3 python3-venv python3-pip python3-dev python3-tk python3-pil python3-pil.imagetk git \
     pcscd libccid swig libpcsclite-dev \
-    build-essential x11-xserver-utils
+    build-essential x11-xserver-utils \
+    libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf-2.0-0 shared-mime-info
 
 systemctl enable --now pcscd || echo "Avviso: pcscd non avviato — collegare NFC e riprovare"
 systemctl enable --now pcscd.socket || true
