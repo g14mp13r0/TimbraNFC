@@ -1,40 +1,37 @@
 {% extends "base.html" %}
-{% block title %}Riassegna badge — TimbraNFC{% endblock %}
-{% block breadcrumb %}<a href="/dipendenti">Dipendenti</a> / <b>Riassegna badge</b>{% endblock %}
+{% block title %}{{ t('badge_reassign_title') }} — TimbraNFC{% endblock %}
+{% block breadcrumb %}<a href="/dipendenti">{{ t('nav_dipendenti') }}</a> / <b>{{ t('breadcrumb_badge') }}</b>{% endblock %}
 {% block content %}
-    <p class="breadcrumb-link"><a href="/dipendenti">← Torna a Dipendenti</a></p>
+    <p class="breadcrumb-link"><a href="/dipendenti">{{ t('back_to_dip') }}</a></p>
     <div class="page-head">
-        <h1>Riassegna badge NFC</h1>
-        <p class="subtitle">{{ dipendente.cognome }} {{ dipendente.nome }} · badge attuale <code>{{ dipendente.badge_uid }}</code></p>
+        <h1>{{ t('badge_reassign_title') }}</h1>
+        <p class="subtitle">{{ dipendente.cognome }} {{ dipendente.nome }} · {{ t('badge_current') }} <code>{{ dipendente.badge_uid }}</code></p>
     </div>
 
     {% if error == 'badge_duplicato' %}
-    <div class="alert alert-error">Badge già associato a un altro dipendente.</div>
+    <div class="alert alert-error">{{ t('err_badge_duplicate') }}</div>
     {% elif error == 'badge_vuoto' %}
-    <div class="alert alert-error">Leggi prima un badge NFC.</div>
+    <div class="alert alert-error">{{ t('err_badge_read_first') }}</div>
     {% endif %}
 
     <div class="card" style="max-width:680px;">
         <div class="card-body">
             <div class="alert alert-info">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-5M12 8h.01"/></svg>
-                Il vecchio badge verrà disattivato non appena il nuovo viene salvato.
+                {{ t('badge_reassign_info') }}
             </div>
             <form method="post" action="/dipendenti/{{ dipendente.id }}/badge" id="form-dipendente" class="enrollment-form">
                 <div class="badge-enroll">
-                    <label class="badge-enroll-label">Nuovo badge NFC</label>
+                    <label class="badge-enroll-label">{{ t('badge_new_label') }}</label>
                     <div class="badge-enroll-row">
-                        <input name="badge_uid" id="badge_uid" readonly required
-                               placeholder="In attesa lettura badge…">
-                        <button type="button" id="btn-enroll" class="btn-secondary">Rileggi badge</button>
+                        <input name="badge_uid" id="badge_uid" readonly required placeholder="{{ t('enroll_placeholder') }}">
+                        <button type="button" id="btn-enroll" class="btn-secondary">{{ t('enroll_rescan') }}</button>
                     </div>
-                    <p id="enroll-status" class="enroll-status waiting">
-                        Clicca «Rileggi badge» e avvicina il nuovo badge al lettore NFC del Raspberry Pi.
-                    </p>
+                    <p id="enroll-status" class="enroll-status waiting">{{ t('enroll_click_wait_new') }}</p>
                 </div>
                 <div class="form-actions">
-                    <button type="submit" id="btn-submit" disabled>Salva nuovo badge</button>
-                    <a href="/dipendenti" class="btn-export">Annulla</a>
+                    <button type="submit" id="btn-submit" disabled>{{ t('badge_save_new') }}</button>
+                    <a href="/dipendenti" class="btn-export">{{ t('btn_cancel') }}</a>
                 </div>
             </form>
         </div>
@@ -42,7 +39,9 @@
 {% endblock %}
 {% block scripts %}
 <script>
-    window.TIMBRANFC_ENROLL_DIPENDENTE_ID = {{ dipendente.id }};
+window.TIMBRANFC_ENROLL_DIPENDENTE_ID = {{ dipendente.id }};
+window.TIMBRANFC_I18N = {{ enrollment_js_strings()|tojson }};
+window.TIMBRANFC_I18N.enroll_click_wait = {{ t('enroll_click_wait_new')|tojson }};
 </script>
 <script src="/static/enrollment.js"></script>
 {% endblock %}

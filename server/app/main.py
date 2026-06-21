@@ -1,5 +1,7 @@
 import csv
 import io
+import json
+import os
 import sys
 from pathlib import Path
 
@@ -32,6 +34,16 @@ app.include_router(enrollment_api.router)
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 STATIC_DIR = Path(__file__).parent / "static"
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
+
+from shared.kiosk_i18n import current_lang as _current_lang
+from shared.kiosk_i18n import enrollment_js_strings
+from shared.kiosk_i18n import t as _translate
+
+templates.env.globals["t"] = lambda key: _translate(key, _current_lang())
+templates.env.globals["lang"] = lambda: _current_lang()
+templates.env.globals["enrollment_js_strings"] = enrollment_js_strings
+templates.env.filters["tojson"] = lambda v: json.dumps(v, ensure_ascii=False)
+
 if STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
@@ -419,52 +431,65 @@ def export_report_csv(
 
 # --- Impostazioni ---
 
-def _settings_page_context(db: Session, *, msg: str = "", error: str = ""):
+def _settings_page_context(db: Session, *, msg: str = "", error: str = "", restart_error: str = ""):
     from server.app.services.settings_env import (
         ENV_PATH,
-        SECTION_LABELS,
-        SETTINGS_FIELDS,
         kiosk_background_path,
+        localized_fields,
+        localized_sections,
         parse_env_file,
         read_settings,
     )
 
     settings = read_settings()
+    lang = settings.get("KIOSK_LANG", "it")
     env_raw = parse_env_file()
     bg_path = kiosk_background_path()
-    sections = [(k, v) for k, v in SECTION_LABELS.items() if k != "backup"]
-    secrets_set = {f["key"] for f in SETTINGS_FIELDS if f["type"] == "password" and env_raw.get(f["key"])}
+    secrets_set = {
+        f["key"]
+        for f in localized_fields(lang)
+        if f["type"] == "password" and (env_raw.get(f["key"]) or os.environ.get(f["key"]))
+    }
 
     return {
         "settings": settings,
-        "fields": SETTINGS_FIELDS,
-        "sections": sections,
+        "fields": localized_fields(lang),
+        "sections": localized_sections(lang),
         "secrets_set": secrets_set,
-        "env_path": str(ENV_PATH),
+        "env_path": str(ENV_PATH.resolve()),
         "bg_exists": bg_path.is_file(),
         "bg_mtime": int(bg_path.stat().st_mtime) if bg_path.is_file() else 0,
         "msg": msg,
         "error": error,
-        "restart_hint": msg == "saved",
+        "restart_error": restart_error,
         "active_page": "impostazioni",
         **_sidebar_counts(db),
     }
 
 
 @app.get("/impostazioni", response_class=HTMLResponse)
-def page_impostazioni(request: Request, db: Session = Depends(get_db), msg: str = "", error: str = ""):
+def page_impostazioni(
+    request: Request,
+    db: Session = Depends(get_db),
+    msg: str = "",
+    error: str = "",
+    restart_error: str = "",
+):
     return templates.TemplateResponse(
         request,
         "impostazioni.html",
-        _settings_page_context(db, msg=msg, error=error),
+        _settings_page_context(db, msg=msg, error=error, restart_error=restart_error),
     )
 
 
 @app.post("/impostazioni/salva")
 async def salva_impostazioni(request: Request, db: Session = Depends(get_db)):
-    from server.app.services.settings_env import save_settings
+    from server.app.services.settings_env import restart_kiosk, save_settings
 
     form = dict(await request.form())
+    action = form.pop("action", "save")
+    restart = action == "save_restart"
+
     try:
         save_settings(form)
     except Exception as exc:
@@ -474,6 +499,16 @@ async def salva_impostazioni(request: Request, db: Session = Depends(get_db)):
             _settings_page_context(db, error=f"Errore salvataggio: {exc}"),
             status_code=400,
         )
+
+    if restart:
+        ok, detail = restart_kiosk()
+        if ok:
+            return RedirectResponse("/impostazioni?msg=saved_restart", status_code=303)
+        return RedirectResponse(
+            f"/impostazioni?msg=saved&restart_error={detail.replace(' ', '+')[:120]}",
+            status_code=303,
+        )
+
     return RedirectResponse("/impostazioni?msg=saved", status_code=303)
 
 

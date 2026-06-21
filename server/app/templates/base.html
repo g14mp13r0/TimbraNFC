@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="{{ lang() }}">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,7 +13,6 @@
 
 <div class="shell">
 
-  <!-- ============ SIDEBAR ============ -->
   <aside class="sidebar">
     <div class="brand">
       <div class="brand-mark">
@@ -21,50 +20,50 @@
       </div>
       <div class="brand-text">
         <span class="name">TimbraNFC</span>
-        <span class="tag">Pannello Admin</span>
+        <span class="tag">{{ t('brand_tag') }}</span>
       </div>
     </div>
 
     <div class="nav-group">
-      <div class="nav-label">Panoramica</div>
+      <div class="nav-label">{{ t('nav_overview') }}</div>
       <a href="/" class="nav-item {{ 'active' if active_page == 'home' }}">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
-        Dashboard
+        {{ t('nav_dashboard') }}
       </a>
     </div>
 
     <div class="nav-group">
-      <div class="nav-label">Presenze</div>
+      <div class="nav-label">{{ t('nav_presences') }}</div>
       <a href="/timbrature" class="nav-item {{ 'active' if active_page == 'timbrature' }}">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
-        Timbrature
+        {{ t('nav_timbrature') }}
         {% if sidebar_n_timb is defined %}<span class="nav-badge">{{ sidebar_n_timb }}</span>{% endif %}
       </a>
       <a href="/report" class="nav-item {{ 'active' if active_page == 'report' }}">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5M4 19h16M8 16v-5M12 16V8M16 16v-3"/></svg>
-        Report turni
+        {{ t('nav_report') }}
       </a>
     </div>
 
     <div class="nav-group">
-      <div class="nav-label">Anagrafica</div>
+      <div class="nav-label">{{ t('nav_directory') }}</div>
       <a href="/dipendenti" class="nav-item {{ 'active' if active_page == 'dipendenti' }}">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20c0-3.6 2.5-6 5.5-6s5.5 2.4 5.5 6"/><circle cx="18" cy="9" r="2.4"/><path d="M15.8 14c2.6.2 4.7 2.3 4.7 6"/></svg>
-        Dipendenti
+        {{ t('nav_dipendenti') }}
         {% if sidebar_n_dip is defined %}<span class="nav-badge">{{ sidebar_n_dip }}</span>{% endif %}
       </a>
       <a href="/dispositivi" class="nav-item {{ 'active' if active_page == 'dispositivi' }}">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10.5 18.5h3"/></svg>
-        Dispositivi
+        {{ t('nav_dispositivi') }}
         {% if sidebar_n_dev is defined %}<span class="nav-badge">{{ sidebar_n_dev }}</span>{% endif %}
       </a>
     </div>
 
     <div class="nav-group">
-      <div class="nav-label">Sistema</div>
+      <div class="nav-label">{{ t('nav_system') }}</div>
       <a href="/impostazioni" class="nav-item {{ 'active' if active_page == 'impostazioni' }}">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
-        Impostazioni
+        {{ t('nav_impostazioni') }}
       </a>
     </div>
 
@@ -72,33 +71,29 @@
       <div class="user-avatar">{{ (current_user_initials if current_user_initials is defined else 'AD') }}</div>
       <div class="user-meta">
         <div class="u-name">{{ current_user_email if current_user_email is defined else 'admin@timbranfc.local' }}</div>
-        <div class="u-role">Amministratore</div>
+        <div class="u-role">{{ t('role_admin') }}</div>
       </div>
     </div>
   </aside>
 
-  <!-- ============ MAIN ============ -->
   <div class="main">
     <div class="topbar">
       <div class="topbar-left">
         <div class="breadcrumb">TimbraNFC / {% block breadcrumb %}{% endblock %}</div>
         <nav class="mobile-nav" aria-label="Menu principale">
-          <a href="/">Dashboard</a>
-          <a href="/timbrature">Timbrature</a>
-          <a href="/report">Report</a>
-          <a href="/dipendenti">Dipendenti</a>
-          <a href="/dispositivi">Dispositivi</a>
-          <a href="/impostazioni">Impostazioni</a>
+          <a href="/">{{ t('nav_dashboard') }}</a>
+          <a href="/timbrature">{{ t('nav_timbrature') }}</a>
+          <a href="/report">{{ t('nav_report') }}</a>
+          <a href="/dipendenti">{{ t('nav_dipendenti') }}</a>
+          <a href="/dispositivi">{{ t('nav_dispositivi') }}</a>
+          <a href="/impostazioni">{{ t('nav_impostazioni') }}</a>
         </nav>
       </div>
       <div class="topbar-right">
-        <a href="/dispositivi" class="icon-btn" title="Stato dispositivi in linea">
+        <a href="/dispositivi" class="icon-btn" title="{{ t('devices_online_title') }}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/></svg>
           <span class="live-dot"></span>
         </a>
-        <button class="icon-btn" title="Notifiche">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
-        </button>
       </div>
     </div>
 

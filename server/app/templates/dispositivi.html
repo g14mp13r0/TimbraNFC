@@ -1,67 +1,54 @@
 {% extends "base.html" %}
-{% block title %}Dispositivi — TimbraNFC{% endblock %}
-{% block breadcrumb %}<b>Dispositivi</b>{% endblock %}
+{% block title %}{{ t('nav_dispositivi') }} — TimbraNFC{% endblock %}
+{% block breadcrumb %}<b>{{ t('nav_dispositivi') }}</b>{% endblock %}
 {% block content %}
     <div class="page-head">
-        <h1>Flotta terminali</h1>
-        <p class="subtitle">Stato in tempo reale dei terminali NFC collegati e azioni remote.</p>
+        <h1>{{ t('dev_title') }}</h1>
+        <p class="subtitle">{{ t('dev_subtitle') }}</p>
     </div>
 
     <div class="kpi-row kpi-row-3">
         <div class="kpi-card">
-            <div class="kpi-top">
-                <div class="kpi-icon green">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-                </div>
-            </div>
+            <div class="kpi-top"><div class="kpi-icon green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div></div>
             <div class="kpi-value">{{ devices|selectattr('online')|list|length }}</div>
-            <div class="kpi-label">Terminali online</div>
+            <div class="kpi-label">{{ t('dev_online_kpi') }}</div>
         </div>
         <div class="kpi-card">
-            <div class="kpi-top">
-                <div class="kpi-icon amber">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
-                </div>
-            </div>
+            <div class="kpi-top"><div class="kpi-icon amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg></div></div>
             <div class="kpi-value">{{ devices|rejectattr('online')|list|length }}</div>
-            <div class="kpi-label">Terminali offline</div>
+            <div class="kpi-label">{{ t('dev_offline_kpi') }}</div>
         </div>
         <div class="kpi-card">
-            <div class="kpi-top">
-                <div class="kpi-icon navy">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10.5 18.5h3"/></svg>
-                </div>
-            </div>
+            <div class="kpi-top"><div class="kpi-icon navy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10.5 18.5h3"/></svg></div></div>
             <div class="kpi-value">{{ devices|length }}</div>
-            <div class="kpi-label">Totale registrati</div>
+            <div class="kpi-label">{{ t('dev_total_kpi') }}</div>
         </div>
     </div>
 
     <div class="card">
         <div class="filterbar">
             <div class="f-group f-search">
-                <label>Cerca</label>
+                <label>{{ t('lbl_search') }}</label>
                 <div style="position:relative;">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-                    <input class="f-control" id="dev-search" placeholder="Nome o UUID terminale…">
+                    <input class="f-control" id="dev-search" placeholder="{{ t('dev_search_ph') }}">
                 </div>
             </div>
             <div class="f-group">
-                <label>Stato</label>
+                <label>{{ t('lbl_status') }}</label>
                 <select class="f-control" id="dev-filter-stato">
-                    <option value="">Tutti</option>
-                    <option value="online">Solo online</option>
-                    <option value="offline">Solo offline</option>
+                    <option value="">{{ t('lbl_all') }}</option>
+                    <option value="online">{{ t('online_only') }}</option>
+                    <option value="offline">{{ t('offline_only') }}</option>
                 </select>
             </div>
         </div>
-
         <div class="card-body">
             {% if devices|length == 0 %}
             <div class="empty-state">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v5"/></svg>
-                <h3>Nessun terminale registrato</h3>
-                <p>I terminali appariranno qui non appena effettuano il primo heartbeat verso il server.</p>
+                <h3>{{ t('dev_no_devices') }}</h3>
+                <p>{{ t('dev_no_devices_hint') }}</p>
             </div>
             {% else %}
             <div class="device-grid" id="device-grid">
@@ -72,18 +59,18 @@
                             <span class="dc-status-dot {{ 'online' if d.online else 'offline' }}"></span>
                             {{ d.nome }}
                         </div>
-                        <span class="pill {{ 'pill-green' if d.online else 'pill-gray' }}">{{ 'Online' if d.online else 'Offline' }}</span>
+                        <span class="pill {{ 'pill-green' if d.online else 'pill-gray' }}">{{ t('status_online') if d.online else t('status_offline') }}</span>
                     </div>
                     <div class="dc-meta">
                         <div class="dc-meta-item"><div class="k">UUID</div><div class="v">{{ (d.device_uuid or '')[:8] }}{% if d.device_uuid %}…{% else %}—{% endif %}</div></div>
-                        <div class="dc-meta-item"><div class="k">Versione SW</div><div class="v">{{ d.versione_sw or '—' }}</div></div>
-                        <div class="dc-meta-item"><div class="k">Ultimo heartbeat</div><div class="v">{{ d.ultimo_heartbeat or '—' }}</div></div>
+                        <div class="dc-meta-item"><div class="k">{{ t('dev_sw_version') }}</div><div class="v">{{ d.versione_sw or '—' }}</div></div>
+                        <div class="dc-meta-item"><div class="k">{{ t('dev_last_hb') }}</div><div class="v">{{ d.ultimo_heartbeat or '—' }}</div></div>
                     </div>
                     <div class="dc-actions">
                         <form method="post" action="/dispositivi/{{ d.id }}/restart-kiosk">
                             <button type="submit">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.3-6.4L21 8M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.3 6.4L3 16m0 5v-5h5"/></svg>
-                                Restart kiosk
+                                {{ t('dev_restart_kiosk') }}
                             </button>
                         </form>
                     </div>
@@ -101,7 +88,6 @@
     const stato = document.getElementById('dev-filter-stato');
     const cards = Array.from(document.querySelectorAll('#device-grid .device-card'));
     if(!search || !stato) return;
-
     function applyFilters(){
         const term = (search.value || '').trim().toLowerCase();
         const filtro = stato.value;

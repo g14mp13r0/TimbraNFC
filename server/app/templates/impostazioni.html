@@ -1,63 +1,69 @@
 {% extends "base.html" %}
-{% block title %}Impostazioni — TimbraNFC{% endblock %}
-{% block breadcrumb %}<b>Impostazioni</b>{% endblock %}
+{% block title %}{{ t('settings_title') }} — TimbraNFC{% endblock %}
+{% block breadcrumb %}<b>{{ t('settings_title') }}</b>{% endblock %}
 {% block content %}
 
 <div class="page-head">
-    <h1>Impostazioni</h1>
-    <p class="subtitle">Configura kiosk, rete, sicurezza e backup. Le modifiche al kiosk richiedono un riavvio della timbratrice.</p>
+    <h1>{{ t('settings_title') }}</h1>
+    <p class="subtitle">{{ t('settings_subtitle') }}</p>
+    <p class="hint">{{ t('settings_env_file') }} <code>{{ env_path }}</code></p>
 </div>
 
 {% if msg == 'saved' %}
 <div class="alert alert-success">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-    Impostazioni salvate in <code>.env</code>.
-    {% if restart_hint %}Riavvia il kiosk per applicare le modifiche al touchscreen.{% endif %}
+    {{ t('settings_saved') }} <code>.env</code>.
+</div>
+{% elif msg == 'saved_restart' %}
+<div class="alert alert-success">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+    {{ t('settings_saved_restart') }}
 </div>
 {% elif msg == 'background' %}
-<div class="alert alert-success">Sfondo kiosk aggiornato.</div>
+<div class="alert alert-success">{{ t('settings_bg_updated') }}</div>
 {% elif msg == 'background_error' %}
-<div class="alert alert-error">Caricamento sfondo fallito — usa un file PNG valido.</div>
+<div class="alert alert-error">{{ t('settings_bg_error') }}</div>
 {% endif %}
 
+{% if restart_error %}
+<div class="alert alert-error">{{ t('settings_restart_failed') }} {{ restart_error }}</div>
+{% endif %}
 {% if error %}
 <div class="alert alert-error">{{ error }}</div>
 {% endif %}
 
-<!-- ===== Sfondo kiosk ===== -->
 <div class="card">
     <div class="card-head">
         <div>
-            <h2>Sfondo kiosk</h2>
-            <div class="card-sub">Logo o immagine mostrata sul touchscreen timbratrice</div>
+            <h2>{{ t('settings_bg_title') }}</h2>
+            <div class="card-sub">{{ t('settings_bg_sub') }}</div>
         </div>
     </div>
     <div class="card-body settings-bg-row">
         <div class="settings-bg-preview">
             {% if bg_exists %}
-            <img src="/impostazioni/sfondo-preview?v={{ bg_mtime }}" alt="Anteprima sfondo kiosk">
+            <img src="/impostazioni/sfondo-preview?v={{ bg_mtime }}" alt="{{ t('settings_bg_title') }}">
             {% else %}
             <div class="empty-state" style="padding:24px;">
-                <p>Nessuno sfondo personalizzato</p>
+                <p>{{ t('settings_bg_none') }}</p>
             </div>
             {% endif %}
         </div>
         <div class="settings-bg-form">
-            <p class="hint">File attuale: <code>{{ settings.KIOSK_BACKGROUND }}</code></p>
+            <p class="hint">{{ t('settings_bg_current') }} <code>{{ settings.KIOSK_BACKGROUND }}</code></p>
             <form method="post" action="/impostazioni/sfondo" enctype="multipart/form-data" class="enrollment-form">
                 <label>
-                    Carica nuovo sfondo (PNG)
+                    {{ t('settings_bg_upload') }}
                     <input type="file" name="sfondo" accept="image/png,image/jpeg,image/webp" required>
                 </label>
                 <div class="form-actions">
-                    <button type="submit">Carica sfondo</button>
+                    <button type="submit">{{ t('settings_bg_submit') }}</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
-<!-- ===== Form impostazioni .env ===== -->
 <form method="post" action="/impostazioni/salva" class="settings-form">
     {% for section_id, section_label in sections %}
     <div class="card">
@@ -74,17 +80,17 @@
                     {% if field.type == 'choice' %}
                     <select name="{{ field.key }}">
                         {% for val, lbl in field.choices %}
-                        <option value="{{ val }}" {{ 'selected' if settings[field.key] == val }}>{{ lbl }}</option>
+                        <option value="{{ val }}" {% if settings[field.key]|lower == val|lower %}selected{% endif %}>{{ lbl }}</option>
                         {% endfor %}
                     </select>
                     {% elif field.type == 'bool' %}
                     <span class="checkbox-row">
                         <input type="hidden" name="{{ field.key }}" value="0">
-                        <input type="checkbox" name="{{ field.key }}" value="1" {{ 'checked' if settings[field.key] in ['1', 'true', 'yes'] }}>
-                        <span>Attivo</span>
+                        <input type="checkbox" name="{{ field.key }}" value="1" {% if settings[field.key] == '1' %}checked{% endif %}>
+                        <span>{{ t('settings_active') }}</span>
                     </span>
                     {% elif field.type == 'password' %}
-                    <input type="password" name="{{ field.key }}" autocomplete="new-password" placeholder="{% if field.key in secrets_set %}•••••• (impostata){% else %}Non impostata{% endif %}">
+                    <input type="password" name="{{ field.key }}" autocomplete="new-password" placeholder="{% if field.key in secrets_set %}{{ t('settings_secret_set') }}{% else %}{{ t('settings_secret_empty') }}{% endif %}">
                     {% elif field.type == 'readonly' %}
                     <input type="text" value="{{ settings[field.key] }}" readonly>
                     {% else %}
@@ -101,45 +107,26 @@
     {% endfor %}
 
     <div class="form-actions settings-actions">
-        <button type="submit">Salva impostazioni</button>
-        <a href="/dispositivi" class="btn-export">Riavvia kiosk da Dispositivi →</a>
+        <button type="submit" name="action" value="save">{{ t('settings_save') }}</button>
+        <button type="submit" name="action" value="save_restart" class="btn-restart">{{ t('settings_save_restart') }}</button>
     </div>
 </form>
 
-<!-- ===== Backup ===== -->
 <div class="card">
     <div class="card-head">
         <div>
-            <h2>Backup</h2>
-            <div class="card-sub">Database, coda locale, configurazione e sfondo kiosk</div>
+            <h2>{{ t('settings_backup_title') }}</h2>
+            <div class="card-sub">{{ t('settings_backup_sub') }}</div>
         </div>
     </div>
     <div class="card-body">
-        <p class="hint">Scarica un archivio ZIP con tutti i dati essenziali. Conservalo in un luogo sicuro prima di aggiornamenti o modifiche importanti.</p>
-        <div class="settings-backup-list">
-            <div><strong>Database server</strong> — timbranfc.db</div>
-            <div><strong>Coda locale kiosk</strong> — local_queue.db</div>
-            <div><strong>Configurazione</strong> — .env</div>
-            <div><strong>Sfondo kiosk</strong> — immagine PNG</div>
-        </div>
+        <p class="hint">{{ t('settings_backup_hint') }}</p>
         <div class="form-actions" style="margin-top:18px;">
             <a href="/impostazioni/backup.zip" class="btn-export">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4"/><path d="M5 19h14"/></svg>
-                Scarica backup ZIP
+                {{ t('settings_backup_btn') }}
             </a>
         </div>
-    </div>
-</div>
-
-<div class="card">
-    <div class="card-body">
-        <h2 class="card-subhead">Dopo le modifiche</h2>
-        <ul class="settings-help-list">
-            <li><strong>Server dashboard</strong> — <code>sudo systemctl restart timbranfc-server</code></li>
-            <li><strong>Kiosk touchscreen</strong> — <code>bash standalone/restart-kiosk.sh</code> oppure Dispositivi → Restart kiosk</li>
-            <li><strong>Lingua / sfondo / risoluzione</strong> — richiedono riavvio kiosk</li>
-            <li><strong>Porta / host rete</strong> — richiedono riavvio server</li>
-        </ul>
     </div>
 </div>
 

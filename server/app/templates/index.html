@@ -1,11 +1,11 @@
 {% extends "base.html" %}
-{% block title %}Dashboard — TimbraNFC{% endblock %}
-{% block breadcrumb %}<b>Dashboard</b>{% endblock %}
+{% block title %}{{ t('nav_dashboard') }} — TimbraNFC{% endblock %}
+{% block breadcrumb %}<b>{{ t('nav_dashboard') }}</b>{% endblock %}
 {% block content %}
 
 <div class="page-head">
-    <h1>Buongiorno, Amministratore</h1>
-    <p class="subtitle">Riepilogo di Sede Principale — aggiornato in tempo reale</p>
+    <h1>{{ t('home_greeting') }}</h1>
+    <p class="subtitle">{{ t('home_subtitle') }}</p>
 </div>
 
 <div class="kpi-row">
@@ -16,17 +16,17 @@
             </div>
         </div>
         <div class="kpi-value">{{ n_dip }}</div>
-        <div class="kpi-label">Dipendenti attivi</div>
+        <div class="kpi-label">{{ t('kpi_active_employees') }}</div>
     </div>
     <div class="kpi-card">
         <div class="kpi-top">
             <div class="kpi-icon blue">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
             </div>
-            <span class="kpi-trend flat">oggi</span>
+            <span class="kpi-trend flat">{{ t('today_label') }}</span>
         </div>
         <div class="kpi-value">{{ n_timb }}</div>
-        <div class="kpi-label">Timbrature registrate oggi</div>
+        <div class="kpi-label">{{ t('kpi_stamps_today') }}</div>
     </div>
     <div class="kpi-card">
         <div class="kpi-top">
@@ -35,7 +35,7 @@
             </div>
         </div>
         <div class="kpi-value">{{ n_dev }}</div>
-        <div class="kpi-label">Terminali registrati</div>
+        <div class="kpi-label">{{ t('kpi_terminals') }}</div>
     </div>
     <div class="kpi-card">
         <div class="kpi-top">
@@ -44,53 +44,53 @@
             </div>
         </div>
         <div class="kpi-value">{{ recenti|length }}</div>
-        <div class="kpi-label">Eventi recenti mostrati</div>
+        <div class="kpi-label">{{ t('kpi_recent_events') }}</div>
     </div>
 </div>
 
 <div class="card">
     <div class="card-head">
         <div>
-            <h2>Ultime timbrature</h2>
-            <div class="card-sub">Le 10 timbrature più recenti ricevute dal server</div>
+            <h2>{{ t('recent_stamps') }}</h2>
+            <div class="card-sub">{{ t('home_recent_sub') }}</div>
         </div>
-        <a href="/timbrature" class="btn btn-ghost btn-sm">Vedi tutte →</a>
+        <a href="/timbrature" class="btn btn-ghost btn-sm">{{ t('see_all') }}</a>
     </div>
     <div class="card-body flush">
         <div class="table-wrap">
             <table>
                 <thead>
                     <tr>
-                        <th>Ricevuto il</th>
-                        <th>Dipendente</th>
-                        <th>Azione</th>
-                        <th>Dispositivo</th>
+                        <th>{{ t('col_received_at') }}</th>
+                        <th>{{ t('lbl_employee') }}</th>
+                        <th>{{ t('col_action') }}</th>
+                        <th>{{ t('nav_dispositivi') }}</th>
                     </tr>
                 </thead>
                 <tbody>
-                {% for t in recenti %}
+                {% for ev in recenti %}
                     <tr>
-                        <td class="cell-mono">{{ t.ricevuto_il.strftime('%Y-%m-%d %H:%M:%S') if t.ricevuto_il else '—' }}</td>
+                        <td class="cell-mono">{{ ev.ricevuto_il.strftime('%Y-%m-%d %H:%M:%S') if ev.ricevuto_il else '—' }}</td>
                         <td class="cell-strong">
-                            {% if t.dipendente %}
-                            {{ t.dipendente.cognome }} {{ t.dipendente.nome }}
+                            {% if ev.dipendente %}
+                            {{ ev.dipendente.cognome }} {{ ev.dipendente.nome }}
                             {% else %}
                             —
                             {% endif %}
                         </td>
                         <td>
-                            {% if t.azione in ['IT', 'FP'] %}
-                            <span class="badge badge-in"><span class="pill-dot"></span>Inizio</span>
-                            {% elif t.azione in ['FT', 'IP'] %}
-                            <span class="badge badge-out"><span class="pill-dot"></span>Fine</span>
+                            {% if ev.azione in ['IT', 'FP'] %}
+                            <span class="badge badge-in"><span class="pill-dot"></span>{{ t('shift_start') }}</span>
+                            {% elif ev.azione in ['FT', 'IP'] %}
+                            <span class="badge badge-out"><span class="pill-dot"></span>{{ t('shift_end') }}</span>
                             {% else %}
-                            <span class="badge badge-in"><span class="pill-dot"></span>{{ t.azione }}</span>
+                            <span class="badge badge-in"><span class="pill-dot"></span>{{ ev.azione }}</span>
                             {% endif %}
                         </td>
-                        <td class="cell-mute">{{ t.dispositivo.nome if t.dispositivo else '—' }}</td>
+                        <td class="cell-mute">{{ ev.dispositivo.nome if ev.dispositivo else '—' }}</td>
                     </tr>
                 {% else %}
-                    <tr><td colspan="4" class="empty">Nessuna timbratura registrata</td></tr>
+                    <tr><td colspan="4" class="empty">{{ t('no_stamps') }}</td></tr>
                 {% endfor %}
                 </tbody>
             </table>
@@ -101,13 +101,13 @@
 <div class="card">
     <div class="card-head">
         <div>
-            <h2>Stato dispositivi</h2>
-            <div class="card-sub">{{ n_dev }} terminali registrati in flotta</div>
+            <h2>{{ t('home_dev_title') }}</h2>
+            <div class="card-sub">{{ t('home_dev_sub').replace('{n}', n_dev|string) }}</div>
         </div>
-        <a href="/dispositivi" class="btn btn-ghost btn-sm">Gestisci →</a>
+        <a href="/dispositivi" class="btn btn-ghost btn-sm">{{ t('btn_manage') }}</a>
     </div>
     <div class="card-body">
-        <p class="hint">Vai alla pagina <a href="/dispositivi" style="color:var(--blue-accent);font-weight:600;">Dispositivi</a> per il dettaglio di ogni terminale e le azioni remote.</p>
+        <p class="hint">{{ t('home_dev_hint_pre') }} <a href="/dispositivi" style="color:var(--blue-accent);font-weight:600;">{{ t('nav_dispositivi') }}</a> {{ t('home_dev_hint_post') }}</p>
     </div>
 </div>
 

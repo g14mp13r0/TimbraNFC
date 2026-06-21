@@ -1,42 +1,30 @@
 {% extends "base.html" %}
-{% block title %}Modifica dipendente — TimbraNFC{% endblock %}
-{% block breadcrumb %}<a href="/dipendenti">Dipendenti</a> / <b>Modifica</b>{% endblock %}
+{% block title %}{{ t('edit_dip_title') }} — TimbraNFC{% endblock %}
+{% block breadcrumb %}<a href="/dipendenti">{{ t('nav_dipendenti') }}</a> / <b>{{ t('breadcrumb_edit') }}</b>{% endblock %}
 {% block content %}
-    <p class="breadcrumb-link"><a href="/dipendenti">← Torna a Dipendenti</a></p>
+    <p class="breadcrumb-link"><a href="/dipendenti">{{ t('back_to_dip') }}</a></p>
     <div class="page-head">
-        <h1>Modifica dipendente</h1>
-        <p class="subtitle">{{ dipendente.cognome }} {{ dipendente.nome }} · badge <code>{{ dipendente.badge_uid }}</code></p>
+        <h1>{{ t('edit_dip_title') }}</h1>
+        <p class="subtitle">{{ dipendente.cognome }} {{ dipendente.nome }} · {{ t('badge_label') }} <code>{{ dipendente.badge_uid }}</code></p>
     </div>
 
     {% if error == 'non_trovato' %}
-    <div class="alert alert-error">Dipendente non trovato.</div>
+    <div class="alert alert-error">{{ t('err_not_found') }}</div>
     {% endif %}
 
     <div class="card" style="max-width:680px;">
         <div class="card-body">
             <form method="post" action="/dipendenti/{{ dipendente.id }}/modifica" class="enrollment-form">
                 <div class="form-grid">
-                    <label>
-                        Nome
-                        <input name="nome" value="{{ dipendente.nome }}" required autocomplete="off">
-                    </label>
-                    <label>
-                        Cognome
-                        <input name="cognome" value="{{ dipendente.cognome }}" required autocomplete="off">
-                    </label>
-                    <label>
-                        Reparto
-                        <input name="reparto" value="{{ dipendente.reparto or '' }}" autocomplete="off">
-                    </label>
-                    <label>
-                        Email
-                        <input name="email" type="email" value="{{ dipendente.email or '' }}" autocomplete="off">
-                    </label>
+                    <label>{{ t('col_name') }}<input name="nome" value="{{ dipendente.nome }}" required autocomplete="off"></label>
+                    <label>{{ t('col_surname') }}<input name="cognome" value="{{ dipendente.cognome }}" required autocomplete="off"></label>
+                    <label>{{ t('col_department') }}<input name="reparto" value="{{ dipendente.reparto or '' }}" autocomplete="off"></label>
+                    <label>{{ t('col_email') }}<input name="email" type="email" value="{{ dipendente.email or '' }}" autocomplete="off"></label>
                 </div>
-                <p class="hint" style="margin-top:16px;">Per cambiare il badge NFC usa <a href="/dipendenti/{{ dipendente.id }}/badge" style="color:var(--blue-accent);font-weight:600;">Riassegna badge →</a></p>
+                <p class="hint" style="margin-top:16px;">{{ t('edit_dip_hint') }} <a href="/dipendenti/{{ dipendente.id }}/badge" style="color:var(--blue-accent);font-weight:600;">{{ t('edit_dip_reassign') }}</a></p>
                 <div class="form-actions">
-                    <button type="submit">Salva modifiche</button>
-                    <a href="/dipendenti" class="btn-export">Annulla</a>
+                    <button type="submit">{{ t('btn_save_changes') }}</button>
+                    <a href="/dipendenti" class="btn-export">{{ t('btn_cancel') }}</a>
                 </div>
             </form>
         </div>

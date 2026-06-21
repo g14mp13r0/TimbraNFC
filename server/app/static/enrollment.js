@@ -5,6 +5,9 @@
     const btnSubmit = document.getElementById("btn-submit");
     if (!badgeInput || !statusEl || !btnEnroll || !btnSubmit) return;
 
+    const I18N = window.TIMBRANFC_I18N || {};
+    const txt = (key, fallback) => I18N[key] || fallback;
+
     let sessionId = null;
     let pollTimer = null;
     const targetDipendenteId = window.TIMBRANFC_ENROLL_DIPENDENTE_ID || null;
@@ -40,22 +43,23 @@
                 badgeInput.value = data.badge_uid || "";
                 enableSubmit();
                 if (data.duplicate) {
-                    setStatus("Badge già registrato su un altro dipendente — usa un badge diverso.", "error");
+                    setStatus(txt("enroll_duplicate_js", "Badge already in use."), "error");
                     badgeInput.value = "";
                     enableSubmit();
                     await startEnrollment();
                     return;
                 }
-                setStatus("Badge registrato: " + data.badge_uid, "ok");
+                const captured = txt("enroll_captured", "Badge registered: {uid}").replace("{uid}", data.badge_uid || "");
+                setStatus(captured, "ok");
                 clearInterval(pollTimer);
                 pollTimer = null;
             } else if (data.status === "expired" || data.status === "invalid") {
-                setStatus("Sessione scaduta — clicca «Rileggi badge».", "error");
+                setStatus(txt("enroll_expired", "Session expired."), "error");
                 clearInterval(pollTimer);
                 pollTimer = null;
             }
         } catch (_) {
-            setStatus("Errore di connessione al server.", "error");
+            setStatus(txt("enroll_conn_error", "Connection error."), "error");
         }
     }
 
@@ -63,7 +67,7 @@
         await stopEnrollment();
         badgeInput.value = "";
         enableSubmit();
-        setStatus("Avvicina il badge al lettore NFC del Raspberry Pi.", "waiting");
+        setStatus(txt("enroll_near_reader", "Hold badge to reader."), "waiting");
         try {
             let url = "/api/v1/enrollment/start";
             if (targetDipendenteId) {
@@ -75,7 +79,7 @@
             sessionId = data.session_id;
             pollTimer = setInterval(pollSession, 500);
         } catch (_) {
-            setStatus("Impossibile avviare la registrazione badge.", "error");
+            setStatus(txt("enroll_start_error", "Cannot start enrollment."), "error");
         }
     }
 
@@ -85,5 +89,5 @@
         if (document.visibilityState === "hidden") stopEnrollment();
     });
 
-    setStatus("Clicca «Rileggi badge» e avvicina il badge al lettore NFC.", "waiting");
+    setStatus(txt("enroll_click_wait", "Click rescan and hold badge to reader."), "waiting");
 })();

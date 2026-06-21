@@ -1,83 +1,57 @@
 {% extends "base.html" %}
-{% block title %}Dipendenti — TimbraNFC{% endblock %}
-{% block breadcrumb %}<b>Dipendenti</b>{% endblock %}
+{% block title %}{{ t('nav_dipendenti') }} — TimbraNFC{% endblock %}
+{% block breadcrumb %}<b>{{ t('nav_dipendenti') }}</b>{% endblock %}
 {% block content %}
     <div class="page-head">
-        <h1>Dipendenti</h1>
-        <p class="subtitle">Aggiungi, modifica, disattiva o riassegna il badge NFC di ogni dipendente.</p>
+        <h1>{{ t('nav_dipendenti') }}</h1>
+        <p class="subtitle">{{ t('dip_subtitle') }}</p>
     </div>
 
     {% if msg == 'aggiunto' %}
     <div class="alert alert-success">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-        Dipendente aggiunto correttamente.
+        {{ t('msg_dip_added') }}
     </div>
     {% elif msg == 'modificato' %}
-    <div class="alert alert-success">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-        Dipendente aggiornato.
-    </div>
+    <div class="alert alert-success">{{ t('msg_dip_updated') }}</div>
     {% elif msg == 'badge_aggiornato' %}
-    <div class="alert alert-success">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-        Badge NFC aggiornato.
-    </div>
+    <div class="alert alert-success">{{ t('msg_badge_updated') }}</div>
     {% elif msg == 'disattivato' %}
-    <div class="alert alert-success">Dipendente disattivato.</div>
+    <div class="alert alert-success">{{ t('msg_dip_deactivated') }}</div>
     {% elif msg == 'riattivato' %}
-    <div class="alert alert-success">Dipendente riattivato.</div>
+    <div class="alert alert-success">{{ t('msg_dip_reactivated') }}</div>
     {% elif msg == 'eliminato' %}
-    <div class="alert alert-success">Dipendente eliminato.</div>
+    <div class="alert alert-success">{{ t('msg_dip_deleted') }}</div>
     {% elif msg == 'disattivato_per_timbrature' %}
-    <div class="alert alert-success">Non eliminato: ha timbrature in archivio — dipendente disattivato.</div>
+    <div class="alert alert-success">{{ t('msg_dip_deactivated_arch') }}</div>
     {% endif %}
     {% if error == 'badge_duplicato' %}
-    <div class="alert alert-error">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
-        Badge già associato a un altro dipendente.
-    </div>
+    <div class="alert alert-error">{{ t('err_badge_duplicate') }}</div>
     {% elif error == 'badge_vuoto' %}
-    <div class="alert alert-error">Registra prima un badge NFC.</div>
+    <div class="alert alert-error">{{ t('err_badge_empty') }}</div>
     {% elif error == 'non_trovato' %}
-    <div class="alert alert-error">Dipendente non trovato.</div>
+    <div class="alert alert-error">{{ t('err_not_found') }}</div>
     {% endif %}
 
     <section class="enrollment-panel">
-        <h2>Nuovo dipendente</h2>
+        <h2>{{ t('dip_new') }}</h2>
         <form method="post" action="/dipendenti/add" id="form-dipendente" class="enrollment-form">
             <div class="form-grid">
-                <label>
-                    Nome
-                    <input name="nome" id="nome" placeholder="Mario" required autocomplete="off">
-                </label>
-                <label>
-                    Cognome
-                    <input name="cognome" id="cognome" placeholder="Rossi" required autocomplete="off">
-                </label>
-                <label>
-                    Reparto
-                    <input name="reparto" id="reparto" placeholder="Produzione" autocomplete="off">
-                </label>
-                <label>
-                    Email
-                    <input name="email" type="email" placeholder="mario.rossi@azienda.it" autocomplete="off">
-                </label>
+                <label>{{ t('col_name') }}<input name="nome" id="nome" placeholder="Mario" required autocomplete="off"></label>
+                <label>{{ t('col_surname') }}<input name="cognome" id="cognome" placeholder="Rossi" required autocomplete="off"></label>
+                <label>{{ t('col_department') }}<input name="reparto" id="reparto" placeholder="Produzione" autocomplete="off"></label>
+                <label>{{ t('col_email') }}<input name="email" type="email" placeholder="mario.rossi@azienda.it" autocomplete="off"></label>
             </div>
-
             <div class="badge-enroll">
-                <label class="badge-enroll-label">Badge NFC</label>
+                <label class="badge-enroll-label">{{ t('enroll_badge_label') }}</label>
                 <div class="badge-enroll-row">
-                    <input name="badge_uid" id="badge_uid" readonly required
-                           placeholder="In attesa lettura badge…">
-                    <button type="button" id="btn-enroll" class="btn-secondary">Rileggi badge</button>
+                    <input name="badge_uid" id="badge_uid" readonly required placeholder="{{ t('enroll_placeholder') }}">
+                    <button type="button" id="btn-enroll" class="btn-secondary">{{ t('enroll_rescan') }}</button>
                 </div>
-                <p id="enroll-status" class="enroll-status waiting">
-                    Clicca «Rileggi badge» e avvicina il badge al lettore NFC del Raspberry Pi.
-                </p>
+                <p id="enroll-status" class="enroll-status waiting">{{ t('enroll_click_wait') }}</p>
             </div>
-
             <div class="form-actions">
-                <button type="submit" id="btn-submit" disabled>Salva dipendente</button>
+                <button type="submit" id="btn-submit" disabled>{{ t('dip_save') }}</button>
             </div>
         </form>
     </section>
@@ -85,56 +59,54 @@
     <div class="card">
         <div class="card-head">
             <div>
-                <h2>Elenco dipendenti</h2>
-                <div class="card-sub">{{ dipendenti|length }} risultati</div>
+                <h2>{{ t('dip_list') }}</h2>
+                <div class="card-sub">{{ dipendenti|length }} {{ t('results_label') }}</div>
             </div>
         </div>
-
         <div class="filterbar">
             <div class="f-group f-search">
-                <label>Cerca</label>
+                <label>{{ t('lbl_search') }}</label>
                 <div style="position:relative;">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-                    <input class="f-control" id="dip-search" placeholder="Nome, cognome o badge UID…">
+                    <input class="f-control" id="dip-search" placeholder="{{ t('dip_search_ph') }}">
                 </div>
             </div>
             <div class="f-group">
-                <label>Reparto</label>
+                <label>{{ t('lbl_department') }}</label>
                 <select class="f-control" id="dip-filter-reparto">
-                    <option value="">Tutti i reparti</option>
+                    <option value="">{{ t('all_departments') }}</option>
                     {% for r in dipendenti|map(attribute='reparto')|select|unique|sort %}
                     <option value="{{ r }}">{{ r }}</option>
                     {% endfor %}
                 </select>
             </div>
             <div class="f-group">
-                <label>Stato</label>
+                <label>{{ t('lbl_status') }}</label>
                 <select class="f-control" id="dip-filter-stato">
-                    <option value="">Tutti</option>
-                    <option value="attivi">Solo attivi</option>
-                    <option value="disattivati">Solo disattivati</option>
+                    <option value="">{{ t('lbl_all') }}</option>
+                    <option value="attivi">{{ t('active_only') }}</option>
+                    <option value="disattivati">{{ t('inactive_only') }}</option>
                 </select>
             </div>
             <div class="f-actions">
                 <a href="/dipendenti" class="btn-export">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/></svg>
-                    Esporta elenco
+                    {{ t('btn_export_list') }}
                 </a>
             </div>
         </div>
-
         <div class="card-body flush">
             <div class="table-wrap">
                 <table id="tabella-dipendenti">
                     <thead>
                         <tr>
-                            <th>Nome</th>
-                            <th>Cognome</th>
-                            <th>Badge UID</th>
-                            <th>Reparto</th>
-                            <th>Email</th>
-                            <th>Stato</th>
-                            <th>Azioni</th>
+                            <th>{{ t('col_name') }}</th>
+                            <th>{{ t('col_surname') }}</th>
+                            <th>{{ t('col_badge') }}</th>
+                            <th>{{ t('col_department') }}</th>
+                            <th>{{ t('col_email') }}</th>
+                            <th>{{ t('lbl_status') }}</th>
+                            <th>{{ t('col_actions') }}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -147,41 +119,45 @@
                         <td>{{ d.email or '—' }}</td>
                         <td>
                             {% if d.attivo %}
-                            <span class="pill pill-green"><span class="pill-dot"></span>Attivo</span>
+                            <span class="pill pill-green"><span class="pill-dot"></span>{{ t('status_active') }}</span>
                             {% else %}
-                            <span class="pill pill-gray"><span class="pill-dot"></span>Disattivo</span>
+                            <span class="pill pill-gray"><span class="pill-dot"></span>{{ t('status_inactive') }}</span>
                             {% endif %}
                         </td>
                         <td class="actions">
                             <div class="row-actions">
-                                <a href="/dipendenti/{{ d.id }}/modifica" class="btn-export btn-sm" title="Modifica dati">Modifica</a>
-                                <a href="/dipendenti/{{ d.id }}/badge" class="btn-export btn-sm" title="Riassegna badge">Badge</a>
+                                <a href="/dipendenti/{{ d.id }}/modifica" class="btn-export btn-sm" title="{{ t('btn_edit') }}">{{ t('btn_edit') }}</a>
+                                <a href="/dipendenti/{{ d.id }}/badge" class="btn-export btn-sm" title="{{ t('btn_badge') }}">{{ t('btn_badge') }}</a>
                                 <form method="post" action="/dipendenti/{{ d.id }}/toggle" class="inline-form">
-                                    <button type="submit" class="btn-sm btn-secondary">{{ 'Riattiva' if not d.attivo else 'Disattiva' }}</button>
+                                    <button type="submit" class="btn-sm btn-secondary">{{ t('btn_reactivate') if not d.attivo else t('btn_deactivate') }}</button>
                                 </form>
                                 <form method="post" action="/dipendenti/{{ d.id }}/elimina" class="inline-form"
-                                      onsubmit="return confirm('Eliminare {{ d.nome }} {{ d.cognome }}? Se ha timbrature verrà solo disattivato.');">
-                                    <button type="submit" class="btn-sm btn-danger">Elimina</button>
+                                      onsubmit="return confirm('{{ t('dip_delete_confirm')|replace('{name}', d.nome ~ ' ' ~ d.cognome)|e }}');">
+                                    <button type="submit" class="btn-sm btn-danger">{{ t('btn_delete') }}</button>
                                 </form>
                             </div>
                         </td>
                     </tr>
                     {% else %}
-                    <tr><td colspan="7" class="empty">Nessun dipendente registrato</td></tr>
+                    <tr><td colspan="7" class="empty">{{ t('dip_no_employees') }}</td></tr>
                     {% endfor %}
                     </tbody>
                 </table>
             </div>
             <div class="pagination">
-                <span id="dip-count-label">Mostrando {{ dipendenti|length }} di {{ dipendenti|length }} dipendenti</span>
+                <span id="dip-count-label"></span>
             </div>
         </div>
     </div>
 {% endblock %}
 {% block scripts %}
+<script>window.TIMBRANFC_I18N = {{ enrollment_js_strings()|tojson }};</script>
 <script src="/static/enrollment.js"></script>
 <script>
 (function(){
+    const I18N = {{ {
+        'js_showing_dip': t('js_showing_dip')
+    }|tojson }};
     const search = document.getElementById('dip-search');
     const fReparto = document.getElementById('dip-filter-reparto');
     const fStato = document.getElementById('dip-filter-stato');
@@ -203,9 +179,9 @@
             tr.style.display = show ? '' : 'none';
             if(show) visible++;
         });
-        countLabel.textContent = `Mostrando ${visible} di ${total} dipendenti`;
+        countLabel.textContent = I18N.js_showing_dip.replace('{visible}', visible).replace('{total}', total);
     }
-
+    countLabel.textContent = I18N.js_showing_dip.replace('{visible}', total).replace('{total}', total);
     if(search) search.addEventListener('input', applyFilters);
     if(fReparto) fReparto.addEventListener('change', applyFilters);
     if(fStato) fStato.addEventListener('change', applyFilters);

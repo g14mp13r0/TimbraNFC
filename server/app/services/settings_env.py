@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import io
+import os
 import re
+import subprocess
 import zipfile
 from datetime import datetime
 from pathlib import Path
@@ -20,12 +22,12 @@ SETTINGS_FIELDS: list[dict[str, Any]] = [
     # --- Kiosk ---
     {
         "key": "KIOSK_LANG",
-        "label": "Lingua kiosk",
+        "label": "Lingua (dashboard + kiosk)",
         "section": "kiosk",
         "type": "choice",
         "choices": [("it", "Italiano"), ("fr", "Français"), ("en", "English")],
         "default": "it",
-        "hint": "Testi sul touchscreen timbratrice",
+        "hint": "Pagina web e touchscreen timbratrice",
     },
     {
         "key": "KIOSK_BACKGROUND",
@@ -185,6 +187,14 @@ SECTION_LABELS = {
 }
 
 
+def _unquote_env_value(val: str) -> str:
+    val = val.strip()
+    if len(val) >= 2 and val[0] == val[-1] and val[0] in "\"'":
+        inner = val[1:-1]
+        return inner.replace('\\"', '"').replace("\\\\", "\\")
+    return val
+
+
 def parse_env_file(path: Path | None = None) -> dict[str, str]:
     path = path or ENV_PATH
     out: dict[str, str] = {}
@@ -197,18 +207,82 @@ def parse_env_file(path: Path | None = None) -> dict[str, str]:
         if "=" not in line:
             continue
         key, _, val = line.partition("=")
-        out[key.strip()] = val.strip()
+        key = key.strip()
+        val = _unquote_env_value(val.split("#", 1)[0])
+        out[key] = val
     return out
 
 
 def read_settings() -> dict[str, str]:
-    """Valori correnti ( .env + default schema )."""
+    """Valori effettivi: .env + variabili d'ambiente del processo + default."""
     env = parse_env_file()
     merged: dict[str, str] = {}
     for field in SETTINGS_FIELDS:
         key = field["key"]
-        merged[key] = env.get(key, str(field.get("default", "")))
+        if key in env:
+            merged[key] = env[key]
+        elif key in os.environ and os.environ[key] != "":
+            merged[key] = os.environ[key]
+        else:
+            merged[key] = str(field.get("default", ""))
+
+        if field["type"] == "bool":
+            v = str(merged[key]).strip().lower()
+            merged[key] = "1" if v in ("1", "true", "yes", "on") else "0"
+        elif field["type"] in ("int", "text", "choice", "readonly"):
+            merged[key] = str(merged[key]).strip()
+
     return merged
+
+
+def apply_env_to_process(updates: dict[str, str]) -> None:
+    """Aggiorna os.environ (es. lingua dashboard senza riavvio server)."""
+    for key, val in updates.items():
+        os.environ[key] = val
+
+
+def localized_fields(lang: str | None = None) -> list[dict[str, Any]]:
+    from shared.kiosk_i18n import field_hint, field_label, lang_label, normalize_lang
+
+    code = normalize_lang(lang)
+    out: list[dict[str, Any]] = []
+    for field in SETTINGS_FIELDS:
+        fc = dict(field)
+        fc["label"] = field_label(field["key"], field.get("label", ""), code)
+        if field.get("hint"):
+            fc["hint"] = field_hint(field["key"], field["hint"], code)
+        if field["type"] == "choice" and field["key"] == "KIOSK_LANG":
+            fc["choices"] = [(v, lang_label(v)) for v, _ in field["choices"]]
+        out.append(fc)
+    return out
+
+
+def localized_sections(lang: str | None = None) -> list[tuple[str, str]]:
+    from shared.kiosk_i18n import normalize_lang, section_label
+
+    code = normalize_lang(lang)
+    return [
+        (sid, section_label(sid, fallback, code))
+        for sid, fallback in SECTION_LABELS.items()
+        if sid != "backup"
+    ]
+
+
+def restart_kiosk() -> tuple[bool, str]:
+    script = ROOT / "standalone" / "restart-kiosk.sh"
+    if not script.is_file():
+        return False, f"Script non trovato: {script}"
+    try:
+        subprocess.Popen(
+            ["bash", str(script)],
+            cwd=str(ROOT),
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+        return True, "Kiosk in riavvio"
+    except OSError as exc:
+        return False, str(exc)
 
 
 def _env_quote(value: str) -> str:
@@ -267,6 +341,7 @@ def save_settings(form: dict[str, str]) -> dict[str, str]:
 
     if updates:
         update_env_file(updates)
+        apply_env_to_process(updates)
     return updates
 
 

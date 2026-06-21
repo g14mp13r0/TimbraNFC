@@ -8,6 +8,7 @@ from datetime import date, datetime
 from sqlalchemy.orm import Session
 
 from server.app.models import Dipendente, Dispositivo, Timbratura
+from shared.kiosk_i18n import action_label
 from shared.turni import calcola_turni, riepilogo_da_turni
 
 
@@ -109,13 +110,6 @@ def report_turni(
     return {"turni": turni, "riepilogo": riepilogo}
 
 
-_AZIONI_LABEL = {
-    "IT": "Inizio turno",
-    "IP": "Inizio pausa",
-    "FP": "Fine pausa",
-    "FT": "Fine turno",
-}
-
 
 def lista_timbrature(
     db: Session,
@@ -153,7 +147,7 @@ def lista_timbrature(
                 "timestamp": ts.strftime("%Y-%m-%d %H:%M:%S"),
                 "ricevuto_il": t.ricevuto_il.strftime("%Y-%m-%d %H:%M:%S") if t.ricevuto_il else "—",
                 "azione": t.azione,
-                "azione_label": _AZIONI_LABEL.get(t.azione, t.azione),
+                "azione_label": action_label(t.azione),
                 "dispositivo": dev.nome,
             }
         )
