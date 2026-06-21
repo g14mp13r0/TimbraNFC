@@ -42,6 +42,8 @@ class KioskUI:
         self._badge_corrente: str | None = None
         self._btn_refs: dict[str, tk.Button] = {}
         self._bg_photo = None
+        self._last_event_text = ""
+        self._confirm_after_id: str | None = None
         self._build_standby()
         self._aggiorna_ora()
 
@@ -86,6 +88,7 @@ class KioskUI:
         tk.Label(self.root, image=photo, bd=0, bg=COLOR_BG).place(x=0, y=0, width=W, height=H)
 
     def _build_standby(self):
+        self._annulla_conferma_timer()
         self._clear()
         self._badge_corrente = None
         self._applica_sfondo()
@@ -103,6 +106,46 @@ class KioskUI:
 
         for w in (self.lbl_ora, self.lbl_data):
             w.lift()
+
+        self.lbl_ultima = tk.Label(
+            self.root,
+            text=self._last_event_text,
+            font=("Helvetica", 9),
+            fg=COLOR_TEXT_MUTED,
+            bg=COLOR_BG,
+            wraplength=W - 20,
+            justify="left",
+        )
+        self.lbl_ultima.place(x=10, y=H - 28, anchor="sw")
+        self.lbl_ultima.lift()
+
+    def _annulla_conferma_timer(self) -> None:
+        if self._confirm_after_id is not None:
+            try:
+                self.root.after_cancel(self._confirm_after_id)
+            except Exception:
+                pass
+            self._confirm_after_id = None
+
+    def _aggiorna_ultima_label(self) -> None:
+        if hasattr(self, "lbl_ultima") and self.lbl_ultima.winfo_exists():
+            self.lbl_ultima.config(text=self._last_event_text)
+
+    def _mostra_lettura(self) -> None:
+        self._annulla_conferma_timer()
+        self._clear()
+        self._applica_sfondo()
+        frame = tk.Frame(self.root, bg=COLOR_BTN, padx=16, pady=12)
+        tk.Label(
+            frame,
+            text=t("kiosk_reading"),
+            font=("Helvetica", 15, "bold"),
+            fg="white",
+            bg=COLOR_BTN,
+        ).pack()
+        frame.place(relx=0.5, rely=0.5, anchor="center")
+        frame.lift()
+        self.root.update_idletasks()
 
     def _build_azione(self, info: dict):
         self._clear()
@@ -150,53 +193,98 @@ class KioskUI:
         self._mostra_conferma(result)
 
     def _mostra_conferma(self, result: dict):
+        self._annulla_conferma_timer()
         self._clear()
         ok = result.get("ok", False)
         bg = COLOR_OK if ok else COLOR_ERR
 
         if ok:
             testo = f"✓ {result['nome']}\n{result['label']}\n{result['ora']}"
+            self._last_event_text = t("kiosk_last_ok").format(
+                nome=result.get("nome", ""),
+                azione=result.get("label", ""),
+                ora=result.get("ora", ""),
+            )
         else:
-            testo = f"✗ {result.get('msg', t('error_generic'))}"
+            msg = result.get("msg", t("error_generic"))
+            nome = result.get("nome")
+            testo = f"✗ {nome}\n{msg}" if nome else f"✗ {msg}"
+            self._last_event_text = t("kiosk_last_err").format(msg=msg)
 
         frame = tk.Frame(self.root, bg=bg, padx=20, pady=15)
         tk.Label(frame, text=testo, font=("Helvetica", 16, "bold"), fg="white", bg=bg, justify="center").pack()
         frame.place(relx=0.5, rely=0.5, anchor="center")
-        self.root.after(CONFIRM_MS, self._build_standby)
+        frame.lift()
+        self._confirm_after_id = self.root.after(CONFIRM_MS, self._build_standby)
 
     def on_badge(self, badge_uid: str):
-        self.root.after(0, lambda: self._handle_badge(badge_uid))
+        self.root.after(0, lambda uid=badge_uid: self._handle_badge(uid))
 
     def mostra_enrollment_msg(self, titolo: str, uid: str, *, ok: bool = True):
         self.root.after(0, lambda: self._mostra_enrollment(titolo, uid, ok))
 
     def _mostra_enrollment(self, titolo: str, uid: str, ok: bool):
+        self._annulla_conferma_timer()
         self._clear()
         bg = COLOR_OK if ok else COLOR_ERR
         testo = f"{titolo}\n{uid[:16]}{'…' if len(uid) > 16 else ''}"
+        self._last_event_text = titolo
         frame = tk.Frame(self.root, bg=bg, padx=20, pady=15)
         tk.Label(frame, text=testo, font=("Helvetica", 14, "bold"), fg="white", bg=bg, justify="center").pack()
         frame.place(relx=0.5, rely=0.5, anchor="center")
-        self.root.after(2000, self._build_standby)
+        self._confirm_after_id = self.root.after(2000, self._build_standby)
+
+    def _handle_enrollment(self, badge_uid: str) -> bool:
+        import requests
+
+        try:
+            r = requests.get(f"{config.SERVER_URL}/api/v1/enrollment/active", timeout=1)
+            if not (r.ok and r.json().get("active")):
+                return False
+            cap = requests.post(
+                f"{config.SERVER_URL}/api/v1/enrollment/capture",
+                json={"badge_uid": badge_uid},
+                timeout=1,
+            )
+            if not cap.ok:
+                log.warning("Enrollment capture fallita (%s)", cap.status_code)
+                return False
+            data = cap.json()
+            if data.get("duplicate"):
+                self._mostra_enrollment(t("enrollment_duplicate"), badge_uid, ok=False)
+            else:
+                self._mostra_enrollment(t("enrollment_ok"), badge_uid, ok=True)
+            return True
+        except Exception as exc:
+            log.debug("Enrollment non disponibile: %s", exc)
+            return False
 
     def _handle_badge(self, badge_uid: str):
-        if config.NFC_AUTO_TIMBRATURA:
-            result = timb_logic.registra_timbratura_auto(badge_uid)
-            self._mostra_conferma(result)
-            return
+        try:
+            self._mostra_lettura()
+            if self._handle_enrollment(badge_uid):
+                return
 
-        info = timb_logic.processa_badge(badge_uid)
-        if not info.get("ok"):
-            self._mostra_conferma(info)
-            return
-        if not info.get("azioni_valide"):
-            self._mostra_conferma({"ok": False, "msg": t("no_action_available")})
-            return
-        if len(info["azioni_valide"]) == 1:
-            result = timb_logic.registra_timbratura(badge_uid, info["azioni_valide"][0])
-            self._mostra_conferma(result)
-        else:
-            self._build_azione(info)
+            if config.NFC_AUTO_TIMBRATURA:
+                result = timb_logic.registra_timbratura_auto(badge_uid)
+                self._mostra_conferma(result)
+                return
+
+            info = timb_logic.processa_badge(badge_uid)
+            if not info.get("ok"):
+                self._mostra_conferma(info)
+                return
+            if not info.get("azioni_valide"):
+                self._mostra_conferma({"ok": False, "msg": t("no_action_available")})
+                return
+            if len(info["azioni_valide"]) == 1:
+                result = timb_logic.registra_timbratura(badge_uid, info["azioni_valide"][0])
+                self._mostra_conferma(result)
+            else:
+                self._build_azione(info)
+        except Exception:
+            log.exception("Errore gestione badge %s", badge_uid)
+            self._mostra_conferma({"ok": False, "msg": t("error_generic")})
 
     def _aggiorna_ora(self):
         now = datetime.now()

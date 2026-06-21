@@ -2,6 +2,7 @@
 
 import logging
 import sys
+import threading
 from datetime import datetime
 from pathlib import Path
 
@@ -71,13 +72,8 @@ def registra_timbratura(badge_uid: str, azione: str, feedback_fn=None) -> dict:
     fb(True)
     log.info("Timbratura locale #%s: %s %s — %s", id_locale, info["nome"], info["cognome"], azione)
 
-    # Standalone: sincronizza subito verso il server locale (stesso Raspberry)
     if config.STANDALONE:
-        try:
-            from terminal import sync_agent
-            sync_agent.push_timbrature()
-        except Exception as e:
-            log.warning("Sync immediata fallita (resta in coda): %s", e)
+        threading.Thread(target=_push_timbrature_async, daemon=True, name="sync-push").start()
 
     return {
         "ok": True,
@@ -109,3 +105,12 @@ def registra_timbratura_auto(badge_uid: str, feedback_fn=None) -> dict:
         }
 
     return registra_timbratura(uid, azione, feedback_fn=feedback_fn)
+
+
+def _push_timbrature_async() -> None:
+    try:
+        from terminal import sync_agent
+
+        sync_agent.push_timbrature()
+    except Exception as e:
+        log.warning("Sync immediata fallita (resta in coda): %s", e)

@@ -970,6 +970,21 @@ _STRINGS: dict[str, dict[Lang, str]] = {
         "en": "Clock-in not available",
     },
     "error_generic": {"it": "Errore", "fr": "Erreur", "en": "Error"},
+    "kiosk_reading": {
+        "it": "Lettura badge…",
+        "fr": "Lecture du badge…",
+        "en": "Reading badge…",
+    },
+    "kiosk_last_ok": {
+        "it": "Ultima: {nome} — {azione} {ora}",
+        "fr": "Dernier : {nome} — {azione} {ora}",
+        "en": "Last: {nome} — {azione} {ora}",
+    },
+    "kiosk_last_err": {
+        "it": "Ultimo tentativo: {msg}",
+        "fr": "Dernière tentative : {msg}",
+        "en": "Last attempt: {msg}",
+    },
     "cancel": {"it": "Annulla", "fr": "Annuler", "en": "Cancel"},
     "state_label": {"it": "Stato", "fr": "Statut", "en": "Status"},
     "enrollment_ok": {

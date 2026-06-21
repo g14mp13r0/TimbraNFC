@@ -16,7 +16,6 @@ import terminal.config as config
 import terminal.device_identity as device_identity
 import terminal.local_queue as local_queue
 import terminal.sync_agent as sync_agent
-from shared.kiosk_i18n import t
 from terminal.kiosk_ui import KioskUI
 from terminal.nfc_reader import start_nfc_loop
 
@@ -75,31 +74,6 @@ def main():
 
     def on_badge(uid: str) -> None:
         log.info("Lettura badge: %s", uid)
-        enrollment_attiva = False
-        try:
-            r = requests.get(f"{config.SERVER_URL}/api/v1/enrollment/active", timeout=2)
-            enrollment_attiva = r.ok and r.json().get("active")
-        except requests.RequestException as exc:
-            log.debug("Enrollment check fallito: %s", exc)
-
-        if enrollment_attiva:
-            try:
-                cap = requests.post(
-                    f"{config.SERVER_URL}/api/v1/enrollment/capture",
-                    json={"badge_uid": uid},
-                    timeout=2,
-                )
-                if cap.ok:
-                    data = cap.json()
-                    if data.get("duplicate"):
-                        ui.mostra_enrollment_msg(t("enrollment_duplicate"), uid, ok=False)
-                    else:
-                        ui.mostra_enrollment_msg(t("enrollment_ok"), uid, ok=True)
-                    return
-                log.warning("Enrollment capture fallita (%s) — timbratura normale", cap.status_code)
-            except requests.RequestException as exc:
-                log.warning("Enrollment capture errore: %s — timbratura normale", exc)
-
         ui.on_badge(uid)
 
     threading.Thread(target=start_nfc_loop, args=(on_badge,), daemon=True).start()
