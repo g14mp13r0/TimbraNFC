@@ -76,9 +76,9 @@ _STRINGS: dict[str, dict[Lang, str]] = {
     # --- Web: impostazioni ---
     "settings_title": {"it": "Impostazioni", "fr": "Paramètres", "en": "Settings"},
     "settings_subtitle": {
-        "it": "Configura kiosk, rete, sicurezza e backup. Usa «Salva e riavvia kiosk» per applicare subito le modifiche al touchscreen.",
-        "fr": "Configurez le kiosk, le réseau, la sécurité et la sauvegarde. Utilisez « Enregistrer et redémarrer le kiosk » pour appliquer les changements à l'écran.",
-        "en": "Configure kiosk, network, security and backup. Use «Save and restart kiosk» to apply touchscreen changes immediately.",
+        "it": "Ogni sezione ha il proprio pulsante Salva. «Salva e riavvia kiosk» compare solo per la timbratrice.",
+        "fr": "Chaque section a son bouton Enregistrer. « Enregistrer et redémarrer le kiosk » apparaît uniquement pour la pointeuse.",
+        "en": "Each section has its own Save button. «Save and restart kiosk» appears only for the clock terminal.",
     },
     "settings_saved": {
         "it": "Impostazioni salvate in",

@@ -269,6 +269,9 @@ SECTION_LABELS = {
     "backup": "Backup",
 }
 
+# Sezioni con pulsante «Salva e riavvia kiosk»
+SECTIONS_WITH_KIOSK_RESTART = frozenset({"kiosk"})
+
 NETWORK_KEYS = frozenset({
     "NETWORK_LINK",
     "NETWORK_MODE",
@@ -403,12 +406,12 @@ def localized_fields(lang: str | None = None) -> list[dict[str, Any]]:
     return out
 
 
-def localized_sections(lang: str | None = None) -> list[tuple[str, str]]:
+def localized_sections(lang: str | None = None) -> list[tuple[str, str, bool]]:
     from shared.kiosk_i18n import normalize_lang, section_label
 
     code = normalize_lang(lang)
     return [
-        (sid, section_label(sid, fallback, code))
+        (sid, section_label(sid, fallback, code), sid in SECTIONS_WITH_KIOSK_RESTART)
         for sid, fallback in SECTION_LABELS.items()
         if sid != "backup"
     ]
@@ -493,15 +496,20 @@ def update_env_file(updates: dict[str, str], path: Path | None = None) -> None:
     path.write_text("".join(new_lines), encoding="utf-8")
 
 
-def save_settings(form: dict[str, str]) -> tuple[dict[str, str], tuple[bool, str] | None]:
-    """Salva impostazioni dal form; password vuote = non modificare."""
+def save_settings(form: dict[str, str], section: str) -> tuple[dict[str, str], tuple[bool, str] | None]:
+    """Salva impostazioni dal form di una sezione; password vuote = non modificare."""
     from server.app.services.network_config import apply_lan_network, validate_network_settings
+
+    if section not in SECTION_LABELS or section == "backup":
+        raise ValueError(f"Sezione non valida: {section}")
 
     env_raw = parse_env_file()
     current = read_settings(with_network=True)
     updates: dict[str, str] = {}
 
     for field in SETTINGS_FIELDS:
+        if field["section"] != section:
+            continue
         key = field["key"]
         if field["type"] == "readonly":
             continue
@@ -509,6 +517,9 @@ def save_settings(form: dict[str, str]) -> tuple[dict[str, str], tuple[bool, str
             val = form.get(key, "").strip()
             if val:
                 updates[key] = val
+            continue
+
+        if key not in form and field["type"] != "bool":
             continue
 
         raw = form.get(key, "").strip()
@@ -522,16 +533,17 @@ def save_settings(form: dict[str, str]) -> tuple[dict[str, str], tuple[bool, str
         updates["SERVER_URL"] = f"http://127.0.0.1:{updates['SERVER_PORT']}"
         merged["SERVER_URL"] = updates["SERVER_URL"]
 
-    err = validate_network_settings(merged, env_raw)
-    if err:
-        raise ValueError(err)
+    if section == "network_lan":
+        err = validate_network_settings(merged, env_raw)
+        if err:
+            raise ValueError(err)
 
     if updates:
         update_env_file(updates)
         apply_env_to_process(updates)
 
     network_result: tuple[bool, str] | None = None
-    if updates.keys() & NETWORK_KEYS:
+    if section == "network_lan" and updates.keys() & NETWORK_KEYS:
         network_result = apply_lan_network(enrich_settings({**current, **updates}), env_raw)
 
     return updates, network_result

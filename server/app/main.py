@@ -445,7 +445,7 @@ def export_report_csv(
 
 # --- Impostazioni ---
 
-def _settings_page_context(db: Session, *, msg: str = "", error: str = "", restart_error: str = "", network_warn: str = ""):
+def _settings_page_context(db: Session, *, msg: str = "", error: str = "", restart_error: str = "", network_warn: str = "", section: str = ""):
     from server.app.services.settings_env import (
         ENV_PATH,
         kiosk_background_path,
@@ -477,6 +477,7 @@ def _settings_page_context(db: Session, *, msg: str = "", error: str = "", resta
         "error": error,
         "restart_error": restart_error,
         "network_warn": network_warn,
+        "saved_section": section,
         "active_page": "impostazioni",
         **_sidebar_counts(db),
     }
@@ -490,11 +491,12 @@ def page_impostazioni(
     error: str = "",
     restart_error: str = "",
     network_warn: str = "",
+    section: str = "",
 ):
     return templates.TemplateResponse(
         request,
         "impostazioni.html",
-        _settings_page_context(db, msg=msg, error=error, restart_error=restart_error, network_warn=network_warn),
+        _settings_page_context(db, msg=msg, error=error, restart_error=restart_error, network_warn=network_warn, section=section),
     )
 
 
@@ -504,10 +506,19 @@ async def salva_impostazioni(request: Request, db: Session = Depends(get_db)):
 
     form = dict(await request.form())
     action = form.pop("action", "save")
+    section = form.pop("section", "").strip()
     restart = action == "save_restart"
 
+    if not section:
+        return templates.TemplateResponse(
+            request,
+            "impostazioni.html",
+            _settings_page_context(db, error="Sezione mancante"),
+            status_code=400,
+        )
+
     try:
-        _, network_result = save_settings(form)
+        _, network_result = save_settings(form, section)
     except Exception as exc:
         return templates.TemplateResponse(
             request,
@@ -523,13 +534,16 @@ async def salva_impostazioni(request: Request, db: Session = Depends(get_db)):
             network_warn = detail
 
     def _redirect(query: str) -> RedirectResponse:
-        if network_warn:
-            from urllib.parse import quote
+        from urllib.parse import quote
 
+        query = f"{query}&section={quote(section)}"
+        if network_warn:
             query = f"{query}&network_warn={quote(network_warn[:240])}"
         return RedirectResponse(f"/impostazioni?{query}", status_code=303)
 
     if restart:
+        if section not in ("kiosk",):
+            return _redirect("msg=saved")
         ok, detail = restart_kiosk()
         if ok:
             return _redirect("msg=saved_restart")

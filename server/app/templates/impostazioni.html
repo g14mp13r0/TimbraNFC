@@ -40,7 +40,7 @@
 <div class="alert alert-error">{{ error }}</div>
 {% endif %}
 
-<div class="card">
+<div class="card" id="settings-section-background">
     <div class="card-head">
         <div>
             <h2>{{ t('settings_bg_title') }}</h2>
@@ -64,7 +64,7 @@
                     {{ t('settings_bg_upload') }}
                     <input type="file" name="sfondo" accept="image/png,image/jpeg,image/webp" required>
                 </label>
-                <div class="form-actions">
+                <div class="form-actions settings-section-actions">
                     <button type="submit">{{ t('settings_bg_submit') }}</button>
                 </div>
             </form>
@@ -72,8 +72,9 @@
     </div>
 </div>
 
-<form method="post" action="/impostazioni/salva" class="settings-form">
-    {% for section_id, section_label in sections %}
+{% for section_id, section_label, show_restart in sections %}
+<form method="post" action="/impostazioni/salva" class="settings-form" id="settings-section-{{ section_id }}">
+    <input type="hidden" name="section" value="{{ section_id }}">
     <div class="card">
         <div class="card-head">
             <div>
@@ -110,17 +111,18 @@
                 </label>
                 {% endfor %}
             </div>
+            <div class="form-actions settings-section-actions">
+                <button type="submit" name="action" value="save">{{ t('settings_save') }}</button>
+                {% if show_restart %}
+                <button type="submit" name="action" value="save_restart" class="btn-restart">{{ t('settings_save_restart') }}</button>
+                {% endif %}
+            </div>
         </div>
     </div>
-    {% endfor %}
-
-    <div class="form-actions settings-actions">
-        <button type="submit" name="action" value="save">{{ t('settings_save') }}</button>
-        <button type="submit" name="action" value="save_restart" class="btn-restart">{{ t('settings_save_restart') }}</button>
-    </div>
 </form>
+{% endfor %}
 
-<div class="card">
+<div class="card" id="settings-section-backup">
     <div class="card-head">
         <div>
             <h2>{{ t('settings_backup_title') }}</h2>
@@ -129,7 +131,7 @@
     </div>
     <div class="card-body">
         <p class="hint">{{ t('settings_backup_hint') }}</p>
-        <div class="form-actions" style="margin-top:18px;">
+        <div class="form-actions settings-section-actions">
             <a href="/impostazioni/backup.zip" class="btn-export">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4"/><path d="M5 19h14"/></svg>
                 {{ t('settings_backup_btn') }}
@@ -142,25 +144,31 @@
 (function () {
     var mode = document.getElementById('network-mode');
     var link = document.getElementById('network-link');
-    if (!mode) return;
+    if (mode) {
+        function syncNetworkFields() {
+            var manual = mode.value === 'manual';
+            document.querySelectorAll('.network-manual-field input[type="text"]').forEach(function (el) {
+                el.readOnly = !manual;
+                el.classList.toggle('input-dimmed', !manual);
+            });
 
-    function syncNetworkFields() {
-        var manual = mode.value === 'manual';
-        document.querySelectorAll('.network-manual-field input[type="text"]').forEach(function (el) {
-            el.readOnly = !manual;
-            el.classList.toggle('input-dimmed', !manual);
-        });
+            var wlan = link && link.value === 'wlan';
+            document.querySelectorAll('.network-wlan-field input').forEach(function (el) {
+                el.disabled = !wlan;
+                el.classList.toggle('input-dimmed', !wlan);
+            });
+        }
 
-        var wlan = link && link.value === 'wlan';
-        document.querySelectorAll('.network-wlan-field input').forEach(function (el) {
-            el.disabled = !wlan;
-            el.classList.toggle('input-dimmed', !wlan);
-        });
+        mode.addEventListener('change', syncNetworkFields);
+        if (link) link.addEventListener('change', syncNetworkFields);
+        syncNetworkFields();
     }
 
-    mode.addEventListener('change', syncNetworkFields);
-    if (link) link.addEventListener('change', syncNetworkFields);
-    syncNetworkFields();
+    var section = {{ saved_section|tojson }};
+    if (section) {
+        var el = document.getElementById('settings-section-' + section);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
 })();
 </script>
 
