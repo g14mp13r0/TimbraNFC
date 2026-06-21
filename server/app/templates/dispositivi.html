@@ -75,7 +75,7 @@
                         <span class="pill {{ 'pill-green' if d.online else 'pill-gray' }}">{{ 'Online' if d.online else 'Offline' }}</span>
                     </div>
                     <div class="dc-meta">
-                        <div class="dc-meta-item"><div class="k">UUID</div><div class="v">{{ d.device_uuid[:8] }}…</div></div>
+                        <div class="dc-meta-item"><div class="k">UUID</div><div class="v">{{ (d.device_uuid or '')[:8] }}{% if d.device_uuid %}…{% else %}—{% endif %}</div></div>
                         <div class="dc-meta-item"><div class="k">Versione SW</div><div class="v">{{ d.versione_sw or '—' }}</div></div>
                         <div class="dc-meta-item"><div class="k">Ultimo heartbeat</div><div class="v">{{ d.ultimo_heartbeat or '—' }}</div></div>
                     </div>

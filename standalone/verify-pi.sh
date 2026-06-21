@@ -23,6 +23,22 @@ echo "--- health ---"
 curl -sf http://127.0.0.1:8080/health && echo || echo "NON RISPONDE"
 echo ""
 
+echo "--- pagine dashboard (HTTP) ---"
+FAIL=0
+for path in / /dipendenti /timbrature /report /dispositivi /static/style.css; do
+    code=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:8080${path}" || echo "000")
+    echo "  ${path} -> ${code}"
+    if [ "$code" != "200" ]; then
+        FAIL=1
+    fi
+done
+if [ "$FAIL" -eq 1 ]; then
+    echo ""
+    echo "  ERRORE: almeno una pagina non risponde 200 — log server:"
+    journalctl -u timbranfc-server -n 15 --no-pager 2>/dev/null || true
+fi
+echo ""
+
 echo "--- porta 8080 ---"
 ss -tlnp 2>/dev/null | grep ':8080' || netstat -tlnp 2>/dev/null | grep ':8080' || echo "(nessun listener)"
 echo ""

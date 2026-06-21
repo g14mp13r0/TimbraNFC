@@ -66,6 +66,25 @@ def startup():
     _init_db()
 
 
+def _sidebar_counts(db: Session) -> dict:
+    return {
+        "sidebar_n_dip": db.query(Dipendente).filter(Dipendente.attivo == True).count(),
+        "sidebar_n_dev": db.query(Dispositivo).count(),
+        "sidebar_n_timb": db.query(Timbratura).count(),
+    }
+
+
+def _device_dict(d: Dispositivo, online: bool) -> dict:
+    return {
+        "id": d.id,
+        "nome": d.nome,
+        "device_uuid": d.device_uuid or "",
+        "versione_sw": d.versione_sw,
+        "ultimo_heartbeat": d.ultimo_heartbeat,
+        "online": online,
+    }
+
+
 @app.get("/health")
 def health():
     return {"status": "ok", "version": VERSION}
@@ -90,19 +109,16 @@ def home(request: Request, db: Session = Depends(get_db)):
         .limit(10)
         .all()
     )
-    return templates.TemplateResponse(
-        request,
-        "index.html",
-        {
-            "n_dip": n_dip,
-            "n_timb": n_timb,
-            "n_dev": n_dev,
-            "recenti": recenti,
-            "active_page": "home",
-            "sidebar_n_dip": n_dip,
-            "sidebar_n_dev": n_dev,
-        },
-    )
+    ctx = {
+        "n_dip": n_dip,
+        "n_timb": n_timb,
+        "n_dev": n_dev,
+        "recenti": recenti,
+        "active_page": "home",
+        **_sidebar_counts(db),
+    }
+    ctx["sidebar_n_dip"] = n_dip
+    return templates.TemplateResponse(request, "index.html", ctx)
 
 
 @app.get("/dispositivi", response_class=HTMLResponse)
@@ -111,11 +127,11 @@ def page_dispositivi(request: Request, db: Session = Depends(get_db)):
     devices = []
     for d in db.query(Dispositivo).all():
         online = d.ultimo_heartbeat and (now - d.ultimo_heartbeat) < timedelta(minutes=3)
-        devices.append({**d.__dict__, "online": online})
+        devices.append(_device_dict(d, bool(online)))
     return templates.TemplateResponse(
         request,
         "dispositivi.html",
-        {"devices": devices, "active_page": "dispositivi", "sidebar_n_dev": len(devices)},
+        {"devices": devices, "active_page": "dispositivi", **_sidebar_counts(db)},
     )
 
 
@@ -131,17 +147,15 @@ def restart_kiosk(device_id: int, db: Session = Depends(get_db)):
 @app.get("/dipendenti", response_class=HTMLResponse)
 def page_dipendenti(request: Request, db: Session = Depends(get_db), msg: str = "", error: str = ""):
     dips = db.query(Dipendente).order_by(Dipendente.cognome, Dipendente.nome).all()
-    return templates.TemplateResponse(
-        request,
-        "dipendenti.html",
-        {
-            "dipendenti": dips,
-            "msg": msg,
-            "error": error,
-            "active_page": "dipendenti",
-            "sidebar_n_dip": len(dips),
-        },
-    )
+    ctx = {
+        "dipendenti": dips,
+        "msg": msg,
+        "error": error,
+        "active_page": "dipendenti",
+        **_sidebar_counts(db),
+    }
+    ctx["sidebar_n_dip"] = len(dips)
+    return templates.TemplateResponse(request, "dipendenti.html", ctx)
 
 
 @app.post("/dipendenti/add")
@@ -173,7 +187,9 @@ def page_modifica_dipendente(dip_id: int, request: Request, db: Session = Depend
     if not dip:
         return RedirectResponse("/dipendenti?error=non_trovato", status_code=303)
     return templates.TemplateResponse(
-        request, "dipendente_modifica.html", {"dipendente": dip, "error": error, "active_page": "dipendenti"}
+        request,
+        "dipendente_modifica.html",
+        {"dipendente": dip, "error": error, "active_page": "dipendenti", **_sidebar_counts(db)},
     )
 
 
@@ -203,7 +219,9 @@ def page_badge_dipendente(dip_id: int, request: Request, db: Session = Depends(g
     if not dip:
         return RedirectResponse("/dipendenti?error=non_trovato", status_code=303)
     return templates.TemplateResponse(
-        request, "dipendente_badge.html", {"dipendente": dip, "error": error, "active_page": "dipendenti"}
+        request,
+        "dipendente_badge.html",
+        {"dipendente": dip, "error": error, "active_page": "dipendenti", **_sidebar_counts(db)},
     )
 
 
@@ -266,23 +284,21 @@ def page_timbrature(
     timbrature = lista_timbrature(db, da, a, dipendente_id)
     dipendenti = db.query(Dipendente).filter(Dipendente.attivo == True).order_by(Dipendente.cognome).all()
     n_totale = db.query(Timbratura).count()
-    return templates.TemplateResponse(
-        request,
-        "timbrature.html",
-        {
-            "timbrature": timbrature,
-            "dipendenti": dipendenti,
-            "da": da,
-            "a": a,
-            "mese": mese,
-            "dipendente_id": dipendente_id,
-            "n_totale": n_totale,
-            "msg": msg,
-            "error": error,
-            "active_page": "timbrature",
-            "sidebar_n_timb": n_totale,
-        },
-    )
+    ctx = {
+        "timbrature": timbrature,
+        "dipendenti": dipendenti,
+        "da": da,
+        "a": a,
+        "mese": mese,
+        "dipendente_id": dipendente_id,
+        "n_totale": n_totale,
+        "msg": msg,
+        "error": error,
+        "active_page": "timbrature",
+        **_sidebar_counts(db),
+    }
+    ctx["sidebar_n_timb"] = n_totale
+    return templates.TemplateResponse(request, "timbrature.html", ctx)
 
 
 @app.post("/timbrature/azzera")
@@ -365,6 +381,7 @@ def page_report(
             "mese": mese,
             "dipendente_id": dipendente_id,
             "active_page": "report",
+            **_sidebar_counts(db),
         },
     )
 

@@ -72,7 +72,16 @@
   <!-- ============ MAIN ============ -->
   <div class="main">
     <div class="topbar">
-      <div class="breadcrumb">TimbraNFC / {% block breadcrumb %}{% endblock %}</div>
+      <div class="topbar-left">
+        <div class="breadcrumb">TimbraNFC / {% block breadcrumb %}{% endblock %}</div>
+        <nav class="mobile-nav" aria-label="Menu principale">
+          <a href="/">Dashboard</a>
+          <a href="/timbrature">Timbrature</a>
+          <a href="/report">Report</a>
+          <a href="/dipendenti">Dipendenti</a>
+          <a href="/dispositivi">Dispositivi</a>
+        </nav>
+      </div>
       <div class="topbar-right">
         <a href="/dispositivi" class="icon-btn" title="Stato dispositivi in linea">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/></svg>

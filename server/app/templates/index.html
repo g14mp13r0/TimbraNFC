@@ -71,7 +71,13 @@
                 {% for t in recenti %}
                     <tr>
                         <td class="cell-mono">{{ t.ricevuto_il.strftime('%Y-%m-%d %H:%M:%S') if t.ricevuto_il else '—' }}</td>
-                        <td class="cell-strong">{{ t.dipendente.cognome }} {{ t.dipendente.nome }}</td>
+                        <td class="cell-strong">
+                            {% if t.dipendente %}
+                            {{ t.dipendente.cognome }} {{ t.dipendente.nome }}
+                            {% else %}
+                            —
+                            {% endif %}
+                        </td>
                         <td>
                             {% if t.azione in ['IT', 'FP'] %}
                             <span class="badge badge-in"><span class="pill-dot"></span>Inizio</span>
