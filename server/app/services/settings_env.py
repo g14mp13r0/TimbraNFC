@@ -549,6 +549,15 @@ def save_settings(form: dict[str, str], section: str) -> tuple[dict[str, str], t
 
     merged = {**current, **updates}
     if "SERVER_PORT" in updates:
+        try:
+            port = int(updates["SERVER_PORT"])
+            if not 1 <= port <= 65535:
+                raise ValueError("range")
+            updates["SERVER_PORT"] = str(port)
+        except ValueError as exc:
+            if str(exc) == "range":
+                raise ValueError("Porta dashboard non valida (1-65535)") from None
+            raise ValueError("Porta dashboard non valida (numero intero)") from None
         updates["SERVER_URL"] = f"http://127.0.0.1:{updates['SERVER_PORT']}"
         merged["SERVER_URL"] = updates["SERVER_URL"]
 

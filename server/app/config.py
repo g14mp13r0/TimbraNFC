@@ -14,7 +14,12 @@ DATABASE_URL = os.environ.get(
 
 # 0.0.0.0 → dashboard accessibile da altri PC in LAN
 SERVER_HOST = os.environ.get("SERVER_HOST", "0.0.0.0")
-SERVER_PORT = int(os.environ.get("SERVER_PORT", "8080"))
+try:
+    SERVER_PORT = int(os.environ.get("SERVER_PORT", "8080"))
+except (TypeError, ValueError):
+    SERVER_PORT = 8080
+if not (1 <= SERVER_PORT <= 65535):
+    SERVER_PORT = 8080
 
 API_KEY = os.environ.get("API_KEY", "")
 SECRET_KEY = os.environ.get("SECRET_KEY", "cambia-in-produzione")
