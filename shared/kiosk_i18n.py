@@ -880,6 +880,21 @@ _STRINGS: dict[str, dict[Lang, str]] = {
     "dev_sw_version": {"it": "Versione SW", "fr": "Version SW", "en": "SW version"},
     "dev_last_hb": {"it": "Ultimo heartbeat", "fr": "Dernier heartbeat", "en": "Last heartbeat"},
     "dev_restart_kiosk": {"it": "Restart kiosk", "fr": "Redémarrer kiosk", "en": "Restart kiosk"},
+    "msg_kiosk_restart_ok": {
+        "it": "Kiosk riavviato.",
+        "fr": "Kiosk redémarré.",
+        "en": "Kiosk restarted.",
+    },
+    "msg_kiosk_restart_queued": {
+        "it": "Comando di riavvio inviato al terminale (attendi l'heartbeat).",
+        "fr": "Commande de redémarrage envoyée au terminal (attendre le heartbeat).",
+        "en": "Restart command sent to the terminal (wait for heartbeat).",
+    },
+    "err_kiosk_restart": {
+        "it": "Riavvio kiosk fallito",
+        "fr": "Échec du redémarrage du kiosk",
+        "en": "Kiosk restart failed",
+    },
     # --- Home extra ---
     "home_recent_sub": {
         "it": "Le 10 timbrature più recenti ricevute dal server",

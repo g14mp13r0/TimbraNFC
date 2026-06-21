@@ -29,6 +29,7 @@ from server.app.config import (
     CONTABILE_EMAIL,
     CONTABILE_PASSWORD,
     SECRET_KEY,
+    STANDALONE,
     VERSION,
 )
 from server.app.db import Base, engine, get_db
@@ -263,7 +264,13 @@ def home(request: Request, db: Session = Depends(get_db), error: str = ""):
 
 
 @app.get("/dispositivi", response_class=HTMLResponse)
-def page_dispositivi(request: Request, db: Session = Depends(get_db)):
+def page_dispositivi(
+    request: Request,
+    db: Session = Depends(get_db),
+    msg: str = "",
+    error: str = "",
+    detail: str = "",
+):
     now = datetime.now()
     devices = []
     for d in db.query(Dispositivo).all():
@@ -273,7 +280,14 @@ def page_dispositivi(request: Request, db: Session = Depends(get_db)):
         request,
         db,
         "dispositivi.html",
-        {"devices": devices, "active_page": "dispositivi", **_sidebar_counts(db)},
+        {
+            "devices": devices,
+            "active_page": "dispositivi",
+            "msg": msg,
+            "error": error,
+            "detail": detail,
+            **_sidebar_counts(db),
+        },
     )
 
 
@@ -281,9 +295,26 @@ def page_dispositivi(request: Request, db: Session = Depends(get_db)):
 def restart_kiosk(device_id: int, db: Session = Depends(get_db)):
     from server.app.models import DeviceComando
 
+    dev = db.query(Dispositivo).filter(Dispositivo.id == device_id).first()
+    if not dev:
+        return RedirectResponse("/dispositivi?error=non_trovato", status_code=303)
+
+    if STANDALONE:
+        from server.app.services.settings_env import restart_kiosk as run_restart_kiosk
+
+        ok, restart_detail = run_restart_kiosk()
+        if ok:
+            return RedirectResponse("/dispositivi?msg=kiosk_restart", status_code=303)
+        from urllib.parse import quote
+
+        return RedirectResponse(
+            f"/dispositivi?error=restart_kiosk&detail={quote(restart_detail[:200])}",
+            status_code=303,
+        )
+
     db.add(DeviceComando(dispositivo_id=device_id, tipo="restart_kiosk"))
     db.commit()
-    return RedirectResponse("/dispositivi", status_code=303)
+    return RedirectResponse("/dispositivi?msg=kiosk_restart_queued", status_code=303)
 
 
 @app.get("/dipendenti", response_class=HTMLResponse)

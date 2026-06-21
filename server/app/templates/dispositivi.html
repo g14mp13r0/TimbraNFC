@@ -7,6 +7,17 @@
         <p class="subtitle">{{ t('dev_subtitle') }}</p>
     </div>
 
+    {% if msg == 'kiosk_restart' %}
+    <div class="alert alert-success">{{ t('msg_kiosk_restart_ok') }}</div>
+    {% elif msg == 'kiosk_restart_queued' %}
+    <div class="alert alert-success">{{ t('msg_kiosk_restart_queued') }}</div>
+    {% endif %}
+    {% if error == 'non_trovato' %}
+    <div class="alert alert-error">{{ t('err_not_found') }}</div>
+    {% elif error == 'restart_kiosk' %}
+    <div class="alert alert-error">{{ t('err_kiosk_restart') }}{% if detail %}: {{ detail }}{% endif %}</div>
+    {% endif %}
+
     <div class="kpi-row kpi-row-3">
         <div class="kpi-card">
             <div class="kpi-top"><div class="kpi-icon green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div></div>

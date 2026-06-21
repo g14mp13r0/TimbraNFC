@@ -147,10 +147,23 @@ def _esegui_comando(cmd: dict) -> None:
         return
 
     if tipo == "restart_kiosk":
-        if config.STANDALONE:
-            log.info("restart_kiosk ignorato in standalone (comando già annullato sul server)")
-            return
         log.info("Riavvio kiosk richiesto dal server")
+        if config.STANDALONE:
+            script = config.ROOT / "standalone" / "restart-kiosk.sh"
+            if not script.is_file():
+                log.error("Script restart non trovato: %s", script)
+                return
+            env = os.environ.copy()
+            env["APP_DIR"] = str(config.ROOT)
+            subprocess.Popen(
+                ["bash", str(script)],
+                cwd=str(config.ROOT),
+                env=env,
+                start_new_session=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            return
         os.execv(sys.executable, [sys.executable] + sys.argv)
     elif tipo == "restart_device":
         subprocess.run(["sudo", "reboot"], check=False)
