@@ -9,18 +9,16 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import os
-
 import terminal.config as config
 from terminal import timbratura as timb_logic
-from terminal.stati import AZIONI_LABEL
+from shared.kiosk_i18n import action_label, locale_name, stato_label, t
 
 log = logging.getLogger("kiosk_ui")
 
 W = config.DISPLAY_WIDTH
 H = config.DISPLAY_HEIGHT
 BTN_W, BTN_H = 140, 60
-CONFIRM_MS = int(os.environ.get("KIOSK_CONFIRM_MS", "4000"))
+CONFIRM_MS = config.KIOSK_CONFIRM_MS
 
 COLOR_BG = "#ffffff"
 COLOR_TEXT = "#1a1a1a"
@@ -114,7 +112,8 @@ class KioskUI:
         tk.Label(self.root, text=nome, font=("Helvetica", 16, "bold"), fg=COLOR_TEXT, bg=COLOR_BG).place(
             relx=0.5, rely=0.08, anchor="center"
         )
-        tk.Label(self.root, text=f"Stato: {info['stato']}", font=("Helvetica", 12), fg=COLOR_TEXT_MUTED, bg=COLOR_BG).place(
+        stato_txt = info.get("stato_label") or stato_label(info.get("stato", ""))
+        tk.Label(self.root, text=f"{t('state_label')}: {stato_txt}", font=("Helvetica", 12), fg=COLOR_TEXT_MUTED, bg=COLOR_BG).place(
             relx=0.5, rely=0.18, anchor="center"
         )
 
@@ -126,7 +125,7 @@ class KioskUI:
             px, py = positions[i]
             btn = tk.Button(
                 self.root,
-                text=AZIONI_LABEL[az],
+                text=action_label(az),
                 font=("Helvetica", 14, "bold"),
                 width=12,
                 height=2,
@@ -139,7 +138,7 @@ class KioskUI:
             self._btn_refs[az] = btn
 
         tk.Button(
-            self.root, text="Annulla", font=("Helvetica", 11), bg="#444", fg="#ccc",
+            self.root, text=t("cancel"), font=("Helvetica", 11), bg="#444", fg="#ccc",
             command=self._build_standby,
         ).place(relx=0.5, rely=0.95, anchor="center")
 
@@ -158,7 +157,7 @@ class KioskUI:
         if ok:
             testo = f"✓ {result['nome']}\n{result['label']}\n{result['ora']}"
         else:
-            testo = f"✗ {result.get('msg', 'Errore')}"
+            testo = f"✗ {result.get('msg', t('error_generic'))}"
 
         frame = tk.Frame(self.root, bg=bg, padx=20, pady=15)
         tk.Label(frame, text=testo, font=("Helvetica", 16, "bold"), fg="white", bg=bg, justify="center").pack()
@@ -191,7 +190,7 @@ class KioskUI:
             self._mostra_conferma(info)
             return
         if not info.get("azioni_valide"):
-            self._mostra_conferma({"ok": False, "msg": "Nessuna azione disponibile"})
+            self._mostra_conferma({"ok": False, "msg": t("no_action_available")})
             return
         if len(info["azioni_valide"]) == 1:
             result = timb_logic.registra_timbratura(badge_uid, info["azioni_valide"][0])
@@ -205,7 +204,7 @@ class KioskUI:
             self.lbl_ora.config(text=now.strftime("%H:%M"))
         if hasattr(self, "lbl_data") and self.lbl_data.winfo_exists():
             try:
-                locale.setlocale(locale.LC_TIME, "it_IT.UTF-8")
+                locale.setlocale(locale.LC_TIME, locale_name())
             except locale.Error:
                 pass
             self.lbl_data.config(text=now.strftime("%a %d/%m/%Y"))

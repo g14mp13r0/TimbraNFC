@@ -9,7 +9,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import terminal.config as config
 import terminal.local_queue as local_queue
-from terminal.stati import AZIONI_LABEL, azione_automatica, azioni_valide, stato_da_timbrature, transizione_valida
+from shared.kiosk_i18n import action_label, t
+from terminal.stati import azione_automatica, azioni_valide, stato_da_timbrature, transizione_valida
 
 log = logging.getLogger("timbratura")
 
@@ -19,7 +20,7 @@ def processa_badge(badge_uid: str) -> dict:
     uid = badge_uid.strip().upper()
     dip = local_queue.get_dipendente(uid)
     if not dip:
-        return {"ok": False, "msg": "Badge non riconosciuto"}
+        return {"ok": False, "msg": t("badge_not_found")}
 
     azioni_oggi = local_queue.get_azioni_oggi(uid)
     stato = stato_da_timbrature(azioni_oggi)
@@ -29,6 +30,7 @@ def processa_badge(badge_uid: str) -> dict:
         "nome": dip["nome"],
         "cognome": dip["cognome"],
         "stato": stato,
+        "stato_label": t(f"stato_{stato}"),
         "azioni_valide": azioni_valide(stato),
     }
 
@@ -49,20 +51,20 @@ def registra_timbratura(badge_uid: str, azione: str, feedback_fn=None) -> dict:
         fb(False)
         return {
             "ok": False,
-            "msg": f"Azione {azione} non valida per stato {info['stato']}",
+            "msg": f"{t('invalid_action')} ({azione})",
             "nome": f"{info['nome']} {info['cognome']}",
         }
 
     if not transizione_valida(info["stato"], azione):
         fb(False)
-        return {"ok": False, "msg": "Transizione non valida"}
+        return {"ok": False, "msg": t("invalid_transition")}
 
     ultima = local_queue.ultima_timbratura(uid)
     if ultima:
         diff = datetime.now() - datetime.fromisoformat(ultima["timestamp"])
         if diff.total_seconds() < config.MIN_SECONDI_TRA_TIMBRATURE:
             fb(False)
-            return {"ok": False, "msg": "Attendere prima di timbrare di nuovo", "nome": f"{info['nome']} {info['cognome']}"}
+            return {"ok": False, "msg": t("wait_before_stamp"), "nome": f"{info['nome']} {info['cognome']}"}
 
     id_locale = local_queue.enqueue_timbratura(uid, azione)
     ora = datetime.now().strftime("%H:%M")
@@ -82,7 +84,7 @@ def registra_timbratura(badge_uid: str, azione: str, feedback_fn=None) -> dict:
         "id_locale": id_locale,
         "nome": f"{info['nome']} {info['cognome']}",
         "azione": azione,
-        "label": AZIONI_LABEL[azione],
+        "label": action_label(azione),
         "ora": ora,
     }
 
@@ -102,7 +104,7 @@ def registra_timbratura_auto(badge_uid: str, feedback_fn=None) -> dict:
             feedback_fn(False)
         return {
             "ok": False,
-            "msg": f"Stato {info['stato']} — timbratura non disponibile",
+            "msg": f"{t('state_unavailable')} ({info['stato']})",
             "nome": f"{info['nome']} {info['cognome']}",
         }
 

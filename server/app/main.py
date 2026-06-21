@@ -7,7 +7,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 from datetime import datetime, timedelta
 
-from fastapi import Depends, FastAPI, Form, Query, Request
+from fastapi import Depends, FastAPI, File, Form, Query, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -413,6 +413,109 @@ def export_report_csv(
     return StreamingResponse(
         iter([buf.getvalue()]),
         media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+# --- Impostazioni ---
+
+def _settings_page_context(db: Session, *, msg: str = "", error: str = ""):
+    from server.app.services.settings_env import (
+        ENV_PATH,
+        SECTION_LABELS,
+        SETTINGS_FIELDS,
+        kiosk_background_path,
+        parse_env_file,
+        read_settings,
+    )
+
+    settings = read_settings()
+    env_raw = parse_env_file()
+    bg_path = kiosk_background_path()
+    sections = [(k, v) for k, v in SECTION_LABELS.items() if k != "backup"]
+    secrets_set = {f["key"] for f in SETTINGS_FIELDS if f["type"] == "password" and env_raw.get(f["key"])}
+
+    return {
+        "settings": settings,
+        "fields": SETTINGS_FIELDS,
+        "sections": sections,
+        "secrets_set": secrets_set,
+        "env_path": str(ENV_PATH),
+        "bg_exists": bg_path.is_file(),
+        "bg_mtime": int(bg_path.stat().st_mtime) if bg_path.is_file() else 0,
+        "msg": msg,
+        "error": error,
+        "restart_hint": msg == "saved",
+        "active_page": "impostazioni",
+        **_sidebar_counts(db),
+    }
+
+
+@app.get("/impostazioni", response_class=HTMLResponse)
+def page_impostazioni(request: Request, db: Session = Depends(get_db), msg: str = "", error: str = ""):
+    return templates.TemplateResponse(
+        request,
+        "impostazioni.html",
+        _settings_page_context(db, msg=msg, error=error),
+    )
+
+
+@app.post("/impostazioni/salva")
+async def salva_impostazioni(request: Request, db: Session = Depends(get_db)):
+    from server.app.services.settings_env import save_settings
+
+    form = dict(await request.form())
+    try:
+        save_settings(form)
+    except Exception as exc:
+        return templates.TemplateResponse(
+            request,
+            "impostazioni.html",
+            _settings_page_context(db, error=f"Errore salvataggio: {exc}"),
+            status_code=400,
+        )
+    return RedirectResponse("/impostazioni?msg=saved", status_code=303)
+
+
+@app.post("/impostazioni/sfondo")
+async def upload_sfondo_kiosk(
+    sfondo: UploadFile = File(...),
+):
+    from server.app.services.settings_env import save_kiosk_background
+
+    content = await sfondo.read()
+    if not content or len(content) > 5 * 1024 * 1024:
+        return RedirectResponse("/impostazioni?msg=background_error", status_code=303)
+    try:
+        save_kiosk_background(content, filename="kiosk-background.png")
+    except Exception:
+        return RedirectResponse("/impostazioni?msg=background_error", status_code=303)
+    return RedirectResponse("/impostazioni?msg=background", status_code=303)
+
+
+@app.get("/impostazioni/sfondo-preview")
+def sfondo_kiosk_preview():
+    from fastapi.responses import FileResponse
+
+    from server.app.services.settings_env import kiosk_background_path
+
+    path = kiosk_background_path()
+    if not path.is_file():
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=404)
+    return FileResponse(path, media_type="image/png")
+
+
+@app.get("/impostazioni/backup.zip")
+def download_backup():
+    from server.app.services.settings_env import create_backup_zip
+
+    buf = create_backup_zip()
+    filename = f"timbranfc-backup-{datetime.now().strftime('%Y%m%d-%H%M%S')}.zip"
+    return StreamingResponse(
+        buf,
+        media_type="application/zip",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 

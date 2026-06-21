@@ -16,6 +16,7 @@ import terminal.config as config
 import terminal.device_identity as device_identity
 import terminal.local_queue as local_queue
 import terminal.sync_agent as sync_agent
+from shared.kiosk_i18n import t
 from terminal.kiosk_ui import KioskUI
 from terminal.nfc_reader import start_nfc_loop
 
@@ -91,9 +92,9 @@ def main():
                 if cap.ok:
                     data = cap.json()
                     if data.get("duplicate"):
-                        ui.mostra_enrollment_msg("Badge già registrato", uid, ok=False)
+                        ui.mostra_enrollment_msg(t("enrollment_duplicate"), uid, ok=False)
                     else:
-                        ui.mostra_enrollment_msg("Badge registrato", uid, ok=True)
+                        ui.mostra_enrollment_msg(t("enrollment_ok"), uid, ok=True)
                     return
                 log.warning("Enrollment capture fallita (%s) — timbratura normale", cap.status_code)
             except requests.RequestException as exc:

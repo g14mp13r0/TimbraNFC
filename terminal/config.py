@@ -50,3 +50,7 @@ KIOSK_BACKGROUND = Path(
 # Default attivo in standalone (nessun touch richiesto)
 _nfc_auto = os.environ.get("NFC_AUTO_TIMBRATURA", "1" if STANDALONE else "0")
 NFC_AUTO_TIMBRATURA = _nfc_auto == "1"
+
+# Lingua kiosk: it | fr | en
+KIOSK_LANG = os.environ.get("KIOSK_LANG", "it").strip().lower()[:2]
+KIOSK_CONFIRM_MS = int(os.environ.get("KIOSK_CONFIRM_MS", "4000"))
