@@ -317,6 +317,21 @@ def restart_kiosk(device_id: int, db: Session = Depends(get_db)):
     return RedirectResponse("/dispositivi?msg=kiosk_restart_queued", status_code=303)
 
 
+@app.post("/dispositivi/{device_id}/modifica")
+def modifica_dispositivo(
+    device_id: int,
+    nome: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    from server.app.services import dispositivi as dev_svc
+
+    try:
+        dev_svc.aggiorna_nome(db, device_id, nome)
+    except dev_svc.DispositivoError as exc:
+        return RedirectResponse(f"/dispositivi?error={exc.code}", status_code=303)
+    return RedirectResponse("/dispositivi?msg=modificato", status_code=303)
+
+
 @app.get("/dipendenti", response_class=HTMLResponse)
 def page_dipendenti(request: Request, db: Session = Depends(get_db), msg: str = "", error: str = ""):
     dips = db.query(Dipendente).order_by(Dipendente.cognome, Dipendente.nome).all()

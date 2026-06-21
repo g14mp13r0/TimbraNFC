@@ -11,9 +11,13 @@
     <div class="alert alert-success">{{ t('msg_kiosk_restart_ok') }}</div>
     {% elif msg == 'kiosk_restart_queued' %}
     <div class="alert alert-success">{{ t('msg_kiosk_restart_queued') }}</div>
+    {% elif msg == 'modificato' %}
+    <div class="alert alert-success">{{ t('msg_dev_renamed') }}</div>
     {% endif %}
     {% if error == 'non_trovato' %}
     <div class="alert alert-error">{{ t('err_not_found') }}</div>
+    {% elif error == 'nome_vuoto' %}
+    <div class="alert alert-error">{{ t('err_dev_name_empty') }}</div>
     {% elif error == 'restart_kiosk' %}
     <div class="alert alert-error">{{ t('err_kiosk_restart') }}{% if detail %}: {{ detail }}{% endif %}</div>
     {% endif %}
@@ -77,6 +81,13 @@
                         <div class="dc-meta-item"><div class="k">{{ t('dev_sw_version') }}</div><div class="v">{{ d.versione_sw or '—' }}</div></div>
                         <div class="dc-meta-item"><div class="k">{{ t('dev_last_hb') }}</div><div class="v">{{ d.ultimo_heartbeat | fmt_datetime if d.ultimo_heartbeat else '—' }}</div></div>
                     </div>
+                    <form method="post" action="/dispositivi/{{ d.id }}/modifica" class="dc-rename">
+                        <label>{{ t('dev_name_label') }}</label>
+                        <div class="dc-rename-row">
+                            <input name="nome" value="{{ d.nome }}" required maxlength="100" autocomplete="off">
+                            <button type="submit">{{ t('btn_save') }}</button>
+                        </div>
+                    </form>
                     <div class="dc-actions">
                         <form method="post" action="/dispositivi/{{ d.id }}/restart-kiosk">
                             <button type="submit">

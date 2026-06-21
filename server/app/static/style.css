@@ -450,6 +450,17 @@ code{font-family:var(--font-mono);background:var(--surface);padding:2px 7px;bord
 .dc-meta{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:14px;}
 .dc-meta-item .k{font-size:10.5px;text-transform:uppercase;letter-spacing:0.3px;color:var(--text-faint);margin-bottom:2px;}
 .dc-meta-item .v{font-size:12.5px;font-weight:600;color:var(--text);font-family:var(--font-mono);}
+.dc-rename{margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--line);}
+.dc-rename label{display:block;font-size:10.5px;text-transform:uppercase;letter-spacing:0.3px;color:var(--text-faint);margin-bottom:6px;}
+.dc-rename-row{display:flex;gap:8px;align-items:center;}
+.dc-rename-row input{
+  flex:1;min-width:0;border:1px solid var(--line);border-radius:var(--radius-sm);
+  padding:8px 10px;font-size:13px;font-weight:600;color:var(--navy-950);background:#fff;
+}
+.dc-rename-row button{
+  flex-shrink:0;border:none;border-radius:var(--radius-sm);padding:8px 12px;
+  background:var(--navy-950);color:#fff;font-size:12px;font-weight:600;cursor:pointer;
+}
 .dc-actions{display:flex;gap:8px;border-top:1px solid var(--line);padding-top:12px;}
 .dc-actions form{flex:1;margin:0;}
 .dc-actions button{width:100%;}

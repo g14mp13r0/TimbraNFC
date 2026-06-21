@@ -880,6 +880,21 @@ _STRINGS: dict[str, dict[Lang, str]] = {
     "dev_sw_version": {"it": "Versione SW", "fr": "Version SW", "en": "SW version"},
     "dev_last_hb": {"it": "Ultimo heartbeat", "fr": "Dernier heartbeat", "en": "Last heartbeat"},
     "dev_restart_kiosk": {"it": "Restart kiosk", "fr": "Redémarrer kiosk", "en": "Restart kiosk"},
+    "dev_name_label": {
+        "it": "Nome timbratrice",
+        "fr": "Nom du terminal",
+        "en": "Terminal name",
+    },
+    "msg_dev_renamed": {
+        "it": "Nome timbratrice aggiornato.",
+        "fr": "Nom du terminal mis à jour.",
+        "en": "Terminal name updated.",
+    },
+    "err_dev_name_empty": {
+        "it": "Il nome della timbratrice non può essere vuoto.",
+        "fr": "Le nom du terminal ne peut pas être vide.",
+        "en": "Terminal name cannot be empty.",
+    },
     "msg_kiosk_restart_ok": {
         "it": "Kiosk riavviato.",
         "fr": "Kiosk redémarré.",
