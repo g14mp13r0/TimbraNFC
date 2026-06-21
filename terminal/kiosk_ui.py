@@ -22,7 +22,9 @@ H = config.DISPLAY_HEIGHT
 BTN_W, BTN_H = 140, 60
 CONFIRM_MS = int(os.environ.get("KIOSK_CONFIRM_MS", "4000"))
 
-COLOR_BG = "#000000"
+COLOR_BG = "#ffffff"
+COLOR_TEXT = "#1a1a1a"
+COLOR_TEXT_MUTED = "#555555"
 COLOR_OK = "#0d7377"
 COLOR_ERR = "#c62828"
 COLOR_BTN = "#2d4059"
@@ -62,9 +64,9 @@ class KioskUI:
             if bbox:
                 src = src.crop(bbox)
 
-            # Sfondo nero + logo centrato, adattato allo schermo (contain)
+            # Sfondo bianco + logo centrato, adattato allo schermo (contain)
             iw, ih = src.size
-            scale = min(W / iw, H / ih)
+            scale = min(W / iw, H / ih) * 0.92
             nw, nh = max(1, int(iw * scale)), max(1, int(ih * scale))
             logo = src.resize((nw, nh), Image.Resampling.LANCZOS)
 
@@ -90,14 +92,14 @@ class KioskUI:
         self._badge_corrente = None
         self._applica_sfondo()
 
-        # Orario nel margine sinistro (logo centrato lascia bande nere ai lati)
+        # Orario nel margine sinistro
         self.lbl_ora = tk.Label(
-            self.root, text="00:00", font=("Helvetica", 22, "bold"), fg="white", bg=COLOR_BG
+            self.root, text="00:00", font=("Helvetica", 22, "bold"), fg=COLOR_TEXT, bg=COLOR_BG
         )
         self.lbl_ora.place(x=10, y=8, anchor="nw")
 
         self.lbl_data = tk.Label(
-            self.root, text="", font=("Helvetica", 10), fg="#bbbbbb", bg=COLOR_BG
+            self.root, text="", font=("Helvetica", 10), fg=COLOR_TEXT_MUTED, bg=COLOR_BG
         )
         self.lbl_data.place(x=10, y=36, anchor="nw")
 
@@ -109,10 +111,10 @@ class KioskUI:
         self._badge_corrente = info["badge_uid"]
         nome = f"{info['nome']} {info['cognome']}"
 
-        tk.Label(self.root, text=nome, font=("Helvetica", 16, "bold"), fg="white", bg=COLOR_BG).place(
+        tk.Label(self.root, text=nome, font=("Helvetica", 16, "bold"), fg=COLOR_TEXT, bg=COLOR_BG).place(
             relx=0.5, rely=0.08, anchor="center"
         )
-        tk.Label(self.root, text=f"Stato: {info['stato']}", font=("Helvetica", 12), fg="#aaa", bg=COLOR_BG).place(
+        tk.Label(self.root, text=f"Stato: {info['stato']}", font=("Helvetica", 12), fg=COLOR_TEXT_MUTED, bg=COLOR_BG).place(
             relx=0.5, rely=0.18, anchor="center"
         )
 
