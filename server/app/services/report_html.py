@@ -17,7 +17,6 @@ from shared.report_anomalies import (
     ANOMALY_BREVE,
     ANOMALY_RAVVICINATO,
     annota_anomalie_turni,
-    conta_anomalie,
     nota_anomalie,
     riepilogo_tempo,
     short_name,
@@ -105,7 +104,6 @@ def build_report_context(
     turni = annota_anomalie_turni(list(data.get("turni", [])))
     riepilogo = sorted(data.get("riepilogo", []), key=lambda r: r["dipendente"].lower())
     stats = riepilogo_tempo(turni)
-    n_anomalie = conta_anomalie(turni)
     brand = _report_brand()
 
     if dipendente_id and riepilogo:
@@ -162,8 +160,6 @@ def build_report_context(
         "card_hint": card_hint,
         "durata_totale": stats["durata_totale"],
         "hint_aperti": hint_aperti,
-        "n_turni": stats["n_turni"],
-        "n_anomalie": n_anomalie,
         "dipendenti_ore": [
             {
                 "dipendente": r["dipendente"],
@@ -182,10 +178,6 @@ def build_report_context(
             "summary": t("report_html_summary", code),
             "employee": t("lbl_employee", code),
             "total_time": t("col_total_time", code),
-            "shifts": t("col_n_shifts", code),
-            "anomalies": t("report_anomalies", code),
-            "in_period": t("report_in_period", code),
-            "suspicious": t("report_suspicious", code),
             "department": t("col_department", code),
             "detail": t("report_detail", code),
             "legend_open": t("report_legend_open", code),

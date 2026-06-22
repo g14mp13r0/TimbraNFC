@@ -108,7 +108,7 @@
   }
   .summary-grid{
     display:grid;
-    grid-template-columns:repeat(4,1fr);
+    grid-template-columns:repeat(2,1fr);
     gap:12px;
     margin-bottom:32px;
   }
@@ -324,16 +324,6 @@
       <div class="label">{{ labels.total_time }}</div>
       <div class="value accent">{{ durata_totale }}</div>
       {% if hint_aperti %}<div class="hint">{{ hint_aperti }}</div>{% endif %}
-    </div>
-    <div class="stat-card">
-      <div class="label">{{ labels.shifts }}</div>
-      <div class="value">{{ n_turni }}</div>
-      <div class="hint">{{ labels.in_period }}</div>
-    </div>
-    <div class="stat-card">
-      <div class="label">{{ labels.anomalies }}</div>
-      <div class="value warn">{{ n_anomalie }}</div>
-      <div class="hint">{{ labels.suspicious }}</div>
     </div>
   </div>
 
